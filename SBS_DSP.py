@@ -256,9 +256,9 @@ CONTENT BEGIN
     mif.writelines(headfile)
 
     i=0
-    ys = (ys - min(ys)) / (max(ys) - min(ys))*2**14-1
+    # ys = (ys - min(ys)) / (max(ys) - min(ys))*2**14-1
     # ys=ys/max(abs(ys))*2**14-1
-    # ys = ys * 2 ** 13 + 2 ** 13
+    ys = ys * 2 ** 13 + 2 ** 14
     #test
     fs, hz = get_fft(ys, N_FPGA)
     plt.figure()
