@@ -1,16 +1,12 @@
 import visa
 
-from SBSInterface import *
-from SBSPortInfo import *
 import sys
-import pyvisa
-import SBS_DSP
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QMainWindow
 
-from SBSInterface import Ui_SBSsystem
-from SBSPortInfo import Ui_Dialog
+from GUI.SBSInterface import Ui_SBSsystem
+from GUI.SBSPortInfo import Ui_Dialog
 
 
 class Interface_SBS(QtWidgets.QMainWindow, Ui_SBSsystem):

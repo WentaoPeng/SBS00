@@ -113,6 +113,7 @@ def Band_stop_filter(center_F,bandwidth,signal_BW,df):
 
     return f_list,amp_list,phase_list
 
+
 class Signal:
     """Represents a time-varying signal."""
 
