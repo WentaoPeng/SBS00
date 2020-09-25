@@ -11,4 +11,4 @@ if __name__ =='__main__':
     window=GUI.SBSInterface.Ui_SBSsystem()
     window.show()
 
-    sys.exit(app.exec_())
+ iuiuiu   sys.exit(app.exec_())
