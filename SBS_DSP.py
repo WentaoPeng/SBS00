@@ -257,8 +257,8 @@ CONTENT BEGIN
     mif.writelines(headfile)
 
     i=0
-    ys=ys+abs(min(ys))
-
+    # ys=ys+abs(min(ys))
+    ys=ys*2**13
     # ys = (ys - min(ys)) / (max(ys) - min(ys))*2**14-1
     # ys=(ys/max(abs(ys)))*2**14-1
 
@@ -306,7 +306,7 @@ if __name__ == '__main__':
     # amp_list=np.array([2,2,2,2,2,2])
     # f_list=[650,670,690,710,730,750]
 
-    f_list, amp_list, phase_list=square_filter(center_F=600*10**6,bandwidth=500*10**6,df=1*10**6)
+    f_list, amp_list, phase_list=square_filter(center_F=600*10**6,bandwidth=500*10**6,df=2*10**6)
     # f_list, amp_list, phase_list=triangle_filter(center_F=700*10**6,start_F=600*10**6,df=10*10**6)
     # f_list, amp_list, phase_list=Band_stop_filter(center_F=600*10**6, bandwidth=300*10**6, signal_BW=500*10**6, df=10**7)
     # 以MHz为单位，频梳间隔为15~20MHz
