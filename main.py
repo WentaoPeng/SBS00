@@ -1,14 +1,14 @@
 #! encoding = utf-8
 
 import sys
-from PyQt5 import QtGui
+from PyQt5 import QtWidgets
 
 import GUI.SBSInterface
 
 if __name__ =='__main__':
-    app=QtGui.QApplication(sys.argv)
+    app=QtWidgets.QApplication(sys.argv)
 
     window=GUI.SBSInterface.Ui_SBSsystem()
     window.show()
 
- iuiuiu   sys.exit(app.exec_())
+    sys.exit(app.exec_())

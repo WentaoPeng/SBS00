@@ -281,17 +281,26 @@ CONTENT BEGIN
 
     return mif
 
+def get_awgfile(ys):
+    txt='AWG_cos_square.txt'
+    with open(txt,'w') as f:
+        for item in ys:
+            f.write(str(item))
+            f.write('\n')
+
+    return txt
+
 if __name__ == '__main__':
 
     FPGA_framerate=2.5*10**9    #FPGA采样率
     AWG_framerate=64*10**9      #AWG采样率
 
-    # df=1*10**6
-    df=1.526*10**5        #频率分辨率
+    Df=1.25*10**6
+    # df=1.526*10**5        #频率分辨率
     FM_AWG=AWG_framerate/2.56       #AWG最高分析频率
     FM_FPGA=FPGA_framerate/2.56     #FPGA最高分析频率
-    N_AWG=int(AWG_framerate/df)
-    N_FPGA=int(FPGA_framerate/df)
+    N_AWG=int(AWG_framerate/Df)
+    N_FPGA=int(FPGA_framerate/Df)
     # N_FPGA=2**14
     t_AWG=N_AWG*(1/AWG_framerate)
     t_FPGA=N_FPGA*(1/FPGA_framerate)
@@ -306,17 +315,19 @@ if __name__ == '__main__':
     # amp_list=np.array([2,2,2,2,2,2])
     # f_list=[650,670,690,710,730,750]
 
-    f_list, amp_list, phase_list=square_filter(center_F=600*10**6,bandwidth=500*10**6,df=2*10**6)
+    f_list, amp_list, phase_list=square_filter(center_F=600*10**6,bandwidth=500*10**6,df=10*10**6)
     # f_list, amp_list, phase_list=triangle_filter(center_F=700*10**6,start_F=600*10**6,df=10*10**6)
     # f_list, amp_list, phase_list=Band_stop_filter(center_F=600*10**6, bandwidth=300*10**6, signal_BW=500*10**6, df=10**7)
     # 以MHz为单位，频梳间隔为15~20MHz
-    ts = np.linspace(0,t_FPGA,N_FPGA,endpoint=False)
+    # ts = np.linspace(0,t_FPGA,N_FPGA,endpoint=False)
+    ts=np.linspace(0,t_AWG,N_AWG,endpoint=False)
     
     ys=synthesize1(amp_list, f_list, ts, phase_list)
     print(f_list)
     # ys = (ys - min(ys)) / (max(ys) - min(ys)) * 2 ** 14
 
-    mif=get_mifile(ys)
+    # mif=get_mifile(ys)
+    txt=get_awgfile(ys)
 
     plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
     plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示符号
