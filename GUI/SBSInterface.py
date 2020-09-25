@@ -11,6 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class Ui_SBSsystem(object):
+
     def setupUi(self, SBSsystem):
         SBSsystem.setObjectName("SBSsystem")
         SBSsystem.resize(2282, 1496)
