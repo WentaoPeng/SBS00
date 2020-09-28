@@ -296,7 +296,8 @@ if __name__ == '__main__':
     AWG_framerate=64*10**9      #AWG采样率
 
     Df=1.25*10**6
-    # df=1.526*10**5        #频率分辨率
+    # Df=1.25*10**3
+    # Df=1.526*10**5        #频率分辨率
     FM_AWG=AWG_framerate/2.56       #AWG最高分析频率
     FM_FPGA=FPGA_framerate/2.56     #FPGA最高分析频率
     N_AWG=int(AWG_framerate/Df)
@@ -315,9 +316,9 @@ if __name__ == '__main__':
     # amp_list=np.array([2,2,2,2,2,2])
     # f_list=[650,670,690,710,730,750]
 
-    f_list, amp_list, phase_list=square_filter(center_F=600*10**6,bandwidth=500*10**6,df=10*10**6)
-    # f_list, amp_list, phase_list=triangle_filter(center_F=700*10**6,start_F=600*10**6,df=10*10**6)
-    # f_list, amp_list, phase_list=Band_stop_filter(center_F=600*10**6, bandwidth=300*10**6, signal_BW=500*10**6, df=10**7)
+    f_list, amp_list, phase_list=square_filter(center_F=15*10**9,bandwidth=200*10**6,df=6*10**6)
+    # f_list, amp_list, phase_list=triangle_filter(center_F=15*10**9,start_F=14.825*10**9,df=5*10**6)
+    # f_list, amp_list, phase_list=Band_stop_filter(center_F=10*10**9, bandwidth=3*10**9, signal_BW=5*10**9, df=10**7)
     # 以MHz为单位，频梳间隔为15~20MHz
     # ts = np.linspace(0,t_FPGA,N_FPGA,endpoint=False)
     ts=np.linspace(0,t_AWG,N_AWG,endpoint=False)
@@ -340,7 +341,8 @@ if __name__ == '__main__':
     plt.title("叠加信号图")
     # plt.show()
 
-    fs,hz=get_fft(ys,N_FPGA)
+    # fs,hz=get_fft(ys,N_FPGA)
+    fs, hz = get_fft(ys, N_AWG)
     # angle_fs = np.angle(np.abs(np.abs(fft(ys))/N_FPGA))
     # angle_hz=np.arange(len(ys))
     plt.subplot(212)
