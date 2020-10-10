@@ -1,6 +1,7 @@
 import visa
 
 import sys
+import GUI.SBSInterface
 
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMainWindow
@@ -9,11 +10,11 @@ from GUI.SBSInterface import Ui_SBSsystem
 from GUI.SBSPortInfo import Ui_Dialog
 
 
-class Interface_SBS(QtWidgets.QMainWindow, Ui_SBSsystem):
-    def __init__(self,parent=None):
-        QMainWindow.__init__(self)
-        self.main_ui=Ui_SBSsystem()
-        self.main_ui.setupUi(self)
+# class Interface_SBS(QtWidgets.QMainWindow, Ui_SBSsystem):
+#     def __init__(self,parent=None):
+#         QMainWindow.__init__(self)
+#         self.main_ui=Ui_SBSsystem()
+#         self.main_ui.setupUi(self)
         #super(Interface_SBS, self).__init__(parent=parent)
         #self.setupUi(self)
 
@@ -50,12 +51,12 @@ class N5225A():
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
-    window= Interface_SBS()
+    window=GUI.SBSInterface.Ui_SBSsystem()
     child=PortInfo_SBS()
 
     #通过按钮将两个窗体关联
-    btn=window.main_ui.Echeck
-    btn.clicked.connect(child.show)
+    # btn=window.main_ui.Echeck
+    # btn.clicked.connect(child.show)
 
     #显示
     window.show()

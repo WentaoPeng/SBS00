@@ -8,15 +8,18 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import datetime
 
 
-class Ui_SBSsystem(object):
+class Ui_SBSsystem(QtWidgets.QMainWindow):
 
-    def setupUi(self, SBSsystem):
-        SBSsystem.setObjectName("SBSsystem")
-        SBSsystem.resize(2282, 1496)
-        SBSsystem.setAnimated(False)
-        self.centralWidget = QtWidgets.QWidget(SBSsystem)
+    def __init__(self,parent=None):
+        QtWidgets.QMainWindow.__init__(self)
+    # def setupUi(self, SBSsystem):
+        self.setObjectName("SBSsystem")
+        self.resize(2282, 1496)
+        self.setAnimated(False)
+        self.centralWidget = QtWidgets.QWidget(self)
         self.centralWidget.setObjectName("centralWidget")
         self.SBSFiltershape = QtWidgets.QGroupBox(self.centralWidget)
         self.SBSFiltershape.setGeometry(QtCore.QRect(1110, 10, 841, 311))
@@ -191,32 +194,32 @@ class Ui_SBSsystem(object):
         self.openGLWidget = QtWidgets.QOpenGLWidget(self.centralWidget)
         self.openGLWidget.setGeometry(QtCore.QRect(40, 170, 981, 561))
         self.openGLWidget.setObjectName("openGLWidget")
-        SBSsystem.setCentralWidget(self.centralWidget)
-        self.menuBar = QtWidgets.QMenuBar(SBSsystem)
+        self.setCentralWidget(self.centralWidget)
+        self.menuBar = QtWidgets.QMenuBar(self)
         self.menuBar.setGeometry(QtCore.QRect(0, 0, 2282, 37))
         self.menuBar.setObjectName("menuBar")
         self.menu = QtWidgets.QMenu(self.menuBar)
         self.menu.setObjectName("menu")
         self.menu_2 = QtWidgets.QMenu(self.menuBar)
         self.menu_2.setObjectName("menu_2")
-        SBSsystem.setMenuBar(self.menuBar)
-        self.mainToolBar = QtWidgets.QToolBar(SBSsystem)
+        self.setMenuBar(self.menuBar)
+        self.mainToolBar = QtWidgets.QToolBar(self)
         self.mainToolBar.setObjectName("mainToolBar")
-        SBSsystem.addToolBar(QtCore.Qt.TopToolBarArea, self.mainToolBar)
-        self.statusBar = QtWidgets.QStatusBar(SBSsystem)
+        self.addToolBar(QtCore.Qt.TopToolBarArea, self.mainToolBar)
+        self.statusBar = QtWidgets.QStatusBar(self)
         self.statusBar.setObjectName("statusBar")
-        SBSsystem.setStatusBar(self.statusBar)
-        self.actionAWG = QtWidgets.QAction(SBSsystem)
+        self.setStatusBar(self.statusBar)
+        self.actionAWG = QtWidgets.QAction(self)
         self.actionAWG.setObjectName("actionAWG")
-        self.actionVNA = QtWidgets.QAction(SBSsystem)
+        self.actionVNA = QtWidgets.QAction(self)
         self.actionVNA.setObjectName("actionVNA")
         self.menu_2.addAction(self.actionAWG)
         self.menu_2.addAction(self.actionVNA)
         self.menuBar.addAction(self.menu.menuAction())
         self.menuBar.addAction(self.menu_2.menuAction())
 
-        self.retranslateUi(SBSsystem)
-        QtCore.QMetaObject.connectSlotsByName(SBSsystem)
+        self.retranslateUi(self)
+        QtCore.QMetaObject.connectSlotsByName(self)
 
     def retranslateUi(self, SBSsystem):
         _translate = QtCore.QCoreApplication.translate

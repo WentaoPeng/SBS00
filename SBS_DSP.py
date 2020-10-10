@@ -69,8 +69,9 @@ def square_filter(center_F,bandwidth,df):
 
     return f_list, amp_list, phase_list
 
-def triangle_filter(center_F,start_F,df):
-    dots=int(2*(center_F-start_F)/df)
+def triangle_filter(center_F,bandwidth,df):
+    dots=int(bandwidth/df+1)
+    start_F=center_F-bandwidth/2
     end_F=center_F+(center_F-start_F)
     f_list=[]
     amp_list=np.empty(dots)
@@ -295,8 +296,8 @@ if __name__ == '__main__':
     FPGA_framerate=2.5*10**9    #FPGA采样率
     AWG_framerate=64*10**9      #AWG采样率
 
-    Df=1.25*10**6
-    # Df=1.25*10**3
+    Df=1*10**6
+    # Df=1.25*10**6
     # Df=1.526*10**5        #频率分辨率
     FM_AWG=AWG_framerate/2.56       #AWG最高分析频率
     FM_FPGA=FPGA_framerate/2.56     #FPGA最高分析频率
@@ -316,8 +317,8 @@ if __name__ == '__main__':
     # amp_list=np.array([2,2,2,2,2,2])
     # f_list=[650,670,690,710,730,750]
 
-    f_list, amp_list, phase_list=square_filter(center_F=15*10**9,bandwidth=200*10**6,df=6*10**6)
-    # f_list, amp_list, phase_list=triangle_filter(center_F=15*10**9,start_F=14.825*10**9,df=5*10**6)
+    f_list, amp_list, phase_list=square_filter(center_F=16*10**9,bandwidth=500*10**6,df=5*10**6)
+    # f_list, amp_list, phase_list=triangle_filter(center_F=21*10**9,bandwidth=200*10**6,df=5*10**6)
     # f_list, amp_list, phase_list=Band_stop_filter(center_F=10*10**9, bandwidth=3*10**9, signal_BW=5*10**9, df=10**7)
     # 以MHz为单位，频梳间隔为15~20MHz
     # ts = np.linspace(0,t_FPGA,N_FPGA,endpoint=False)
