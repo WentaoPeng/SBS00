@@ -22,11 +22,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.VNAHandle=None
         self.AWGHandle=None
 
-        # 设置菜单条动作
+        # 设置菜单栏动作
         exitAction = QtWidgets.QAction('Exit', self)
         exitAction.setShortcuts(['Ctrl+Q', 'Esc'])
         exitAction.setStatusTip('Exit program')
         exitAction.triggered.connect(self.on_exit)
 
-        def on_exit(self):
-            self.close()
+        # 设置菜单栏
+        menuFile = self.menuBar().addMenu('&File')
+        menuFile.addAction(exitAction)
+
+
+
+    def on_exit(self):
+        self.close()
