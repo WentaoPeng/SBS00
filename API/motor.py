@@ -8,12 +8,13 @@ def query_inst_name(motorHandle):
     '''
 
     try:
-        text=motorHandle.query('*IDN?')
+        text = motorHandle.query('*IDN?')
         return text.strip()
     except:
         return 'N.A.'
 
-def move(motorHandle,step):
+
+def move(motorHandle, step):
     '''
     步进
     :param motorHandle:

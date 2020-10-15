@@ -2,43 +2,45 @@
 import pyvisa
 import os.path
 
+
 def list_inst():
     '''
     查询可用仪器列表
     :return:
     '''
     try:
-        rm=pyvisa.highlevel.ResourceManager()
+        rm = pyvisa.highlevel.ResourceManager()
     except OSError:
-        return [],'Cannot open VISA Library!'
+        return [], 'Cannot open VISA Library!'
 
-    #获取可用设备地址
-    inst_list=list(rm.list_resources())
+    # 获取可用设备地址
+    inst_list = list(rm.list_resources())
     inst_list.sort()
-    inst_dict={}
+    inst_dict = {}
     for inst in inst_list:
         try:
             # 打开每台仪器获取信息
-            temp=rm.open_resource(inst,read_termination='\r\n')
+            temp = rm.open_resource(inst, read_termination='\r\n')
             # 如果是GPIB，查询名称
-            if int(temp.interface_type)==1:
-                text=temp.query('IDN?')
-                inst_dict[inst]=text.strip()
+            if int(temp.interface_type) == 1:
+                text = temp.query('IDN?')
+                inst_dict[inst] = text.strip()
             else:
-                inst_dict[inst]=inst
+                inst_dict[inst] = inst
             # 关闭设备
             temp.close()
         except:
-            inst_dict[inst]='Visa IO Error'
+            inst_dict[inst] = 'Visa IO Error'
 
-    inst_str='Detected Instrument:\n'
+    inst_str = 'Detected Instrument:\n'
     if inst_dict:
         for inst in inst_list:
-            inst_str=inst_str+'{:s}\t{:s}\n'.format(inst,inst_dict[inst])
+            inst_str = inst_str + '{:s}\t{:s}\n'.format(inst, inst_dict[inst])
     else:
-        inst_str='No instrument available. Check your connection/driver.'
+        inst_str = 'No instrument available. Check your connection/driver.'
 
-    return inst_list,inst_str
+    return inst_list, inst_str
+
 
 def open_inst(inst_address):
     '''
@@ -47,12 +49,12 @@ def open_inst(inst_address):
     :return:
     '''
 
-    if inst_address=='N.A.':
+    if inst_address == 'N.A.':
         return None
     else:
         try:
-            rm=pyvisa.highlevel.ResourceManager()
-            inst_handle=rm.open_resource(inst_address)
+            rm = pyvisa.highlevel.ResourceManager()
+            inst_handle = rm.open_resource(inst_address)
             return inst_handle
         except:
             return None
@@ -64,14 +66,14 @@ def close_inst(*inst_handle):
     :param inst_handle:
     :return:
     '''
-    status=False
+    status = False
 
     for inst in inst_handle:
         if inst:
             try:
                 inst.close()
             except:
-                status=True
+                status = True
         else:
             pass
     return status
