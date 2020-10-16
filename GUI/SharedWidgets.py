@@ -6,7 +6,29 @@ from math import ceil
 import numpy as np
 
 
+BUTTONLABEL = {'confirm':['Lets do it', 'Go forth and conquer', 'Ready to go',
+                          'Looks good', 'Sounds about right'],
+               'complete':['Nice job', 'Sweet', 'Well done', 'Mission complete'],
+               'accept':['I see', 'Gotcha', 'Okay', 'Yes master'],
+               'reject':['Never mind', 'I changed my mind', 'Cancel', 'I refuse'],
+               'error':['Oopsy!', 'Something got messed up', 'Bad']
+                }
 
+
+
+def btn_label(btn_type):
+    ''' Randomly generate a QPushButton label.
+        Arguments
+            btn_type: str
+        Returns
+            label: str
+    '''
+
+    try:
+        a_list = BUTTONLABEL[btn_type]
+        return a_list[random.randint(0, len(a_list)-1)]
+    except KeyError:
+        return 'A Button'
 
 
 
