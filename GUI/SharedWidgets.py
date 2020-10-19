@@ -30,8 +30,33 @@ def btn_label(btn_type):
     except KeyError:
         return 'A Button'
 
+class AWGInfo():
+    '''AWG信息'''
+    def __init__(self):
+        self.instName=''
+        self.instInterface=''
+        self.instInterfaceNum=0
 
 
+    def full_info_query(self,AWGHandle):
+        '''采集设备信息'''
+        if AWGHandle:
+            self.instName=AWGHandle.resource_name
+            self.instInterface=str(AWGHandle.interface_type)
+            self.instInterfaceNum=AWGHandle.interface_number
+
+class EVNAInfo():
+    '''EVNA信息'''
+    def __init__(self):
+        self.instName=''
+        self.instInterface=''
+        self.instInterfaceNum=0
+
+    def full_info_query(self,EVNAHandle):
+        if EVNAHandle:
+            self.instName = EVNAHandle.resource_name
+            self.instInterface = str(EVNAHandle.interface_type)
+            self.instInterfaceNum = EVNAHandle.interface_number
 
 
 def msgcolor(status_code):

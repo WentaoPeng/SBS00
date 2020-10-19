@@ -155,3 +155,18 @@ class AWGDesignMonitor(QtWidgets.QWidget):
             self.parent.synStatus.setChecked(False)
 
         self.parent.synStatus.print_info()
+
+class VNAMonitor(QtWidgets.QGroupBox):
+
+    def __init__(self,parent):
+        QtWidgets.QWidget.__init__(self,parent)
+        self.parent=parent
+
+        self.pgPlot=pg.PlotWidget(title='EVNA Monitor')
+        mainLayout=QtWidgets.QGridLayout()
+        mainLayout.setAlignment(QtCore.Qt.AlignTop)
+        mainLayout.addWidget(self.pgPlot,0,0)
+        self.setLayout(mainLayout)
+
+    def plot(self):
+        pass

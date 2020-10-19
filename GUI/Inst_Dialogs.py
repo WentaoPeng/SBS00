@@ -30,7 +30,6 @@ class selectInstDialog(QtWidgets.QDialog):
 
         selInst = QtWidgets.QWidget()
         selInstLayout = QtWidgets.QFormLayout()
-
         self.selAWG = QtWidgets.QComboBox()
         self.selAWG.addItems(['N.A.'])
         self.selAWG.addItems(instList)
@@ -55,7 +54,6 @@ class selectInstDialog(QtWidgets.QDialog):
         self.selDC3 = QtWidgets.QComboBox()
         self.selDC3.addItems(['N.A.'])
         self.selDC3.addItems(instList)
-
         selInstLayout.addRow(QtWidgets.QLabel('AWG'), self.selAWG)
         selInstLayout.addRow(QtWidgets.QLabel('EVNA'), self.selEVNA)
         selInstLayout.addRow(QtWidgets.QLabel('EDFA1'), self.selEDFA1)
@@ -64,6 +62,7 @@ class selectInstDialog(QtWidgets.QDialog):
         selInstLayout.addRow(QtWidgets.QLabel('DC1'), self.selDC1)
         selInstLayout.addRow(QtWidgets.QLabel('DC2'), self.selDC2)
         selInstLayout.addRow(QtWidgets.QLabel('DC3'), self.selDC3)
+        selInst.setLayout(selInstLayout)
 
         mainLayout = QtWidgets.QGridLayout()
         mainLayout.addWidget(self.availableInst, 0, 0, 1, 2)
@@ -127,3 +126,11 @@ class selectInstDialog(QtWidgets.QDialog):
         self.parent.DC3Handle=api_gen.list_inst(self.selDC3.currentText())
 
         self.done(True)
+
+class viewInstDialog(QtWidgets.QDialog):
+
+    def __init__(self,parent):
+        QtWidgets.QDialog.__init__(self,parent)
+
+        self.setMinimumSize(400,400)
+        self.setWindowTitle('View Instrument Status')
