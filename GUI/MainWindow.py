@@ -98,22 +98,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.AWGCtrl = Panels.AWGCtrl(self)
         self.EVNACtrl = Panels.VNACtrl(self)
         # 设置显示模块
-        self.VNAMonitor=Panels.VNAMonitor(self)
+        self.VNAMonitor = Panels.VNAMonitor(self)
 
         # 设置主要模块显示位置
-        self.mainLayout=QtWidgets.QGridLayout()
+        self.mainLayout = QtWidgets.QGridLayout()
         self.mainLayout.setSpacing(6)
-        self.mainLayout.addWidget(self.AWGStatus,0,0,3,2)
-        self.mainLayout.addWidget(self.EVNAStatus,3,0,2,2)
+        self.mainLayout.addWidget(self.AWGStatus, 0, 0, 3, 2)
+        self.mainLayout.addWidget(self.EVNAStatus, 3, 0, 2, 2)
 
-        self.mainLayout.addWidget(self.AWGCtrl,0,2,3,3)
-        self.mainLayout.addWidget(self.EVNACtrl,3,2,2,2)
+        self.mainLayout.addWidget(self.AWGCtrl, 0, 2, 3, 3)
+        self.mainLayout.addWidget(self.EVNACtrl, 3, 2, 2, 2)
 
-        self.mainLayout.addWidget(self.testModeSignLabel,7,0,1,2)
+        self.mainLayout.addWidget(self.testModeSignLabel, 7, 0, 1, 2)
 
-        self.mainLayout.addWidget(self.VNAMonitor,0,5,1,3)
+        self.mainLayout.addWidget(self.VNAMonitor, 0, 5, 1, 3)
 
-        self.mainWidget=QtWidgets.QWidget()
+        self.mainWidget = QtWidgets.QWidget()
         self.mainWidget.setLayout(self.mainLayout)
         self.setCentralWidget(self.mainWidget)
 
@@ -134,17 +134,16 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.setWindowTitle('SBSSystem')
             self.testModeSignLabel.hide()
-            self.AWGCtrl.setChecked(not(self.AWGHandle is None))
+            self.AWGCtrl.setChecked(not (self.AWGHandle is None))
             self.EVNACtrl.setChecked(not (self.VNAHandle is None))
 
-            self.AWGStatus.setChecked(not(self.AWGHandle is None))
-            self.EVNAStatus.setChecked(not(self.VNAHandle is None))
+            self.AWGStatus.setChecked(not (self.AWGHandle is None))
+            self.EVNAStatus.setChecked(not (self.VNAHandle is None))
 
     def load_dialogs(self):
         # 加载小部件
         self.selInstDialog = Dialogs.selectInstDialog(self)
-        self.viewInstDialog=Dialogs.viewInstDialog(self)
-
+        self.viewInstDialog = Dialogs.viewInstDialog(self)
 
     def on_exit(self):
         self.close()

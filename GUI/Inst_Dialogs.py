@@ -85,9 +85,9 @@ class selectInstDialog(QtWidgets.QDialog):
         instList, instStr = api_gen.list_inst()
         self.availableInst.setText(instStr)
 
-        item_count=self.selAWG.count()
+        item_count = self.selAWG.count()
 
-        for i in range(item_count-1):
+        for i in range(item_count - 1):
             self.selAWG.removeItem(1)
             self.selEVNA.removeItem(1)
             self.selEDFA1.removeItem(1)
@@ -116,21 +116,22 @@ class selectInstDialog(QtWidgets.QDialog):
                            self.parent.DC2Handle,
                            self.parent.DC3Handle)
         # 开启新的设备连接
-        self.parent.AWGHandle=api_gen.list_inst(self.selAWG.currentText())
-        self.parent.EVNAHandle=api_gen.list_inst(self.selEVNA.currentText())
-        self.parent.OSAHandle=api_gen.list_inst(self.selOSA.currentText())
-        self.parent.EDFA1Handle=api_gen.list_inst(self.selEDFA1.currentText())
-        self.parent.EDFA2Handle=api_gen.list_inst(self.selEDFA2.currentText())
-        self.parent.DC1Handle=api_gen.list_inst(self.selDC1.currentText())
-        self.parent.DC2Handle=api_gen.list_inst(self.selDC2.currentText())
-        self.parent.DC3Handle=api_gen.list_inst(self.selDC3.currentText())
+        self.parent.AWGHandle = api_gen.list_inst(self.selAWG.currentText())
+        self.parent.EVNAHandle = api_gen.list_inst(self.selEVNA.currentText())
+        self.parent.OSAHandle = api_gen.list_inst(self.selOSA.currentText())
+        self.parent.EDFA1Handle = api_gen.list_inst(self.selEDFA1.currentText())
+        self.parent.EDFA2Handle = api_gen.list_inst(self.selEDFA2.currentText())
+        self.parent.DC1Handle = api_gen.list_inst(self.selDC1.currentText())
+        self.parent.DC2Handle = api_gen.list_inst(self.selDC2.currentText())
+        self.parent.DC3Handle = api_gen.list_inst(self.selDC3.currentText())
 
         self.done(True)
 
+
 class viewInstDialog(QtWidgets.QDialog):
 
-    def __init__(self,parent):
-        QtWidgets.QDialog.__init__(self,parent)
+    def __init__(self, parent):
+        QtWidgets.QDialog.__init__(self, parent)
 
-        self.setMinimumSize(400,400)
+        self.setMinimumSize(400, 400)
         self.setWindowTitle('View Instrument Status')
