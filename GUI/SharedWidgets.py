@@ -59,6 +59,19 @@ class EVNAInfo():
             self.instInterface = str(EVNAHandle.interface_type)
             self.instInterfaceNum = EVNAHandle.interface_number
 
+class OSAInfo():
+    '''OSA信息'''
+
+    def __init__(self):
+        self.instName=''
+        self.instInterface = ''
+        self.instInterfaceNum = 0
+
+    def full_info_query(self,OSAHandle):
+        if OSAHandle:
+            self.instName=OSAHandle.resource_name
+            self.instInterface=str(OSAHandle.interface_type)
+            self.instInterfaceNum=OSAHandle.interface_number
 
 def msgcolor(status_code):
     ''' Return message color based on status_code.

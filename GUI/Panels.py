@@ -71,6 +71,31 @@ class AWGStatus(QtWidgets.QGroupBox):
 
         self.parent.synStatus.print_info()
 
+class OSAStatus(QtWidgets.QGroupBox):
+    '''
+    光谱仪状态显示
+    '''
+    def __init__(self,parent):
+        QtWidgets.QGroupBox.__init__(self, parent)
+        self.parent = parent
+
+        self.setTitle('OSA Status')
+        self.setAlignment(QtCore.Qt.AlignLeft)
+        self.setCheckable(True)
+        self.setChecked(False)
+    def check(self):
+        ''' Enable/disable this groupbox '''
+
+        if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
+            self.setChecked(True)
+            self.parent.synStatus.setChecked(True)
+        else:
+            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
+            msg.exec_()
+            self.setChecked(False)
+            self.parent.synStatus.setChecked(False)
+
+        self.parent.synStatus.print_info()
 
 class VNACtrl(QtWidgets.QGroupBox):
     '''
@@ -129,6 +154,31 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         self.parent.synStatus.print_info()
 
+class OSACtrl(QtWidgets.QGroupBox):
+    '''
+    光谱仪状态显示
+    '''
+    def __init__(self,parent):
+        QtWidgets.QGroupBox.__init__(self, parent)
+        self.parent = parent
+
+        self.setTitle('OSA Ctrl')
+        self.setAlignment(QtCore.Qt.AlignLeft)
+        self.setCheckable(True)
+        self.setChecked(False)
+    def check(self):
+        ''' Enable/disable this groupbox '''
+
+        if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
+            self.setChecked(True)
+            self.parent.synStatus.setChecked(True)
+        else:
+            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
+            msg.exec_()
+            self.setChecked(False)
+            self.parent.synStatus.setChecked(False)
+
+        self.parent.synStatus.print_info()
 
 class AWGDesignMonitor(QtWidgets.QWidget):
     '''
@@ -167,5 +217,19 @@ class VNAMonitor(QtWidgets.QGroupBox):
         mainLayout.addWidget(self.pgPlot, 0, 0)
         self.setLayout(mainLayout)
 
+    def plot(self):
+        pass
+
+class OSAMonitor(QtWidgets.QGroupBox):
+
+    def __init__(self,parent):
+        QtWidgets.QWidget.__init__(self,parent)
+        self.parent=parent
+
+        self.pgPlot=pg.PlotWidget(title='OSA Monitor')
+        mainLayout=QtWidgets.QGridLayout()
+        mainLayout.setAlignment(QtCore.Qt.AlignTop)
+        mainLayout.addWidget(self.pgPlot,0,0)
+        self.setLayout(mainLayout)
     def plot(self):
         pass

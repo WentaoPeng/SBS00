@@ -89,29 +89,37 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.AWGInfo = Shared.AWGInfo()
         self.EVNAInfo = Shared.EVNAInfo()
+        self.OSAInfo=Shared.OSAInfo()
 
         # 状态监控栏
         self.AWGStatus = Panels.AWGStatus(self)
         self.EVNAStatus = Panels.VNAStatus(self)
+        self.OSAStatus=Panels.OSAStatus(self)
 
         # 设备控制栏
         self.AWGCtrl = Panels.AWGCtrl(self)
         self.EVNACtrl = Panels.VNACtrl(self)
+        self.OSACtrl=Panels.OSACtrl(self)
+
         # 设置显示模块
         self.VNAMonitor = Panels.VNAMonitor(self)
+        self.OSAMonitor=Panels.OSAMonitor(self)
 
         # 设置主要模块显示位置
         self.mainLayout = QtWidgets.QGridLayout()
         self.mainLayout.setSpacing(6)
-        self.mainLayout.addWidget(self.AWGStatus, 0, 0, 3, 2)
+        self.mainLayout.addWidget(self.AWGStatus, 0, 0, 2, 2)
         self.mainLayout.addWidget(self.EVNAStatus, 3, 0, 2, 2)
+        self.mainLayout.addWidget(self.OSAStatus,5,0,2,2)
 
-        self.mainLayout.addWidget(self.AWGCtrl, 0, 2, 3, 3)
-        self.mainLayout.addWidget(self.EVNACtrl, 3, 2, 2, 2)
+        self.mainLayout.addWidget(self.AWGCtrl, 0, 2, 2, 3)
+        self.mainLayout.addWidget(self.EVNACtrl, 3, 2, 2, 3)
+        self.mainLayout.addWidget(self.OSACtrl,5,2,2,3)
 
         self.mainLayout.addWidget(self.testModeSignLabel, 7, 0, 1, 2)
 
-        self.mainLayout.addWidget(self.VNAMonitor, 0, 5, 1, 3)
+        self.mainLayout.addWidget(self.VNAMonitor, 0, 5, 2, 4)
+        self.mainLayout.addWidget(self.OSAMonitor,4,5,2,4)
 
         self.mainWidget = QtWidgets.QWidget()
         self.mainWidget.setLayout(self.mainLayout)
