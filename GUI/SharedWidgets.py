@@ -73,6 +73,31 @@ class OSAInfo():
             self.instInterface=str(OSAHandle.interface_type)
             self.instInterfaceNum=OSAHandle.interface_number
 
+class EDFA1Info():
+    '''EDFA1 信息'''
+    def __init__(self):
+        self.instName=''
+        self.instInterface = ''
+        self.instInterfaceNum = 0
+    def full_info_query(self,EDFA1Handle):
+        if EDFA1Handle:
+            self.instName=EDFA1Handle.resource_name
+            self.instInterface=str(EDFA1Handle.interface_type)
+            self.instInterfaceNum=EDFA1Handle.interface_number
+
+
+class EDFA2Info():
+    '''EDFA2 信息'''
+    def __init__(self):
+        self.instName=''
+        self.instInterface = ''
+        self.instInterfaceNum = 0
+    def full_info_query(self,EDFA2Handle):
+        if EDFA2Handle:
+            self.instName=EDFA2Handle.resource_name
+            self.instInterface=str(EDFA2Handle.interface_type)
+            self.instInterfaceNum=EDFA2Handle.interface_number
+
 def msgcolor(status_code):
     ''' Return message color based on status_code.
         0: fatal, red

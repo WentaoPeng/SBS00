@@ -15,7 +15,8 @@ PI2 = math.pi * 2
 
 
 def randen_phase():
-    list = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4]
+    # list = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4]
+    list = [0,np.pi / 2,np.pi, 3 * np.pi / 2]
     a = random.choice(list)
     return a
 
@@ -59,13 +60,14 @@ def square_filter(center_F, bandwidth, df):
     start_F = center_F - bandwidth / 2
     # end_F=center_F+bandwidth/2
     dots = int(bandwidth / df + 1)
-    a = np.random.randint(0, df / (10 ** 6) + 1)
+    # a = np.random.randint(0, df / (10 ** 6) + 1)
     f_list = []
     amp_list = np.empty(dots)
     phase_list = []
     i = 0
     while i < dots:
-        f_list.append(start_F + i * df + a * 10 ** 6)
+        # f_list.append(start_F + i * df + a * 10 ** 6)
+        f_list.append(start_F + i * df)
         amp_list[i] = 2
         phase_list.append(randen_phase())
         i = i + 1
@@ -77,14 +79,15 @@ def triangle_filter(center_F, bandwidth, df):
     dots = int(bandwidth / df + 1)
     start_F = center_F - bandwidth / 2
     end_F = center_F + (center_F - start_F)
-    a = np.random.randint(0, df / (10 ** 6) + 1)
+    # a = np.random.randint(0, df / (10 ** 6) + 1)
     f_list = []
     amp_list = np.empty(dots)
     phase_list = []
     i = 0
     j = int(dots / 2 + 1)
     while i < dots:
-        f_list.append(start_F + i * df + a * 10 ** 6)
+        # f_list.append(start_F + i * df + a * 10 ** 6)
+        f_list.append(start_F + i * df)
         phase_list.append(randen_phase())
         if i < j:
             amp_list[i] = i * df * 2 / (center_F - start_F)
@@ -292,8 +295,14 @@ CONTENT BEGIN
 
 
 def get_awgfile(ys):
-    # txt='AWG_cos_square.txt'
-    txt = 'AWG_cos_triangle.txt'
+
+    # ys = (ys - min(ys)) / (max(ys) - min(ys))-0.5
+    # ys=1.0/(1+np.exp(-ys))
+    mean=np.average(ys)
+    sigma=np.std(ys)
+    ys=(ys-mean)/sigma
+    # txt = 'AWG_cos_triangle.txt'
+    txt='AWG_cos_square.txt'
     with open(txt, 'w') as f:
         for item in ys:
             f.write(str(item))
@@ -327,8 +336,8 @@ if __name__ == '__main__':
     # amp_list=np.array([2,2,2,2,2,2])
     # f_list=[650,670,690,710,730,750]
 
-    f_list, amp_list, phase_list = square_filter(center_F=21 * 10 ** 9, bandwidth=150 * 10 ** 6, df=15 * 10 ** 6)
-    # f_list, amp_list, phase_list=triangle_filter(center_F=16*10**9,bandwidth=150*10**6,df=15*10**6)
+    f_list, amp_list, phase_list = square_filter(center_F=15 * 10 ** 9, bandwidth=400 * 10 ** 6, df=15 * 10 ** 6)
+    # f_list, amp_list, phase_list=triangle_filter(center_F=20*10**9,bandwidth=200*10**6,df=15*10**6)
     # f_list, amp_list, phase_list=Band_stop_filter(center_F=10*10**9, bandwidth=3*10**9, signal_BW=5*10**9, df=10**7)
     # 以MHz为单位，频梳间隔为15~20MHz
     # ts = np.linspace(0,t_FPGA,N_FPGA,endpoint=False)
@@ -367,22 +376,22 @@ if __name__ == '__main__':
     plt.show()
 
     # print(len(ys))
-
-    # fft_ys=np.abs(np.abs(fft(ys))/AWG_N)
-    # fft_ys=scipy.fft(ys)
-    # fft_ys1=abs(fft_ys)
-    # fft_ys2=abs(fft_ys1/AWG_N)
-    # fft_ys3=fft_ys2[range(int(AWG_N/2))]
-    # Fs=np.arange(len(ys))
+    ys=np.loadtxt('AWG_cos_square.txt')
+    fft_ys=np.abs(np.abs(fft(ys))/N_AWG)
+    fft_ys=scipy.fft.fft(ys)
+    fft_ys1=abs(fft_ys)
+    fft_ys2=abs(fft_ys1/N_AWG)
+    fft_ys3=fft_ys2[range(int(N_AWG/2))]
+    Fs=np.arange(len(ys))
     #
     #
     # angle_ys = np.angle(fft_ys)
     #
-    # plt.figure()
+    plt.figure()
     # plt.subplot(311)
     # plt.plot(ts, ys)
     # plt.subplot(312)
-    # plt.plot(Fs, fft_ys2)
+    plt.plot(Fs, fft_ys2)
     # plt.subplot(313)
     # plt.plot(Fs, angle_ys)
-    # plt.show()
+    plt.show()

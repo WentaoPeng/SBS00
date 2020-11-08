@@ -28,9 +28,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.OSAHandle = None
         self.EDFA1Handle = None
         self.EDFA2Handle = None
-        self.DC1Handle = None
-        self.DC2Handle = None
-        self.DC3Handle = None
+        # self.DC1Handle = None
+        # self.DC2Handle = None
+        # self.DC3Handle = None
         # 设置菜单栏动作
         # 退出系统
         exitAction = QtWidgets.QAction('Exit', self)
@@ -89,37 +89,47 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.AWGInfo = Shared.AWGInfo()
         self.EVNAInfo = Shared.EVNAInfo()
-        self.OSAInfo=Shared.OSAInfo()
+        self.OSAInfo = Shared.OSAInfo()
+        self.EDFA1Info = Shared.EDFA1Info()
+        self.EDFA2Info = Shared.EDFA2Info()
 
         # 状态监控栏
         self.AWGStatus = Panels.AWGStatus(self)
         self.EVNAStatus = Panels.VNAStatus(self)
-        self.OSAStatus=Panels.OSAStatus(self)
+        self.OSAStatus = Panels.OSAStatus(self)
+        self.EDFA1Status = Panels.EDFA1Status(self)
+        self.EDFA2Status = Panels.EDFA2Status(self)
 
         # 设备控制栏
         self.AWGCtrl = Panels.AWGCtrl(self)
         self.EVNACtrl = Panels.VNACtrl(self)
-        self.OSACtrl=Panels.OSACtrl(self)
+        self.OSACtrl = Panels.OSACtrl(self)
+        self.EDFA1Ctrl = Panels.EDFA1Ctrl(self)
+        self.EDFA2Ctrl = Panels.EDFA2Ctrl(self)
 
         # 设置显示模块
         self.VNAMonitor = Panels.VNAMonitor(self)
-        self.OSAMonitor=Panels.OSAMonitor(self)
+        self.OSAMonitor = Panels.OSAMonitor(self)
 
         # 设置主要模块显示位置
         self.mainLayout = QtWidgets.QGridLayout()
-        self.mainLayout.setSpacing(6)
+        self.mainLayout.setSpacing(11)
         self.mainLayout.addWidget(self.AWGStatus, 0, 0, 2, 2)
-        self.mainLayout.addWidget(self.EVNAStatus, 3, 0, 2, 2)
-        self.mainLayout.addWidget(self.OSAStatus,5,0,2,2)
+        self.mainLayout.addWidget(self.EVNAStatus, 2, 0, 2, 2)
+        self.mainLayout.addWidget(self.OSAStatus, 4, 0, 2, 2)
+        self.mainLayout.addWidget(self.EDFA1Status, 6, 0, 2, 2)
+        self.mainLayout.addWidget(self.EDFA2Status, 8, 0, 2, 2)
 
-        self.mainLayout.addWidget(self.AWGCtrl, 0, 2, 2, 3)
-        self.mainLayout.addWidget(self.EVNACtrl, 3, 2, 2, 3)
-        self.mainLayout.addWidget(self.OSACtrl,5,2,2,3)
+        self.mainLayout.addWidget(self.AWGCtrl, 0, 2, 2, 2)
+        self.mainLayout.addWidget(self.EVNACtrl, 2, 2, 2, 2)
+        self.mainLayout.addWidget(self.OSACtrl, 4, 2, 2, 2)
+        self.mainLayout.addWidget(self.EDFA1Ctrl, 6, 2, 2, 2)
+        self.mainLayout.addWidget(self.EDFA2Ctrl, 8, 2, 2, 2)
 
-        self.mainLayout.addWidget(self.testModeSignLabel, 7, 0, 1, 2)
+        self.mainLayout.addWidget(self.testModeSignLabel, 10, 0, 1, 2)
 
-        self.mainLayout.addWidget(self.VNAMonitor, 0, 5, 2, 4)
-        self.mainLayout.addWidget(self.OSAMonitor,4,5,2,4)
+        self.mainLayout.addWidget(self.VNAMonitor, 0, 5, 4, 4)
+        self.mainLayout.addWidget(self.OSAMonitor, 5, 5, 4, 4)
 
         self.mainWidget = QtWidgets.QWidget()
         self.mainWidget.setLayout(self.mainLayout)
