@@ -56,6 +56,37 @@ class AWGStatus(QtWidgets.QGroupBox):
         self.setChecked(False)
 
         # 设定检测AWG状态信息，运行，输出通道等
+        refreshButton = QtWidgets.QPushButton('Manual Refresh')
+        moreInfoButton = QtWidgets.QPushButton('More Info.')
+        self.addressText = QtWidgets.QLabel()
+        self.InstEnable = QtWidgets.QLabel()
+        self.ChannelNum = QtWidgets.QLabel()
+        self.Amplitude = QtWidgets.QLabel()
+        self.DACset = QtWidgets.QLabel()
+        self.ShapeStatus=QtWidgets.QLabel()
+        self.CWSet=QtWidgets.QLabel()
+        self.BWSet=QtWidgets.QLabel()
+        self.DFSet=QtWidgets.QLabel()
+
+        errorMsgBtn = QtWidgets.QPushButton('Error MsgLog')
+
+        # AWG波形设置信息框
+        designGroup = QtWidgets.QGroupBox()
+        designGroup.setTitle('AWG-PUMP DesignInfo')
+        designGroup.setAlignment(QtCore.Qt.AlignLeft)
+        designGroup.setCheckable(False)
+        designGroupLayout = QtWidgets.QGridLayout()
+        designGroupLayout.addWidget(QtWidgets.QLabel('Shape Status'), 0, 0)
+        designGroupLayout.addWidget(QtWidgets.QLabel('CW'),1,0)
+        designGroupLayout.addWidget(QtWidgets.QLabel('BW'),2,0)
+        designGroupLayout.addWidget(QtWidgets.QLabel('DF'),3,0)
+        designGroupLayout.addWidget(self.ShapeStatus,0,1)
+        designGroupLayout.addWidget(self.CWSet,1,1)
+        designGroupLayout.addWidget(self.BWSet,2,1)
+        designGroupLayout.addWidget(self.DFSet,3,1)
+
+        designGroup.setLayout(designGroupLayout)
+
 
 
 
@@ -73,11 +104,13 @@ class AWGStatus(QtWidgets.QGroupBox):
 
         self.parent.synStatus.print_info()
 
+
 class OSAStatus(QtWidgets.QGroupBox):
     '''
     光谱仪状态显示
     '''
-    def __init__(self,parent):
+
+    def __init__(self, parent):
         QtWidgets.QGroupBox.__init__(self, parent)
         self.parent = parent
 
@@ -85,6 +118,7 @@ class OSAStatus(QtWidgets.QGroupBox):
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
+
     def check(self):
         ''' Enable/disable this groupbox '''
 
@@ -99,16 +133,19 @@ class OSAStatus(QtWidgets.QGroupBox):
 
         self.parent.OSAStatus.print_info()
 
+
 class EDFA1Status(QtWidgets.QGroupBox):
     '''小信号EDFA1状态信息'''
-    def __init__(self,parent):
-        QtWidgets.QGroupBox.__init__(self,parent)
-        self.parent=parent
+
+    def __init__(self, parent):
+        QtWidgets.QGroupBox.__init__(self, parent)
+        self.parent = parent
 
         self.setTitle('EDFA1 Status')
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
+
     def check(self):
         if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
             self.setChecked(True)
@@ -120,15 +157,18 @@ class EDFA1Status(QtWidgets.QGroupBox):
             self.parent.synStatus.setChecked(False)
         self.parent.EDFA1Status.print_info()
 
+
 class EDFA2Status(QtWidgets.QGroupBox):
     '''级联大信号EDFA2状态信息'''
-    def __init__(self,parent):
-        QtWidgets.QGroupBox.__init__(self,parent)
-        self.parent=parent
+
+    def __init__(self, parent):
+        QtWidgets.QGroupBox.__init__(self, parent)
+        self.parent = parent
         self.setTitle('EDFA2 Status')
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
+
     def Check(self):
         if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
             self.setChecked(True)
@@ -139,6 +179,7 @@ class EDFA2Status(QtWidgets.QGroupBox):
             self.setChecked(False)
             self.parent.synStatus.setChecked(False)
         self.parent.EDFA2Status.print_info()
+
 
 class VNACtrl(QtWidgets.QGroupBox):
     '''
@@ -168,6 +209,7 @@ class VNACtrl(QtWidgets.QGroupBox):
 
         self.parent.synStatus.print_info()
 
+
 class AWGCtrl(QtWidgets.QGroupBox):
     '''
     AWG控制界面
@@ -196,11 +238,13 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         self.parent.synStatus.print_info()
 
+
 class OSACtrl(QtWidgets.QGroupBox):
     '''
     光谱仪控制显示
     '''
-    def __init__(self,parent):
+
+    def __init__(self, parent):
         QtWidgets.QGroupBox.__init__(self, parent)
         self.parent = parent
 
@@ -208,6 +252,7 @@ class OSACtrl(QtWidgets.QGroupBox):
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
+
     def check(self):
         ''' Enable/disable this groupbox '''
 
@@ -222,15 +267,18 @@ class OSACtrl(QtWidgets.QGroupBox):
 
         self.parent.OSACtrl.print_info()
 
+
 class EDFA1Ctrl(QtWidgets.QGroupBox):
     '''小信号EDFA控制栏'''
-    def __init__(self,parent):
-        QtWidgets.QGroupBox.__init__(self,parent)
-        self.parent=parent
+
+    def __init__(self, parent):
+        QtWidgets.QGroupBox.__init__(self, parent)
+        self.parent = parent
         self.setTitle('EDFA1 Ctrl')
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
+
     def check(self):
         if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
             self.setChecked(True)
@@ -242,15 +290,18 @@ class EDFA1Ctrl(QtWidgets.QGroupBox):
             self.parent.synStatus.setChecked(False)
         self.parent.EDFA1Ctrl.print_info()
 
+
 class EDFA2Ctrl(QtWidgets.QGroupBox):
     '''EDFA2控制栏'''
-    def __init__(self,parent):
-        QtWidgets.QGroupBox.__init__(self,parent)
-        self.parent=parent
+
+    def __init__(self, parent):
+        QtWidgets.QGroupBox.__init__(self, parent)
+        self.parent = parent
         self.setTitle('EDFA2 Ctrl')
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
+
     def check(self):
         if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
             self.setChecked(True)
@@ -261,6 +312,7 @@ class EDFA2Ctrl(QtWidgets.QGroupBox):
             self.setChecked(False)
             self.parent.synStatus.setChecked(False)
         self.parent.EDFA2Ctrl.print_info()
+
 
 class AWGDesignMonitor(QtWidgets.QWidget):
     '''
@@ -302,16 +354,18 @@ class VNAMonitor(QtWidgets.QGroupBox):
     def plot(self):
         pass
 
+
 class OSAMonitor(QtWidgets.QGroupBox):
 
-    def __init__(self,parent):
-        QtWidgets.QWidget.__init__(self,parent)
-        self.parent=parent
+    def __init__(self, parent):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.parent = parent
 
-        self.pgPlot=pg.PlotWidget(title='OSA Monitor')
-        mainLayout=QtWidgets.QGridLayout()
+        self.pgPlot = pg.PlotWidget(title='OSA Monitor')
+        mainLayout = QtWidgets.QGridLayout()
         mainLayout.setAlignment(QtCore.Qt.AlignTop)
-        mainLayout.addWidget(self.pgPlot,0,0)
+        mainLayout.addWidget(self.pgPlot, 0, 0)
         self.setLayout(mainLayout)
+
     def plot(self):
         pass

@@ -135,3 +135,11 @@ class viewInstDialog(QtWidgets.QDialog):
 
         self.setMinimumSize(400, 400)
         self.setWindowTitle('View Instrument Status')
+
+
+class AWGInfoDialog(QtWidgets.QDialog):
+    '''AWG设置窗口'''
+
+    def __init__(self, parent):
+        QtWidgets.QDialog.__init__(self, parent)
+        self.parent = parent
