@@ -2,6 +2,9 @@
 
 from PyQt5 import QtGui, QtCore, QtWidgets
 import random
+from API import validators as api_val
+from API import AWGapi as api_awg
+
 from math import ceil
 import numpy as np
 
@@ -43,6 +46,7 @@ class AWGInfo():
             self.instName = AWGHandle.resource_name
             self.instInterface = str(AWGHandle.interface_type)
             self.instInterfaceNum = AWGHandle.interface_number
+            self.AWGPower=api_awg.read_AWG_power(AWGHandle)
 
 
 class EVNAInfo():
@@ -97,6 +101,19 @@ class EDFA2Info():
             self.instName=EDFA2Handle.resource_name
             self.instInterface=str(EDFA2Handle.interface_type)
             self.instInterfaceNum=EDFA2Handle.interface_number
+
+class AWGChannelBox(QtWidgets.QComboBox):
+    '''AWG通道选取'''
+    def __init__(self):
+        QtWidgets.QWidget.__init__(self)
+
+        bandList=[]
+
+        for key in api_val.AWGCHANNELSET:
+            msg='Channel:{:d}'.format(api_val.AWGCHANNELSET[key])
+            bandList.append(msg)
+        self.addItems(bandList)
+        self.setCurrentIndex(4)
 
 def msgcolor(status_code):
     ''' Return message color based on status_code.

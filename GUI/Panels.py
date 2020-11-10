@@ -8,6 +8,7 @@ import pyqtgraph as pg
 import pyvisa
 import numpy as np
 from GUI import SharedWidgets as Shared
+from API import AWGapi as api_awg
 
 
 class VNAStatus(QtWidgets.QGroupBox):
@@ -63,11 +64,11 @@ class AWGStatus(QtWidgets.QGroupBox):
         self.ChannelNum = QtWidgets.QLabel()
         self.Amplitude = QtWidgets.QLabel()
         self.DACset = QtWidgets.QLabel()
-        self.ShapeStatus=QtWidgets.QLabel()
-        self.CWSet=QtWidgets.QLabel()
-        self.BWSet=QtWidgets.QLabel()
-        self.DFSet=QtWidgets.QLabel()
-
+        self.ShapeStatus = QtWidgets.QLabel()
+        self.CWSet = QtWidgets.QLabel()
+        self.BWSet = QtWidgets.QLabel()
+        self.DFSet = QtWidgets.QLabel()
+        self.errMsgLabel = QtWidgets.QLabel()
         errorMsgBtn = QtWidgets.QPushButton('Error MsgLog')
 
         # AWG波形设置信息框
@@ -77,18 +78,46 @@ class AWGStatus(QtWidgets.QGroupBox):
         designGroup.setCheckable(False)
         designGroupLayout = QtWidgets.QGridLayout()
         designGroupLayout.addWidget(QtWidgets.QLabel('Shape Status'), 0, 0)
-        designGroupLayout.addWidget(QtWidgets.QLabel('CW'),1,0)
-        designGroupLayout.addWidget(QtWidgets.QLabel('BW'),2,0)
-        designGroupLayout.addWidget(QtWidgets.QLabel('DF'),3,0)
-        designGroupLayout.addWidget(self.ShapeStatus,0,1)
-        designGroupLayout.addWidget(self.CWSet,1,1)
-        designGroupLayout.addWidget(self.BWSet,2,1)
-        designGroupLayout.addWidget(self.DFSet,3,1)
-
+        designGroupLayout.addWidget(QtWidgets.QLabel('CW'), 1, 0)
+        designGroupLayout.addWidget(QtWidgets.QLabel('BW'), 2, 0)
+        designGroupLayout.addWidget(QtWidgets.QLabel('DF'), 3, 0)
+        designGroupLayout.addWidget(self.ShapeStatus, 0, 1)
+        designGroupLayout.addWidget(self.CWSet, 1, 1)
+        designGroupLayout.addWidget(self.BWSet, 2, 1)
+        designGroupLayout.addWidget(self.DFSet, 3, 1)
         designGroup.setLayout(designGroupLayout)
 
+        # AWGStatus整体布局
+        mainLayout = QtWidgets.QGridLayout()
+        mainLayout.setAlignment(QtCore.Qt.AlignTop)
+        # top Buttons布局
+        mainLayout.addWidget(refreshButton, 0, 0, 1, 2)
+        mainLayout.addWidget(moreInfoButton, 0, 2, 1, 2)
+        mainLayout.addWidget(QtWidgets.QLabel('Inst Name'), 1, 0)
+        mainLayout.addWidget(self.addressText, 1, 1, 1, 3)
+        # 基本状态信息
+        mainLayout.addWidget(QtWidgets.QLabel('InstEnable'), 2, 0)
+        mainLayout.addWidget(self.InstEnable, 2, 1, 1, 3)
+        mainLayout.addWidget(QtWidgets.QLabel('ChannelNum'), 3, 0)
+        mainLayout.addWidget(self.ChannelNum, 3, 1, 1, 3)
+        mainLayout.addWidget(QtWidgets.QLabel('Amp'), 4, 0)
+        mainLayout.addWidget(self.Amplitude, 4, 1, 1, 3)
+        mainLayout.addWidget(QtWidgets.QLabel('DACset'), 5, 0)
+        mainLayout.addWidget(self.DACset, 5, 1, 1, 3)
+        #     AWG波形设置信息框
+        mainLayout.addWidget(designGroup, 6, 0, 3, 4)
+        mainLayout.addWidget(errorMsgBtn, 9, 0)
+        mainLayout.addWidget(self.errMsgLabel, 9, 1, 1, 3)
+        self.setLayout(mainLayout)
+        #     点击事件触发
+        refreshButton.clicked.connect(self.refresh_fun)
+        moreInfoButton.clicked.connect(self.show_InstMoreInfo)
+        errorMsgBtn.clicked.connect(self.err_msg)
 
+        # 初始显示
+        self.print_info()
 
+        self.clicked.connect(self.check)
 
     def check(self):
         ''' Enable/disable this groupbox '''
@@ -103,6 +132,20 @@ class AWGStatus(QtWidgets.QGroupBox):
             self.parent.synStatus.setChecked(False)
 
         self.parent.synStatus.print_info()
+
+    def print_info(self):
+        '''初始见面显示信息'''
+        # self.addressText.setText(self.parent.)
+        return
+
+    def refresh_fun(self):
+        return
+
+    def show_InstMoreInfo(self):
+        return
+
+    def err_msg(self):
+        return
 
 
 class OSAStatus(QtWidgets.QGroupBox):
@@ -224,10 +267,117 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.setCheckable(True)
         self.setChecked(False)
 
+        #     AWG设置面板设置参量
+        AWGWidget = QtWidgets.QWidget()
+        self.DACset = QtWidgets.QSpinBox()
+        self.channelNumset = Shared.AWGChannelBox()
+
+        #     显示参量
+        AWGLayout = QtWidgets.QGridLayout()
+        AWGLayout.addWidget(QtWidgets.QLabel('DAC'), 0, 0)
+        AWGLayout.addWidget(self.DACset, 0, 1, 1, 2)
+
+        AWGLayout.addWidget(QtWidgets.QLabel('AWGChannel'), 1, 0)
+        AWGLayout.addWidget(self.channelNumset, 1, 1, 1, 3)
+        AWGWidget.setLayout(AWGLayout)
+
+        #     AWG输出功率设置以及运行按钮
+        self.AWGPowerSwitchBtu = QtWidgets.QPushButton('OFF')
+        self.AWGPowerSwitchBtu.setCheckable(True)
+        AWGPowerInput = QtWidgets.QPushButton('Set Power')
+
+        AWGPowerLayout = QtWidgets.QHBoxLayout()
+        AWGPowerLayout.setAlignment(QtCore.Qt.AlignLeft)
+        AWGPowerLayout.addWidget(AWGPowerInput)
+        AWGPowerLayout.addWidget(QtWidgets.QLabel('Pump Switch'))
+        AWGPowerLayout.addWidget(self.AWGPowerSwitchBtu)
+        AWGPowerCtrl = QtWidgets.QWidget()
+        AWGPowerCtrl.setLayout(AWGPowerLayout)
+
+        self.powerSwitchTimer = QtCore.QTimer()
+        self.powerSwitchTimer.setInterval(500)
+        self.powerSwitchTimer.setSingleShot(True)
+        self.powerSwitchProgBar = QtWidgets.QProgressBar()
+        self.progDialog = QtWidgets.QDialog()
+        self.progDialog.setWindowTitle('AWG Running')
+        progDialogLayout = QtWidgets.QVBoxLayout()
+        progDialogLayout.addWidget(self.powerSwitchProgBar)
+        self.progDialog.setLayout(progDialogLayout)
+
+        #     pump设计子界面
+        PumpDesign = QtWidgets.QGroupBox()
+        PumpDesign.setTitle('PUMPDesign_AWG')
+        PumpDesign.setFlat(True)
+        PumpDesign.setAlignment(QtCore.Qt.AlignLeft)
+        PumpLayout = QtWidgets.QGridLayout()
+        PumpLayout.setSpacing(0)
+
+        self.PumpModeSel = QtWidgets.QComboBox()
+        self.PumpModeSel.addItems(api_awg.Shape_MODE_LIST)
+
+        self.CenterFreq = QtWidgets.QWidget()
+        self.CenterFreqFill = QtWidgets.QLineEdit('0')
+        self.CenterFreqUnitSel = QtWidgets.QComboBox()
+        self.CenterFreqUnitSel.addItems(['GHz', 'MHz', 'KHz', 'Hz'])
+        self.CenterFreqUnitSel.setCurrentIndex(0)
+        CenterFreqLayout = QtWidgets.QHBoxLayout()
+        CenterFreqLayout.addWidget(QtWidgets.QLabel('CenterFreq'))
+        CenterFreqLayout.addWidget(self.CenterFreqFill)
+        CenterFreqLayout.addWidget(self.CenterFreqUnitSel)
+        self.CenterFreq.setLayout(CenterFreqLayout)
+
+        self.BandWidth = QtWidgets.QWidget()
+        self.BandWidthFill = QtWidgets.QLineEdit('0')
+        self.BandWidthUnitSel = QtWidgets.QComboBox()
+        self.BandWidthUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
+        self.BandWidthUnitSel.setCurrentIndex(2)
+        BandWidthLayout = QtWidgets.QHBoxLayout()
+        BandWidthLayout.addWidget(QtWidgets.QLabel('BandWidth'))
+        BandWidthLayout.addWidget(self.BandWidthFill)
+        BandWidthLayout.addWidget(self.BandWidthUnitSel)
+        self.BandWidth.setLayout(BandWidthLayout)
+
+        self.CombFreq = QtWidgets.QWidget()
+        self.CombFreqFill = QtWidgets.QLineEdit('0')
+        self.CombFreqUnitSel = QtWidgets.QComboBox()
+        self.CombFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
+        self.CombFreqUnitSel.setCurrentIndex(2)
+        CombFreqLayout = QtWidgets.QHBoxLayout()
+        CombFreqLayout.addWidget(QtWidgets.QLabel('Comb DF'))
+        CombFreqLayout.addWidget(self.CombFreqFill)
+        CombFreqLayout.addWidget(self.CombFreqUnitSel)
+        self.CombFreq.setLayout(CombFreqLayout)
+
+        self.PumpDesignDoneBtu = QtWidgets.QPushButton('Done')
+        self.PumpDesignDoneBtu.setCheckable(True)
+
+        PumpLayout.addWidget(QtWidgets.QLabel('Pump Shape :'), 0, 0)
+        PumpLayout.addWidget(self.PumpDesignDoneBtu, 1, 0, 3, 1)
+        PumpLayout.addWidget(self.PumpModeSel, 0, 1)
+        PumpLayout.addWidget(self.CenterFreq, 1, 1, 1, 3)
+        PumpLayout.addWidget(self.BandWidth, 2, 1, 1, 3)
+        PumpLayout.addWidget(self.CombFreq, 3, 1, 1, 3)
+        PumpDesign.setLayout(PumpLayout)
+
+        #     设置主界面
+        mainLayout = QtWidgets.QVBoxLayout()
+        mainLayout.setAlignment(QtCore.Qt.AlignTop)
+        mainLayout.addWidget(AWGPowerCtrl)
+        mainLayout.addWidget(AWGWidget)
+        mainLayout.addWidget(PumpDesign)
+        self.setLayout(mainLayout)
+
+        AWGPowerInput.clicked.connect(self.AWGRFPower)
+        self.AWGPowerSwitchBtu.clicked.connect(self.AWGRFPowerSwitch_auto)
+        self.AWGPowerSwitchBtu.clicked.connect(self.AWGPowerSwitch_Label)
+        self.powerSwitchTimer.timeout.connect(self.ramp_AWGRFPower)
+
+        self.clicked.connect(self.check)
+
     def check(self):
         ''' Enable/disable this groupbox '''
 
-        if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
+        if (self.parent.testModeAction.isChecked() or self.parent.AWGHandle):
             self.setChecked(True)
             self.parent.synStatus.setChecked(True)
         else:
@@ -237,6 +387,81 @@ class AWGCtrl(QtWidgets.QGroupBox):
             self.parent.synStatus.setChecked(False)
 
         self.parent.synStatus.print_info()
+
+    def AWGRFPower(self):
+        if self.parent.testModeAction.isChecked():
+            self.parent.AWGInfo.AWGPower = 500
+        else:
+            self.parent.AWGInfo.AWGPower = api_awg.read_AWG_power(self.parent.AWGHandle)
+        target_Power, okay = QtWidgets.QInputDialog.getInt(self, 'RF POWER',
+                                                           'Manual Input (0mV to 1000mV)',self.parent.AWGInfo.AWGPower, 0, 1000, 1)
+        if okay:
+            if self.parent.testModeAction.isChecked():
+                pass
+            else:
+                api_awg.set_AWG_power(self.parent.AWGHandle, True)
+            self.AWGPowerSwitchBtu.setChecked(True)
+            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower - target_Power))
+            self.powerSwitchProgBar.setValue(1000)
+            if self.parent.AWGInfo.AWGPower > target_Power:
+                self.ramper = api_awg.ramp_down(self.parent.AWGInfo.AWGPower, target_Power)
+            else:
+                self.ramper = api_awg.ramp_up(self.parent.AWGInfo.AWGPower, target_Power)
+            self.ramp_AWGRFPower()
+            self.progDialog.exec_()
+        else:
+            pass
+
+    def AWGRFPowerSwitch_auto(self, btu_pressed):
+        '''自动打开关闭RF输出'''
+        if self.parent.testModeAction.isChecked():
+            self.parent.AWGInfo.AWGPower = 500
+        else:
+            self.parent.AWGInfo.AWGPower = api_awg.read_AWG_power(self.parent.AWGHandle)
+
+        if btu_pressed:
+            if self.parent.testModeAction():
+                pass
+            else:
+                api_awg.set_AWG_power(self.parent.AWGHandle, True)
+            self.ramper = api_awg.ramp_up(self.parent.AWGInfo.AWGPower, 1000)
+            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower))
+            self.powerSwitchProgBar.setValue(1000)
+            self.ramp_AWGRFPower()
+            self.progDialog.exec_()
+        elif self.parent.AWGInfo.AWGPower > 0:
+            self.ramper = api_awg.ramp_down(self.parent.AWGInfo.AWGPower, 0)
+            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower + 0))
+            self.powerSwitchProgBar.setValue(1000)
+            self.ramp_AWGRFPower()
+            result = self.progDialog.exec_()
+            if self.parent.testModeAction.isChecked():
+                self.AWGPowerSwitchBtu.setChecked(False)
+            else:
+                self.parent.AWGInfo.AWGPower = api_awg.read_AWG_power(self.parent.AWGHandle)
+                if result and (self.parent.AWGInfo.AWGPower <= 0):
+                    api_awg.set_AWG_power(self.parent.AWGHandle, False)
+                    self.AWGPowerSwitchBtu.setChecked(False)
+                else:
+                    self.AWGPowerSwitchBtu.setChecked(True)
+        else:
+            if self.parent.testModeAction.isChecked():
+                pass
+            else:
+                api_awg.set_AWG_power(self.parent.AWGHandle, False)
+            self.AWGPowerSwitchBtu.setChecked(False)
+
+        self.parent.AWGStatus.print_info()
+
+    def AWGPowerSwitch_Label(self, toggle_state):
+        '''更换按键文本'''
+        if toggle_state:
+            self.AWGPowerSwitchBtu.setText('ON')
+        else:
+            self.AWGPowerSwitchBtu.setText('OFF')
+
+    def ramp_AWGRFPower(self):
+        return
 
 
 class OSACtrl(QtWidgets.QGroupBox):

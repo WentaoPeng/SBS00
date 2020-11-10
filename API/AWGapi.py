@@ -2,6 +2,8 @@
 import pyvisa
 import os.path
 
+Shape_MODE_LIST = ['Rectangle', 'Triangle', 'Band Stop']
+
 
 def list_AWGinst():
     '''
@@ -37,3 +39,21 @@ def list_AWGinst():
             inst_str = 'No instrument available. Check your connection/driver.'
 
         return inst_list, inst_str
+
+def read_AWG_power(AWGHandle):
+    return
+
+def set_AWG_power(AWGHandle,set_power):
+    return
+
+def ramp_down(start,stop):
+    n=start
+    while n>stop:
+        n=n-1
+        yield n
+
+def ramp_up(start,stop):
+    n=start
+    while n<stop:
+        n=n+1
+        yield n
