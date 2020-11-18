@@ -1,6 +1,8 @@
 #! encoding = utf-8
-import pyvisa
+import visa
 import os.path
+from pyvisa.resources.usb import USBInstrument
+from pyvisa.resources.tcpip import TCPIPInstrument
 
 
 def list_inst():
@@ -9,7 +11,7 @@ def list_inst():
     :return:
     '''
     try:
-        rm = pyvisa.highlevel.ResourceManager()
+        rm = visa.ResourceManager()
     except OSError:
         return [], 'Cannot open VISA Library!'
 
@@ -53,7 +55,7 @@ def open_inst(inst_address):
         return None
     else:
         try:
-            rm = pyvisa.highlevel.ResourceManager()
+            rm = visa.highlevel.ResourceManager()
             inst_handle = rm.open_resource(inst_address)
             return inst_handle
         except:
