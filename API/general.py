@@ -1,5 +1,6 @@
 #! encoding = utf-8
 import visa
+import pyvisa
 import os.path
 from pyvisa.resources.usb import USBInstrument
 from pyvisa.resources.tcpip import TCPIPInstrument
@@ -23,12 +24,14 @@ def list_inst():
         try:
             # 打开每台仪器获取信息
             temp = rm.open_resource(inst, read_termination='\r\n')
+            text=temp.query('IDN?')
+            inst_dict[inst]=text.strip()
             # 如果是GPIB，查询名称
-            if int(temp.interface_type) == 1:
-                text = temp.query('IDN?')
-                inst_dict[inst] = text.strip()
-            else:
-                inst_dict[inst] = inst
+            # if int(temp.interface_type) == 1:
+            #     text = temp.query('IDN?')
+            #     inst_dict[inst] = text.strip()
+            # else:
+            #     inst_dict[inst] = inst
             # 关闭设备
             temp.close()
         except:

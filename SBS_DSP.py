@@ -101,8 +101,8 @@ def triangle_filter(center_F, bandwidth, df):
     return f_list, amp_list, phase_list
 
 
-def Band_stop_filter(center_F, bandwidth, signal_BW, df):
-    start_F = center_F - signal_BW / 2
+def Band_stop_filter(center_F, bandwidth, df,signal_BW):
+    start_F = float(center_F) - signal_BW / 2
     dots = int(signal_BW / df + 1)
     dot = int(bandwidth / df + 1)
     mindot = int((dots - dot) / 2 + 1)
