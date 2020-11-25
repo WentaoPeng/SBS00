@@ -9,6 +9,8 @@ import pyvisa
 import numpy as np
 from GUI import SharedWidgets as Shared
 from API import AWGapi as api_awg
+from API import validators as api_val
+from pyqtgraph import siEval
 import SBS_DSP
 
 
@@ -317,13 +319,13 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.PumpModeSel.addItems(api_awg.Shape_MODE_LIST)
 
         self.CenterFreq = QtWidgets.QWidget()
-        pCenter=QtGui.QDoubleValidator()
-        pCenter.setRange(0,40*10**9)
-        pCenter.setNotation(QtGui.QDoubleValidator.StandardNotation)
-        pCenter.setDecimals(2)
+        # pCenter=QtGui.QDoubleValidator()
+        # pCenter.setRange(0,40*10**9)
+        # pCenter.setNotation(QtGui.QDoubleValidator.StandardNotation)
+        # pCenter.setDecimals(2)
         self.CenterFreqFill=QtWidgets.QLineEdit('10')
         # self.CenterFreqFill.setText('10')
-        self.CenterFreqFill.setValidator(pCenter)
+        # self.CenterFreqFill.setValidator(pCenter)
         # self.CenterFreqFill = QtWidgets.QLineEdit.setValidator(pdouble)
         self.CenterFreqUnitSel = QtWidgets.QComboBox()
         self.CenterFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
@@ -335,13 +337,13 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.CenterFreq.setLayout(CenterFreqLayout)
 
         self.BandWidth = QtWidgets.QWidget()
-        pBand=QtGui.QDoubleValidator()
-        pBand.setRange(0,8*10**9)
-        pBand.setNotation(QtGui.QDoubleValidator.StandardNotation)
-        pBand.setDecimals(2)
+        # pBand=QtGui.QDoubleValidator()
+        # pBand.setRange(0,8*10**9)
+        # pBand.setNotation(QtGui.QDoubleValidator.StandardNotation)
+        # pBand.setDecimals(2)
         self.BandWidthFill = QtWidgets.QLineEdit('200')
         # self.BandWidthFill.setText('200')
-        self.BandWidthFill.setValidator(pBand)
+        # self.BandWidthFill.setValidator(pBand)
         self.BandWidthUnitSel = QtWidgets.QComboBox()
         self.BandWidthUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.BandWidthUnitSel.setCurrentIndex(2)
@@ -352,10 +354,10 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.BandWidth.setLayout(BandWidthLayout)
 
         self.CombFreq = QtWidgets.QWidget()
-        pComb=QtGui.QDoubleValidator()
-        pComb.setRange(1,10**9)
+        # pComb=QtGui.QDoubleValidator()
+        # pComb.setRange(1,10**9)
         self.CombFreqFill = QtWidgets.QLineEdit('15')
-        self.CombFreqFill.setValidator(pComb)
+        # self.CombFreqFill.setValidator(pComb)
         self.CombFreqUnitSel = QtWidgets.QComboBox()
         self.CombFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.CombFreqUnitSel.setCurrentIndex(2)
@@ -494,7 +496,21 @@ class AWGCtrl(QtWidgets.QGroupBox):
         return
 
     def tune_mod_parameter(self):
-        return
+        mod_index=self.PumpModeSel.currentIndex()
+
+        CF_status,CF_freq=api_val.val_awgCW_mod_freq(self.CenterFreqFill.text(),
+                                                   self.CenterFreqUnitSel.currentText())
+        BW_status,BW_freq=api_val.val_awgBW_mod_freq(self.BandWidthFill.text(),
+                                                     self.BandWidthUnitSel.currentText())
+        DF_status,DF_freq=api_val.val_awgDF_mod_freq(self.CombFreqFill.text(),
+                                                     self.CombFreqUnitSel.currentText())
+        self.CenterFreqFill.setStyleSheet('border:1px solid {:s}'.format(Shared.msgcolor(CF_status)))
+        self.BandWidthFill.setStyleSheet('border:1px solid {:s}'.format(Shared.msgcolor(BW_status)))
+        self.CombFreqFill.setStyleSheet('border:1px solid {:s}'.format(Shared.msgcolor(DF_status)))
+
+        self.parent.AWGInfo.CFFreq=CF_freq
+        self.parent.AWGInfo.BWFreq=BW_freq
+        self.parent.AWGInfo.DFFreq=DF_freq
 
     def DesignPump(self):
 
@@ -503,43 +519,43 @@ class AWGCtrl(QtWidgets.QGroupBox):
         # FM_AWG = AWG_framerate / 2.56   # AWG最高分析频率
         N_AWG = int(AWG_framerate / Df)
         t_AWG = N_AWG * (1 / AWG_framerate)
-        CenterFreq=self.CenterFreqFill.text()
-        BandWidth=self.BandWidthFill.text()
-        CombFreq=self.CombFreqFill.text()
+        CF=self.parent.AWGInfo.CFFreq
+        BW=self.parent.AWGInfo.BWFreq
+        DF=self.parent.AWGInfo.CFFreq
 
-        if self.CenterFreqUnitSel==0:
-            CF=CenterFreq
-        elif self.CenterFreqUnitSel==1:
-            CF=CenterFreq*10**3
-        elif self.CenterFreqUnitSel==2:
-            CF=CenterFreq*10**6
-        else:
-            CF=CenterFreq*10**9
+        # if self.CenterFreqUnitSel==0:
+        #     CF=CenterFreq
+        # elif self.CenterFreqUnitSel==1:
+        #     CF=CenterFreq*10**3
+        # elif self.CenterFreqUnitSel==2:
+        #     CF=CenterFreq*10**6
+        # else:
+        #     CF=CenterFreq*10**9
+        #
+        # if self.BandWidthUnitSel==0:
+        #     BW=BandWidth
+        # elif self.BandWidthUnitSel==1:
+        #     BW=BandWidth*10**3
+        # elif self.BandWidthUnitSel==2:
+        #     BW=BandWidth*10**6
+        # else:
+        #     BW=BandWidth*10**9
+        #
+        # if self.CombFreqUnitSel==0:
+        #     DF=CombFreq
+        # elif self.CombFreqUnitSel==1:
+        #     DF=CombFreq*10**3
+        # elif self.CombFreqUnitSel==2:
+        #     DF=CombFreq*10**6
+        # else:
+        #     DF=CombFreq*10**9
 
-        if self.BandWidthUnitSel==0:
-            BW=BandWidth
-        elif self.BandWidthUnitSel==1:
-            BW=BandWidth*10**3
-        elif self.BandWidthUnitSel==2:
-            BW=BandWidth*10**6
-        else:
-            BW=BandWidth*10**9
 
-        if self.CombFreqUnitSel==0:
-            DF=CombFreq
-        elif self.CombFreqUnitSel==1:
-            DF=CombFreq*10**3
-        elif self.CombFreqUnitSel==2:
-            DF=CombFreq*10**6
-        else:
-            DF=CombFreq*10**9
-
-
-        if self.PumpModeSel==0:
+        if self.PumpModeSel.currentIndex==0:
             f_list,amp_list,phase_list=SBS_DSP.square_filter(CF,BW,DF)
-        elif self.PumpModeSel==1:
+        elif self.PumpModeSel.currentIndex==1:
             f_list,amp_list,phase_list=SBS_DSP.triangle_filter(CF,BW,DF)
-        else:
+        elif self.PumpModeSel.currentIndex==2:
             f_list,amp_list,phase_list=SBS_DSP.square_filter(CF,BW,DF)
             # f_list,amp_list,phase_list=SBS_DSP.Band_stop_filter(CF,BW,DF,signal_BW=5*10**9)
 

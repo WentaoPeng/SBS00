@@ -39,6 +39,9 @@ class AWGInfo():
         self.instName = ''
         self.instInterface = ''
         self.instInterfaceNum = 0
+        self.CFFreq=10*10
+        self.BWFreq=200*10**6
+        self.DFFreq=15*10**6
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''
