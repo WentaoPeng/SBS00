@@ -494,7 +494,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         return
 
     def tune_mod_parameter(self):
-
+        return
 
     def DesignPump(self):
 
