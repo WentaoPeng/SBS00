@@ -161,7 +161,7 @@ class M9502A(socketscpi.SocketInstrument):
         self.refFreq = float(self.query('roscillator:frequency?').strip())
 
     def set_amplitude(self,amplitude=500,channel=1):
-
+        return
         if channel not in  [1,2,3,4]:
             raise AWGError('\'channel\'must be 1,2,3,or4.')
         if not isinstance(amplitude,float)and not isinstance(amplitude,int):

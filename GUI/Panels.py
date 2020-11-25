@@ -317,12 +317,13 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.PumpModeSel.addItems(api_awg.Shape_MODE_LIST)
 
         self.CenterFreq = QtWidgets.QWidget()
-        pdouble=QtGui.QDoubleValidator()
-        pdouble.setRange(0,40*10**9)
-        pdouble.setNotation(QtGui.QDoubleValidator.StandardNotation)
-        pdouble.setDecimals(2)
+        pCenter=QtGui.QDoubleValidator()
+        pCenter.setRange(0,40*10**9)
+        pCenter.setNotation(QtGui.QDoubleValidator.StandardNotation)
+        pCenter.setDecimals(2)
         self.CenterFreqFill=QtWidgets.QLineEdit('10')
-        self.CenterFreqFill.setValidator(pdouble)
+        # self.CenterFreqFill.setText('10')
+        self.CenterFreqFill.setValidator(pCenter)
         # self.CenterFreqFill = QtWidgets.QLineEdit.setValidator(pdouble)
         self.CenterFreqUnitSel = QtWidgets.QComboBox()
         self.CenterFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
@@ -334,8 +335,13 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.CenterFreq.setLayout(CenterFreqLayout)
 
         self.BandWidth = QtWidgets.QWidget()
-        self.BandWidthFill = QtWidgets.QLineEdit('200.0')
-        self.BandWidthFill.setValidator(pdouble)
+        pBand=QtGui.QDoubleValidator()
+        pBand.setRange(0,8*10**9)
+        pBand.setNotation(QtGui.QDoubleValidator.StandardNotation)
+        pBand.setDecimals(2)
+        self.BandWidthFill = QtWidgets.QLineEdit('200')
+        # self.BandWidthFill.setText('200')
+        self.BandWidthFill.setValidator(pBand)
         self.BandWidthUnitSel = QtWidgets.QComboBox()
         self.BandWidthUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.BandWidthUnitSel.setCurrentIndex(2)
@@ -359,6 +365,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
         CombFreqLayout.addWidget(self.CombFreqUnitSel)
         self.CombFreq.setLayout(CombFreqLayout)
 
+
+
         self.PumpDesignDoneBtu = QtWidgets.QPushButton('Done')
         self.PumpDesignDoneBtu.setCheckable(True)
 
@@ -377,6 +385,16 @@ class AWGCtrl(QtWidgets.QGroupBox):
         mainLayout.addWidget(AWGWidget)
         mainLayout.addWidget(PumpDesign)
         self.setLayout(mainLayout)
+
+        # 设计窗口若有改变，更改后台参数，滤波类型编号，中心波长，带宽，间隔等参数同步改变
+        self.PumpModeSel.currentIndexChanged.connect(self.tune_mod_parameter)
+        self.CenterFreqFill.textChanged.connect(self.tune_mod_parameter)
+        self.CenterFreqUnitSel.currentIndexChanged.connect(self.tune_mod_parameter)
+        self.BandWidthFill.textChanged.connect(self.tune_mod_parameter)
+        self.BandWidthUnitSel.currentIndexChanged.connect(self.tune_mod_parameter)
+        self.CombFreqFill.textChanged.connect(self.tune_mod_parameter)
+        self.CombFreqUnitSel.currentIndexChanged.connect(self.tune_mod_parameter)
+
 
         AWGPowerInput.clicked.connect(self.AWGRFPower)
         self.AWGPowerSwitchBtu.clicked.connect(self.AWGRFPowerSwitch_auto)
@@ -474,6 +492,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
     def ramp_AWGRFPower(self):
         return
+
+    def tune_mod_parameter(self):
+
 
     def DesignPump(self):
 
