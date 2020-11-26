@@ -36,21 +36,26 @@ class AWGInfo():
     '''AWG信息'''
 
     def __init__(self):
-        self.instName = ''
-        self.instInterface = ''
-        self.instInterfaceNum = 0
-        self.CFFreq=10*10
+        self.instName = 'AWG M9502A'
+        self.ChannelNum = 0
+        self.CFFreq=10*10**9
         self.BWFreq=200*10**6
-        self.DFFreq=15*10**6
+        self.DFFreq=10*10**6
+        self.AWG_Status=False
+        self.mod_index=''
+        self.DAC_index=0
+        self.ChannelNum=1
+        self.AWGPower=500
+        self.errMsg = ''
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''
         if AWGHandle:
             self.instName = AWGHandle.resource_name
-            self.instInterface = str(AWGHandle.interface_type)
-            self.instInterfaceNum = AWGHandle.interface_number
-            self.AWGPower=api_awg.read_AWG_power(AWGHandle)
-
+            self.AWG_Status=api_awg.M9502A.read_power_toggle
+            self.errMsg = ''
+        else:
+            self.instName='No Instrument'
 
 class EVNAInfo():
     '''EVNA信息'''

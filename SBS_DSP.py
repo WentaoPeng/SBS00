@@ -342,9 +342,9 @@ if __name__ == '__main__':
     # 以MHz为单位，频梳间隔为15~20MHz
     # ts = np.linspace(0,t_FPGA,N_FPGA,endpoint=False)
     center_F=10*10**9
-    bandwidth=50*10**6
-    df=0.1*10**6
-    for i in range(0,10):
+    bandwidth=200*10**6
+    df=15*10**6
+    for i in range(0,1):
 
         f_list, amp_list, phase_list = square_filter(center_F, bandwidth, df)
         ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
@@ -353,7 +353,7 @@ if __name__ == '__main__':
         txt = get_awgfile(ys,center_F,bandwidth,df)
         # center_F = center_F + 0.5 * 10 ** 9
         # bandwidth=bandwidth+0.5*10**6
-        df=df+0.1*10**6
+        df=df+1*10**6
 
     # amp_list()
 

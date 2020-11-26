@@ -12,6 +12,7 @@ from API import AWGapi as api_awg
 from API import validators as api_val
 from pyqtgraph import siEval
 import SBS_DSP
+import matplotlib.pyplot as plt
 
 
 class VNAStatus(QtWidgets.QGroupBox):
@@ -29,6 +30,8 @@ class VNAStatus(QtWidgets.QGroupBox):
         self.setChecked(False)
 
     # 设定检测VNA状态信息，扫频信号功率，频率范围，数据点
+
+
 
     def check(self):
         ''' Enable/disable this groupbox '''
@@ -139,16 +142,42 @@ class AWGStatus(QtWidgets.QGroupBox):
     def print_info(self):
         '''初始见面显示信息'''
         # self.addressText.setText(self.parent.)
-        return
+        self.addressText.setText(self.parent.AWGInfo.instName)
+        self.InstEnable.setText('ON'if self.parent.AWGInfo.AWG_Status else 'OFF')
+        self.ChannelNum.setText(str(self.parent.AWGInfo.ChannelNum))
+        self.DACset.setText(str(self.parent.AWGInfo.DAC_index))
+        self.ShapeStatus.setText(self.parent.AWGInfo.mod_index)
+        self.CWSet.setText(str(self.parent.AWGInfo.CFFreq)+'Hz')
+        self.BWSet.setText(str(self.parent.AWGInfo.BWFreq)+'Hz')
+        self.DFSet.setText(str(self.parent.AWGInfo.DFFreq)+'Hz')
+        self.Amplitude.setText(str(self.parent.AWGInfo.AWGPower)+'Mv')
+
 
     def refresh_fun(self):
-        return
+        if self.parent.testModeAction.isChecked() or  (not self.parent.AWGHandle):
+            pass
+        else:
+            self.addressText.setText(self.parent.AWGInfo.instName)
+            self.InstEnable.setText('ON'if self.parent.AWGInfo.AWG_Status else 'OFF')
+            self.ChannelNum.setText(str(self.parent.AWGInfo.ChannelNum))
+            self.DACset.setText(str(self.parent.AWGInfo.DAC_index))
+            self.ShapeStatus.setText(self.parent.AWGInfo.mod_index)
+            self.CWSet.setText(str(self.parent.AWGInfo.CFFreq)+'Hz')
+            self.BWSet.setText(str(self.parent.AWGInfo.BWFreq)+'Hz')
+            self.DFSet.setText(str(self.parent.AWGInfo.DFFreq)+'Hz')
+            self.Amplitude.setText(str(self.parent.AWGInfo.AWGPower)+'Mv')
 
     def show_InstMoreInfo(self):
+        # 待扩展
         return
 
     def err_msg(self):
-        return
+        '''AWG反馈错误信息'''
+        if self.parent.AWGHandle:
+            self.parent.AWGInfo.errMsg=api_awg.M9502A.err_check()
+            self.errMsgLabel.setText(self.parent.AWGInfo.errMsg)
+        else:
+            pass
 
 
 class OSAStatus(QtWidgets.QGroupBox):
@@ -356,7 +385,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.CombFreq = QtWidgets.QWidget()
         # pComb=QtGui.QDoubleValidator()
         # pComb.setRange(1,10**9)
-        self.CombFreqFill = QtWidgets.QLineEdit('15')
+        self.CombFreqFill = QtWidgets.QLineEdit('10')
         # self.CombFreqFill.setValidator(pComb)
         self.CombFreqUnitSel = QtWidgets.QComboBox()
         self.CombFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
@@ -389,6 +418,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.setLayout(mainLayout)
 
         # 设计窗口若有改变，更改后台参数，滤波类型编号，中心波长，带宽，间隔等参数同步改变
+        self.DACset.valueChanged.connect(self.tune_mod_parameter)
+        self.channelNumset.currentIndexChanged.connect(self.tune_mod_parameter)
         self.PumpModeSel.currentIndexChanged.connect(self.tune_mod_parameter)
         self.CenterFreqFill.textChanged.connect(self.tune_mod_parameter)
         self.CenterFreqUnitSel.currentIndexChanged.connect(self.tune_mod_parameter)
@@ -402,7 +433,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.AWGPowerSwitchBtu.clicked.connect(self.AWGRFPowerSwitch_auto)
         self.AWGPowerSwitchBtu.clicked.connect(self.AWGPowerSwitch_Label)
         self.powerSwitchTimer.timeout.connect(self.ramp_AWGRFPower)
-        self.PumpDesignDoneBtu.clicked.connect(self.DesignPump())
+        # 设计泵浦事件
+        self.PumpDesignDoneBtu.clicked.connect(self.DesignPump)
 
         self.clicked.connect(self.check)
 
@@ -425,13 +457,16 @@ class AWGCtrl(QtWidgets.QGroupBox):
             self.parent.AWGInfo.AWGPower = 500
         else:
             self.parent.AWGInfo.AWGPower = api_awg.read_AWG_power(self.parent.AWGHandle)
+
         target_Power, okay = QtWidgets.QInputDialog.getInt(self, 'RF POWER',
                                                            'Manual Input (0mV to 1000mV)',self.parent.AWGInfo.AWGPower, 0, 1000, 1)
         if okay:
             if self.parent.testModeAction.isChecked():
                 pass
             else:
-                api_awg.set_AWG_power(self.parent.AWGHandle, True)
+                self.parent.AWGInfo.AWGPower=target_Power
+                # api_awg.set_AWG_power(self.parent.AWGHandle,target_Power,self.parent.AWGInfo.ChannelNum)
+
             self.AWGPowerSwitchBtu.setChecked(True)
             self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower - target_Power))
             self.powerSwitchProgBar.setValue(1000)
@@ -455,6 +490,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
             if self.parent.testModeAction():
                 pass
             else:
+                # 带更改需要Running代码
                 api_awg.set_AWG_power(self.parent.AWGHandle, True)
             self.ramper = api_awg.ramp_up(self.parent.AWGInfo.AWGPower, 1000)
             self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower))
@@ -496,8 +532,19 @@ class AWGCtrl(QtWidgets.QGroupBox):
         return
 
     def tune_mod_parameter(self):
-        mod_index=self.PumpModeSel.currentIndex()
-
+        # 状态信息同步
+        # 波形状态
+        mod_index=self.PumpModeSel.currentText()
+        self.parent.AWGInfo.mod_index=mod_index
+        print(mod_index)
+        # DAC选择
+        DAC_index=self.DACset.text()
+        self.parent.AWGInfo.DAC_index=DAC_index
+        print(DAC_index)
+        # 通道选择
+        Channel_N=self.channelNumset.currentText()
+        self.parent.AWGInfo.ChannelNum=Channel_N
+        print(Channel_N)
         CF_status,CF_freq=api_val.val_awgCW_mod_freq(self.CenterFreqFill.text(),
                                                    self.CenterFreqUnitSel.currentText())
         BW_status,BW_freq=api_val.val_awgBW_mod_freq(self.BandWidthFill.text(),
@@ -512,7 +559,13 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.parent.AWGInfo.BWFreq=BW_freq
         self.parent.AWGInfo.DFFreq=DF_freq
 
+
+
+
+
     def DesignPump(self):
+
+
 
         AWG_framerate = 64 * 10 ** 9 # AWG采样率
         Df = 1 * 10 ** 6
@@ -521,49 +574,46 @@ class AWGCtrl(QtWidgets.QGroupBox):
         t_AWG = N_AWG * (1 / AWG_framerate)
         CF=self.parent.AWGInfo.CFFreq
         BW=self.parent.AWGInfo.BWFreq
-        DF=self.parent.AWGInfo.CFFreq
-
-        # if self.CenterFreqUnitSel==0:
-        #     CF=CenterFreq
-        # elif self.CenterFreqUnitSel==1:
-        #     CF=CenterFreq*10**3
-        # elif self.CenterFreqUnitSel==2:
-        #     CF=CenterFreq*10**6
-        # else:
-        #     CF=CenterFreq*10**9
-        #
-        # if self.BandWidthUnitSel==0:
-        #     BW=BandWidth
-        # elif self.BandWidthUnitSel==1:
-        #     BW=BandWidth*10**3
-        # elif self.BandWidthUnitSel==2:
-        #     BW=BandWidth*10**6
-        # else:
-        #     BW=BandWidth*10**9
-        #
-        # if self.CombFreqUnitSel==0:
-        #     DF=CombFreq
-        # elif self.CombFreqUnitSel==1:
-        #     DF=CombFreq*10**3
-        # elif self.CombFreqUnitSel==2:
-        #     DF=CombFreq*10**6
-        # else:
-        #     DF=CombFreq*10**9
-
+        DF=self.parent.AWGInfo.DFFreq
 
         if self.PumpModeSel.currentIndex==0:
             f_list,amp_list,phase_list=SBS_DSP.square_filter(CF,BW,DF)
         elif self.PumpModeSel.currentIndex==1:
             f_list,amp_list,phase_list=SBS_DSP.triangle_filter(CF,BW,DF)
-        elif self.PumpModeSel.currentIndex==2:
+        else:
             f_list,amp_list,phase_list=SBS_DSP.square_filter(CF,BW,DF)
             # f_list,amp_list,phase_list=SBS_DSP.Band_stop_filter(CF,BW,DF,signal_BW=5*10**9)
 
         ts=np.linspace(0,t_AWG,N_AWG,endpoint=False)
 
         ys=SBS_DSP.synthesize1(amp_list,f_list,ts,phase_list)
+        print(f_list)
+        print(self.parent.AWGInfo.CFFreq)
+        plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+        plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示符号
 
+        plt.figure()
+        plt.subplot(211)
+        plt.plot(ts, ys, 'b')
+        plt.xlabel("t（毫秒）")
+        plt.ylabel("S(t)幅值")
+        plt.title("叠加信号图")
+        # plt.show()
 
+        # fs,hz=get_fft(ys,N_FPGA)
+        fs, hz = SBS_DSP.get_fft(ys, N_AWG)
+        # angle_fs = np.angle(np.abs(np.abs(fft(ys))/N_FPGA))
+        # angle_hz=np.arange(len(ys))
+        plt.subplot(212)
+        plt.xlim(9500, 10500)
+        plt.plot(hz, fs, 'g')
+        # plt.subplot(313)
+        # plt.plot(angle_fs,angle_fs,'p')
+        plt.xlabel("F（MHz）")
+        plt.ylabel("A归一化")
+        plt.title("PUMP频梳")
+        plt.savefig('triangle.png')
+        plt.show()
 
 
 class OSACtrl(QtWidgets.QGroupBox):

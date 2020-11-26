@@ -40,10 +40,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # 设备选项
         # 设备选择通信方式
+        # 自动选择
         seleInstAction = QtWidgets.QAction('Select Inst_Port', self)
         seleInstAction.setShortcut('Ctrl+Shift+I')
         seleInstAction.setStatusTip('Select Instrument Port')
         seleInstAction.triggered.connect(self.select_inst)
+        # 手动输入
+        ManualInstAction=QtWidgets.QAction('Manual input',self)
+        ManualInstAction.setShortcut('Ctrl+Shift+M')
+        ManualInstAction.setStatusTip('Manual input(LAN_IP)')
+        ManualInstAction.triggered.connect(self.Manual_inst)
 
         closeInstAction = QtWidgets.QAction('Close Instrument', self)
         closeInstAction.setShortcut('Ctrl+Shift+C')
@@ -78,6 +84,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menuFile.addAction(exitAction)
         menuInst = self.menuBar().addMenu('&Instrument')
         menuInst.addAction(seleInstAction)
+        menuInst.addAction(ManualInstAction)
         menuInst.addAction(closeInstAction)
         menuScan = self.menuBar().addMenu('&Scan')
         menuScan.addAction(viewInstAction)
@@ -161,6 +168,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def load_dialogs(self):
         # 加载小部件
         self.selInstDialog = Dialogs.selectInstDialog(self)
+        self.ManualInstDialog=Dialogs.manualInstDialog(self)
         self.viewInstDialog = Dialogs.viewInstDialog(self)
 
     def on_exit(self):
@@ -168,6 +176,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # 保存函数可以实现选择性保存需求数据
     # def savedata(self):
+
+    def Manual_inst(self):
+        result=self.ManualInstDialog.exec_()
 
     def select_inst(self):
         result = self.selInstDialog.exec_()

@@ -127,6 +127,42 @@ class selectInstDialog(QtWidgets.QDialog):
 
         self.done(True)
 
+class manualInstDialog(QtWidgets.QDialog):
+    '''
+    手动输入设备IP
+    '''
+    def __init__(self,parent):
+        QtWidgets.QDialog.__init__(self,parent)
+        self.parent=parent
+        self.setMinimumSize(200,200)
+        self.setWindowTitle('Manual Input Inst_IP')
+
+        acceptButton = QtGui.QPushButton(Shared.btn_label('confirm'))
+        cancelButton = QtGui.QPushButton(Shared.btn_label('reject'))
+
+        ManualInst=QtWidgets.QWidget()
+        ManualInstLayout=QtWidgets.QFormLayout()
+        self.AWGIP=QtWidgets.QWidget()
+        self.AWGIPFill=QtWidgets.QLineEdit()
+        self.AWGIPFill.setInputMask("000.000.000.000")
+
+        self.VNAIP=QtWidgets.QWidget()
+        self.VNAIPFill=QtWidgets.QLineEdit()
+        self.VNAIPFill.setInputMask("000.000.000.000")
+
+        ManualInstLayout.addRow("AWG_IP",self.AWGIPFill)
+        ManualInstLayout.addRow("VNA_IP",self.VNAIPFill)
+
+        ManualInst.setLayout(ManualInstLayout)
+
+        mainLayout=QtWidgets.QGridLayout()
+        mainLayout.addWidget(ManualInst,0,0,2,1)
+        mainLayout.addWidget(acceptButton,3,1)
+        mainLayout.addWidget(cancelButton,3,0)
+        self.setLayout(mainLayout)
+
+        cancelButton.clicked.connect(self.reject)
+        acceptButton.clicked.connect(self.accept)
 
 class viewInstDialog(QtWidgets.QDialog):
 

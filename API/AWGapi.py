@@ -55,7 +55,7 @@ class M9502A(socketscpi.SocketInstrument):
         """
 
         # Stop output on all channels before doing anything else
-        for ch in range(1, 5):
+        for ch in range(1, 4):
             self.stop(ch=ch)
 
         # Check to see which keyword arguments the user sent and call the appropriate function
@@ -297,6 +297,15 @@ class M9502A(socketscpi.SocketInstrument):
         while n<stop:
             n=n+1
             yield n
+    def read_power_toggle(self):
+        # 获取设备状态
+        try:
+            text=self.query(':OUTP?')
+            status=bool(int(text.strip()))
+            return status
+        except:
+            return False
+
 
 class AWGError(Exception):
     """AWG Exception class"""
