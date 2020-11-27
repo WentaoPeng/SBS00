@@ -47,6 +47,7 @@ class AWGInfo():
         self.ChannelNum=1
         self.AWGPower=500
         self.errMsg = ''
+        self.Address='192.168.1.101'
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''

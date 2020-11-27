@@ -4,6 +4,7 @@
 from PyQt5 import QtCore, QtWidgets, QtGui
 from GUI import SharedWidgets as Shared
 from API import general as api_gen
+from API import AWGapi as api_awg
 
 from pyqtgraph import siFormat
 import pyqtgraph as pg
@@ -163,6 +164,13 @@ class manualInstDialog(QtWidgets.QDialog):
 
         cancelButton.clicked.connect(self.reject)
         acceptButton.clicked.connect(self.accept)
+
+        # 更新后台ip
+        self.AWGIPFill.textChanged.connect(self.updateIP)
+        self.VNAIPFill.textChanged.connect(self.updateIP)
+
+    def updateIP(self):
+        self.parent.AWGH
 
 class viewInstDialog(QtWidgets.QDialog):
 
