@@ -170,7 +170,15 @@ class manualInstDialog(QtWidgets.QDialog):
         self.VNAIPFill.textChanged.connect(self.updateIP)
 
     def updateIP(self):
-        self.parent.AWGH
+        self.AWGIPd=self.AWGIPFill.text()
+        self.VNAIPd=self.VNAIPFill.text()
+
+    def accept(self):
+        self.parent.AWGHandle=api_gen.AWG_IP(self.AWGIPd).open_IPinst()
+        self.parent.VNAHandle =api_gen.VNA_IP(self.VNAIPd).open_IPinst()
+
+        self.done(True)
+
 
 class viewInstDialog(QtWidgets.QDialog):
 

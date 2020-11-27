@@ -8,7 +8,9 @@ from GUI import Inst_Dialogs as Dialogs
 from GUI import Panels
 from API import AWGapi
 from API import EVNAapi
-
+from API import general as api_gen
+import logging
+import traceback
 
 class MainWindow(QtWidgets.QMainWindow):
 
@@ -21,6 +23,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.testModeSignLabel = QtWidgets.QLabel('[TEST MODE ACTIVE -- NOTHING IS REAL]!')
         self.testModeSignLabel.setStyleSheet('color: {:s}'.format(Shared.msgcolor(0)))
         self.testModeSignLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.errorSignLabel=QtWidgets.QLabel()
+        self.errorSignLabel.setStyleSheet('color:{:s}'.format(Shared.msgcolor(0)))
+        self.errorSignLabel.setAlignment(QtCore.Qt.AlignCenter)
+        # 提取后台log文档并显示
+        self.logger=self.get_logger('./log.txt',logging.INFO)
+
+        self.errorSignLabel.setText(self.predicted(features))
+
 
         # 初始化设备
         self.VNAHandle = None
@@ -122,18 +132,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainLayout = QtWidgets.QGridLayout()
         self.mainLayout.setSpacing(11)
         self.mainLayout.addWidget(self.AWGStatus, 0, 0, 2, 2)
-        self.mainLayout.addWidget(self.EVNAStatus, 2, 0, 2, 2)
-        self.mainLayout.addWidget(self.OSAStatus, 4, 0, 2, 2)
-        self.mainLayout.addWidget(self.EDFA1Status, 6, 0, 2, 2)
-        self.mainLayout.addWidget(self.EDFA2Status, 8, 0, 2, 2)
+        # self.mainLayout.addWidget(self.EVNAStatus, 2, 0, 2, 2)
+        # self.mainLayout.addWidget(self.OSAStatus, 4, 0, 2, 2)
+        # self.mainLayout.addWidget(self.EDFA1Status, 6, 0, 2, 2)
+        # self.mainLayout.addWidget(self.EDFA2Status, 8, 0, 2, 2)
 
         self.mainLayout.addWidget(self.AWGCtrl, 0, 2, 2, 2)
-        self.mainLayout.addWidget(self.EVNACtrl, 2, 2, 2, 2)
-        self.mainLayout.addWidget(self.OSACtrl, 4, 2, 2, 2)
-        self.mainLayout.addWidget(self.EDFA1Ctrl, 6, 2, 2, 2)
-        self.mainLayout.addWidget(self.EDFA2Ctrl, 8, 2, 2, 2)
+        self.mainLayout.addWidget(self.EVNACtrl, 2, 0, 2, 2)
+        self.mainLayout.addWidget(self.OSACtrl, 4, 0, 2, 2)
+        self.mainLayout.addWidget(self.EDFA1Ctrl, 6, 0, 2, 2)
+        self.mainLayout.addWidget(self.EDFA2Ctrl, 8, 0, 2, 2)
 
         self.mainLayout.addWidget(self.testModeSignLabel, 10, 0, 1, 2)
+        self.mainLayout.addWidget(self.errorSignLabel,10,2,1,2)
 
         self.mainLayout.addWidget(self.VNAMonitor, 0, 5, 4, 4)
         self.mainLayout.addWidget(self.OSAMonitor, 5, 5, 4, 4)
@@ -145,6 +156,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.load_dialogs()
         self.refresh_inst()
         self.testModeAction.toggled.connect(self.refresh_inst)
+
+    def get_logger(file_path, logging_level):
+        logger = logging.getLogger(__name__)
+        logger.setLevel(level=logging.INFO)
+        hander = logging.FileHandler(file_path)
+        hander.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+        hander.setFormatter(formatter)
+        logger.addHandler(hander)
+        return logger
+
+    def predicted(features):
+        try:
+            result = predictor(features)
+        except Exception  as e:
+            self.logger.info('model predictor may be fail')
+            self.logger.error('model error %s' % traceback.format_exc())  # 具体的错误会捕获
 
     def refresh_inst(self):
 

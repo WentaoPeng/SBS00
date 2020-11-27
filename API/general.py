@@ -82,3 +82,37 @@ def close_inst(*inst_handle):
         else:
             pass
     return status
+
+class AWG_IP():
+    def __init__(self,ip,visaDLL=None,*args):
+        self.ip=ip
+        self.visaDLL='c:/Windows/SysWOW64/visa32.dll' if visaDLL is None else visaDLL
+        # inst0=5025
+        self.address='TCPIP::%s::inst0::SOCKET'%self.ip
+        self.resourceManager=visa.ResourceManager(self.visaDLL)
+
+
+    def open_IPinst(self):
+        self.instance=self.resourceManager.open_resource(self.address)
+        # self.instance.write()
+
+    def close_IPinst(self):
+        self.instance.close()
+        self.instance=None
+
+
+class VNA_IP():
+    def __init__(self, ip, visaDLL=None, *args):
+        self.ip = ip
+        self.visaDLL = 'c:/Windows/SysWOW64/visa32.dll' if visaDLL is None else visaDLL
+        # inst0=5025
+        self.address = 'TCPIP::%S::inst0::SOCKET' % self.ip
+        self.resourceManager = visa.ResourceManager(self.visaDLL)
+
+    def open_IPinst(self):
+        self.instance = self.resourceManager.open_resource(self.address)
+        # self.instance.write()
+
+    def close_IPinst(self):
+        self.instance.close()
+        self.instance = None
