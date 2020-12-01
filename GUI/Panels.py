@@ -216,7 +216,7 @@ class EDFA1Status(QtWidgets.QGroupBox):
         QtWidgets.QGroupBox.__init__(self, parent)
         self.parent = parent
 
-        self.setTitle('EDFA1 Status')
+        self.setTitle('EDFA Status')
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
@@ -256,7 +256,7 @@ class EDFA2Status(QtWidgets.QGroupBox):
         self.parent.EDFA2Status.print_info()
 
 
-class VNACtrl(QtWidgets.QGroupBox):
+class PNACtrl(QtWidgets.QGroupBox):
     '''
     VNA控制界面
     '''
@@ -265,10 +265,102 @@ class VNACtrl(QtWidgets.QGroupBox):
         QtWidgets.QGroupBox.__init__(self, parent)
         self.parent = parent
 
-        self.setTitle('VNA Control')
+        self.setTitle('PNA Control')
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
+
+        response=QtWidgets.QGroupBox()
+        response.setTitle('RESPONSE')
+        response.setFlat(True)
+        response.setAlignment(QtCore.Qt.AlignLeft)
+        responseLayout=QtWidgets.QGridLayout()
+        responseLayout.setSpacing(0)
+
+        self.addressText = QtWidgets.QLabel()
+        # self.InstEnable = QtWidgets.QLabel()
+        self.AvgPoints=QtWidgets.QSpinBox()
+        self.EnterBtu=QtWidgets.QPushButton('Enter')
+        self.AllMeasBtu=QtWidgets.QPushButton('ALLMeas')
+
+        self.ScaleSet=QtWidgets.QWidget()
+        self.ScaleSetUnitSel=QtWidgets.QComboBox()
+        self.ScaleSetUnitSel.addItems(['S11','S12','S21','S22'])
+        self.ScaleSetUnitSel.setCurrentIndex(1)
+        ScaleLayout=QtWidgets.QHBoxLayout()
+        ScaleLayout.addWidget(QtWidgets.QLabel('Scale'))
+        ScaleLayout.addWidget(self.ScaleSetUnitSel)
+        self.ScaleSet.setLayout(ScaleLayout)
+
+        responseLayout.addWidget(QtWidgets.QLabel('Inst:'),0,0)
+        responseLayout.addWidget(self.addressText,0,1)
+        responseLayout.addWidget(self.ScaleSet,1,0,1,3)
+        responseLayout.addWidget(QtWidgets.QLabel('AvgPoints'),2,0)
+        responseLayout.addWidget(self.AvgPoints,2,1)
+        responseLayout.addWidget(self.EnterBtu,3,0)
+        responseLayout.addWidget(self.AllMeasBtu,3,1)
+        response.setLayout(responseLayout)
+
+        stimulus = QtWidgets.QGroupBox()
+        stimulus.setTitle('STIMULUS')
+        stimulus.setFlat(True)
+        stimulus.setAlignment(QtCore.Qt.AlignLeft)
+        stimulusLayout = QtWidgets.QGridLayout()
+        stimulusLayout.setSpacing(0)
+
+        self.PointSet=QtWidgets.QWidget()
+        self.SPoints = QtWidgets.QSpinBox()
+        SPointsLayout=QtWidgets.QGridLayout()
+        SPointsLayout.addWidget(QtWidgets.QLabel('Sweep Points'),0,0)
+        SPointsLayout.addWidget(self.SPoints,0,1,1,2)
+        self.PointSet.setLayout(SPointsLayout)
+
+
+        self.StartFset=QtWidgets.QWidget()
+        self.StartFsetFill=QtWidgets.QLineEdit('10')
+        self.StartFsetUnitSel=QtWidgets.QComboBox()
+        self.StartFsetUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
+        self.StartFsetUnitSel.setCurrentIndex(2)
+        StartFLayout=QtWidgets.QHBoxLayout()
+        StartFLayout.addWidget(QtWidgets.QLabel('StartFerq'))
+        StartFLayout.addWidget(self.StartFsetFill)
+        StartFLayout.addWidget(self.StartFsetUnitSel)
+        self.StartFset.setLayout(StartFLayout)
+
+        self.EndFset = QtWidgets.QWidget()
+        self.EndFsetFill = QtWidgets.QLineEdit('20')
+        self.EndFsetUnitSel = QtWidgets.QComboBox()
+        self.EndFsetUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
+        self.EndFsetUnitSel.setCurrentIndex(3)
+        EndFsetLayout = QtWidgets.QHBoxLayout()
+        EndFsetLayout.addWidget(QtWidgets.QLabel('EndFerq'))
+        EndFsetLayout.addWidget(self.EndFsetFill)
+        EndFsetLayout.addWidget(self.EndFsetUnitSel)
+        self.EndFset.setLayout(EndFsetLayout)
+
+        self.powerset=QtWidgets.QWidget()
+        self.powersetFill = QtWidgets.QLineEdit('0')
+        self.powersetUnitSel = QtWidgets.QComboBox()
+        self.powersetUnitSel.addItems(['dBm', 'mW'])
+        self.powersetUnitSel.setCurrentIndex(0)
+        powersetLayout = QtWidgets.QHBoxLayout()
+        powersetLayout.addWidget(QtWidgets.QLabel('Power'))
+        powersetLayout.addWidget(self.powersetFill)
+        powersetLayout.addWidget(self.powersetUnitSel)
+        self.powerset.setLayout(powersetLayout)
+
+        stimulusLayout.addWidget(self.StartFset,2,1,1,2)
+        stimulusLayout.addWidget(self.EndFset,3,1,1,2)
+        stimulusLayout.addWidget(self.PointSet,1,1,1,2)
+        stimulusLayout.addWidget(self.powerset,0,1,1,2)
+        stimulus.setLayout(stimulusLayout)
+
+        mainLayout=QtWidgets.QVBoxLayout()
+        mainLayout.setAlignment(QtCore.Qt.AlignTop)
+        mainLayout.addWidget(response)
+        mainLayout.addWidget(stimulus)
+        self.setLayout(mainLayout)
+
 
     def check(self):
         ''' Enable/disable this groupbox '''
@@ -587,33 +679,51 @@ class AWGCtrl(QtWidgets.QGroupBox):
         ts=np.linspace(0,t_AWG,N_AWG,endpoint=False)
 
         ys=SBS_DSP.synthesize1(amp_list,f_list,ts,phase_list)
-        print(f_list)
-        print(self.parent.AWGInfo.CFFreq)
-        plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
-        plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示符号
 
-        plt.figure()
-        plt.subplot(211)
-        plt.plot(ts, ys, 'b')
-        plt.xlabel("t（毫秒）")
-        plt.ylabel("S(t)幅值")
-        plt.title("叠加信号图")
+
+
+        # print(f_list)
+        # print(self.parent.AWGInfo.CFFreq)
+        # plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+        # plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示符号
+        #
+        # plt.figure()
+        # plt.subplot(211)
+        # plt.plot(ts, ys, 'b')
+        # plt.xlabel("t（毫秒）")
+        # plt.ylabel("S(t)幅值")
+        # plt.title("叠加信号图")
         # plt.show()
 
         # fs,hz=get_fft(ys,N_FPGA)
         fs, hz = SBS_DSP.get_fft(ys, N_AWG)
         # angle_fs = np.angle(np.abs(np.abs(fft(ys))/N_FPGA))
         # angle_hz=np.arange(len(ys))
-        plt.subplot(212)
-        plt.xlim(9500, 10500)
-        plt.plot(hz, fs, 'g')
-        # plt.subplot(313)
-        # plt.plot(angle_fs,angle_fs,'p')
-        plt.xlabel("F（MHz）")
-        plt.ylabel("A归一化")
-        plt.title("PUMP频梳")
-        plt.savefig('triangle.png')
-        plt.show()
+        # plt.subplot(212)
+        # plt.xlim(9500, 10500)
+        # plt.plot(hz, fs, 'g')
+        # # plt.subplot(313)
+        # # plt.plot(angle_fs,angle_fs,'p')
+        # plt.xlabel("F（MHz）")
+        # plt.ylabel("A归一化")
+        # plt.title("PUMP频梳")
+        # plt.savefig('triangle.png')
+        # plt.show()
+        self.plotpump(ts,ys,hz,fs)
+
+    def plotpump(self,ts,ys,hz,fs):
+        app=pg.mkQApp()
+        win=pg.GraphicsLayout()
+        win.setWindowTitle(u'Pump Design')
+        win.resize(700,450)
+        p1 = win.addPlot(left='Amplitude', bottom='Time',title='时域')
+        p2 = win.addPlot(left='Amplitude', bottom='Freq',title='频域')
+
+        for p,x,y,pen in zip([p1,p2],[ts,hz],[ys,fs],['r','g']):
+            p.plot(x,y,pen=pen)
+            p.showGrid(x=True,y=True)
+
+        app.exec()
 
 
 class OSACtrl(QtWidgets.QGroupBox):
@@ -715,6 +825,50 @@ class AWGDesignMonitor(QtWidgets.QWidget):
 
         self.parent.synStatus.print_info()
 
+class ADisplay(QtWidgets.QGroupBox):
+    def __init__(self,parent):
+        # super(ADisplay, self).__init__()
+        QtWidgets.QWidget.__init__(self, parent)
+        self.parent = parent
+        # 1
+        pg.setConfigOptions(leftButtonPan=False)
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('foreground', 'k')
+
+        # 2
+
+        # x=np.random.normal(size=1000)
+        # y=np.random.normal(size=1000)
+        #
+        # r_symbol = np.random.choice(['o', 's', 't', 't1', 't2', 't3', 'd', '+', 'x', 'p', 'h', 'star'])
+        # r_color = np.random.choice(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'd', 'l', 's'])
+
+        # 3
+        self.pw = pg.PlotWidget(self)
+        # self.plot_data = self.pw.plot(x, y, pen=None, symbol=r_symbol, symbolBrush=r_color)
+        # t=QtCore.QTimer()
+        # t.timeout.connect(self.update)
+        # t.start(10)
+
+        # 4
+        self.plot_btn = QtWidgets.QPushButton('Replot', self)
+        self.plot_btn.clicked.connect(self.plot)
+
+        self.v_layout = QtWidgets.QVBoxLayout()
+        self.v_layout.addWidget(self.pw)
+        self.v_layout.addWidget(self.plot_btn)
+        self.setLayout(self.v_layout)
+
+    def plot(x,y,z,w):
+        pw = pg.PlotWidget()
+        r_symbol = np.random.choice(['o', 's', 't', 't1', 't2', 't3', 'd', '+', 'x', 'p', 'h', 'star'])
+        r_color = np.random.choice(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'd', 'l', 's'])
+        # self.plot_data.setData(x, y, pen=None, symbol=r_symbol, symbolBrush=r_color)
+        p1=pw.addplot(left='Amplitude',bottom='Time',pen=None, symbol=r_symbol, symbolBrush=r_color)
+        p2=pw.addplot(left='Amplitude',bottom='Freq',pen=None, symbol=r_symbol, symbolBrush=r_color)
+        for p,i,j in zip([p1,p2],[x,z],[y,w]):
+            p.plot(i,j)
+            p.showGrid(i=True,j=True)
 
 class VNAMonitor(QtWidgets.QGroupBox):
 
@@ -722,7 +876,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
         QtWidgets.QWidget.__init__(self, parent)
         self.parent = parent
 
-        self.pgPlot = pg.PlotWidget(title='EVNA Monitor')
+        self.pgPlot = pg.PlotWidget(title='PNA Monitor')
         mainLayout = QtWidgets.QGridLayout()
         mainLayout.setAlignment(QtCore.Qt.AlignTop)
         mainLayout.addWidget(self.pgPlot, 0, 0)
