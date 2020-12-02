@@ -128,6 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # 设置显示模块
         self.AWGDisplay=Panels.ADisplay(self)
+        self.FcombDisplay=Panels.FcombDisplay(self)
         self.VNAMonitor = Panels.VNAMonitor(self)
         # self.OSAMonitor = Panels.OSAMonitor(self)
 
@@ -149,7 +150,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainLayout.addWidget(self.testModeSignLabel, 10, 0, 1, 2)
         self.mainLayout.addWidget(self.errorSignLabel,10,2,1,2)
 
-        self.mainLayout.addWidget(self.AWGDisplay,0,5,2,4)  #画两幅，时域与频域2*2
+        self.mainLayout.addWidget(self.AWGDisplay,0,5,2,2)  #画两幅，时域与频域2*2
+        self.mainLayout.addWidget(self.FcombDisplay,0,7,2,2)
         self.mainLayout.addWidget(self.VNAMonitor, 2, 5, 4, 4)
         # self.mainLayout.addWidget(self.OSAMonitor, 5, 5, 4, 4)
 

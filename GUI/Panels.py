@@ -146,7 +146,7 @@ class AWGStatus(QtWidgets.QGroupBox):
         self.InstEnable.setText('ON'if self.parent.AWGInfo.AWG_Status else 'OFF')
         self.ChannelNum.setText(str(self.parent.AWGInfo.ChannelNum))
         self.DACset.setText(str(self.parent.AWGInfo.DAC_index))
-        self.ShapeStatus.setText(self.parent.AWGInfo.mod_index)
+        self.ShapeStatus.setText(self.parent.AWGInfo.mod_sel)
         self.CWSet.setText(str(self.parent.AWGInfo.CFFreq)+'Hz')
         self.BWSet.setText(str(self.parent.AWGInfo.BWFreq)+'Hz')
         self.DFSet.setText(str(self.parent.AWGInfo.DFFreq)+'Hz')
@@ -154,14 +154,14 @@ class AWGStatus(QtWidgets.QGroupBox):
 
 
     def refresh_fun(self):
-        if self.parent.testModeAction.isChecked() or  (not self.parent.AWGHandle):
-            pass
-        else:
+        # if self.parent.testModeAction.isChecked() or  (not self.parent.AWGHandle):
+        #     pass
+        # else:
             self.addressText.setText(self.parent.AWGInfo.instName)
             self.InstEnable.setText('ON'if self.parent.AWGInfo.AWG_Status else 'OFF')
             self.ChannelNum.setText(str(self.parent.AWGInfo.ChannelNum))
             self.DACset.setText(str(self.parent.AWGInfo.DAC_index))
-            self.ShapeStatus.setText(self.parent.AWGInfo.mod_index)
+            self.ShapeStatus.setText(self.parent.AWGInfo.mod_sel)
             self.CWSet.setText(str(self.parent.AWGInfo.CFFreq)+'Hz')
             self.BWSet.setText(str(self.parent.AWGInfo.BWFreq)+'Hz')
             self.DFSet.setText(str(self.parent.AWGInfo.DFFreq)+'Hz')
@@ -626,9 +626,10 @@ class AWGCtrl(QtWidgets.QGroupBox):
     def tune_mod_parameter(self):
         # 状态信息同步
         # 波形状态
-        mod_index=self.PumpModeSel.currentText()
+        mod_index=self.PumpModeSel.currentIndex()
         self.parent.AWGInfo.mod_index=mod_index
-        print(mod_index)
+        self.parent.AWGInfo.mod_sel=self.PumpModeSel.currentText()
+        print(self.PumpModeSel.currentText())
         # DAC选择
         DAC_index=self.DACset.text()
         self.parent.AWGInfo.DAC_index=DAC_index
@@ -656,9 +657,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
 
     def DesignPump(self):
-
-
-
         AWG_framerate = 64 * 10 ** 9 # AWG采样率
         Df = 1 * 10 ** 6
         # FM_AWG = AWG_framerate / 2.56   # AWG最高分析频率
@@ -668,63 +666,82 @@ class AWGCtrl(QtWidgets.QGroupBox):
         BW=self.parent.AWGInfo.BWFreq
         DF=self.parent.AWGInfo.DFFreq
 
-        if self.PumpModeSel.currentIndex==0:
+        if self.parent.AWGInfo.mod_index==0:
             f_list,amp_list,phase_list=SBS_DSP.square_filter(CF,BW,DF)
-        elif self.PumpModeSel.currentIndex==1:
+        elif self.parent.AWGInfo.mod_index==1:
             f_list,amp_list,phase_list=SBS_DSP.triangle_filter(CF,BW,DF)
+        elif self.parent.AWGInfo.mod_index==2:
+            f_list,amp_list,phase_list=SBS_DSP.Band_stop_filter(CF,BW,DF,signal_BW=5*10**9)
         else:
-            f_list,amp_list,phase_list=SBS_DSP.square_filter(CF,BW,DF)
-            # f_list,amp_list,phase_list=SBS_DSP.Band_stop_filter(CF,BW,DF,signal_BW=5*10**9)
+            amp_list=[]
+            f_list=[]
+            phase_list=[]
 
         ts=np.linspace(0,t_AWG,N_AWG,endpoint=False)
 
         ys=SBS_DSP.synthesize1(amp_list,f_list,ts,phase_list)
+        self.parent.AWGInfo.ts=ts
+        self.parent.AWGInfo.ys=ys
 
-
-
-        # print(f_list)
-        # print(self.parent.AWGInfo.CFFreq)
-        # plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
-        # plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示符号
-        #
-        # plt.figure()
-        # plt.subplot(211)
-        # plt.plot(ts, ys, 'b')
-        # plt.xlabel("t（毫秒）")
-        # plt.ylabel("S(t)幅值")
-        # plt.title("叠加信号图")
-        # plt.show()
-
-        # fs,hz=get_fft(ys,N_FPGA)
         fs, hz = SBS_DSP.get_fft(ys, N_AWG)
-        # angle_fs = np.angle(np.abs(np.abs(fft(ys))/N_FPGA))
-        # angle_hz=np.arange(len(ys))
-        # plt.subplot(212)
-        # plt.xlim(9500, 10500)
-        # plt.plot(hz, fs, 'g')
-        # # plt.subplot(313)
-        # # plt.plot(angle_fs,angle_fs,'p')
-        # plt.xlabel("F（MHz）")
-        # plt.ylabel("A归一化")
-        # plt.title("PUMP频梳")
-        # plt.savefig('triangle.png')
-        # plt.show()
-        self.plotpump(ts,ys,hz,fs)
+        self.parent.AWGInfo.fs=fs
+        self.parent.AWGInfo.hz=hz
+        g0=10
+        Tb=10*10**6  #10~30Mhz
+        Fsbs=7.6*10**9
+        gb=self.lorentz(fs,hz,Fsbs,g0,Tb)
+        self.parent.AWGInfo.gb=gb
+        plt.figure()
+        plt.xlim(9500, 10500)
+        plt.plot(hz,gb,'b')
+        plt.show()
 
-    def plotpump(self,ts,ys,hz,fs):
-        app=pg.mkQApp()
-        win=pg.GraphicsLayout()
-        win.setWindowTitle(u'Pump Design')
-        win.resize(700,450)
-        p1 = win.addPlot(left='Amplitude', bottom='Time',title='时域')
-        p2 = win.addPlot(left='Amplitude', bottom='Freq',title='频域')
+    def lorentz(self,fs,hz,Fsbs,g0,Tb):
 
-        for p,x,y,pen in zip([p1,p2],[ts,hz],[ys,fs],['r','g']):
-            p.plot(x,y,pen=pen)
-            p.showGrid(x=True,y=True)
+        gb=g0*(((Tb/2)**2)/((hz-Fsbs)**2)+((Tb/2)**2))
 
-        app.exec()
+        return gb
 
+
+class FcombDisplay(QtWidgets.QGroupBox):
+    def __init__(self,parent):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.parent = parent
+
+        pg.setConfigOptions(leftButtonPan=False,antialias=True)
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('foreground', 'k')
+
+        # z = self.parent.AWGInfo.hz
+        # w = self.parent.AWGInfo.fs
+        # gb=self.parent.AWGInfo.gb
+        # self.pw = pg.PlotWidget(self)
+        self.pw=pg.MultiPlotWidget()
+        # self.plot_data = self.pw.plot(z, w,'b')
+        self.plot_data=self.pw.addPlot(left='Amp',bottom='Freq',title='SBS')
+        # self.plot_data.plot(z,w,'r')
+        # self.plot_data.plot(z,gb,'b')
+        # self.plot_data.showGrid(x=True,y=True)
+        # 4
+        self.plot_btn = QtWidgets.QPushButton('Replot', self)
+        self.plot_btn.clicked.connect(self.plot2)
+
+        self.v_layout = QtWidgets.QVBoxLayout()
+        self.v_layout.addWidget(self.pw)
+        self.v_layout.addWidget(self.plot_btn)
+        self.setLayout(self.v_layout)
+
+    def plot2(self):
+        self.plot_data.clear()
+        z = self.parent.AWGInfo.hz
+        w = self.parent.AWGInfo.fs
+        gb=self.parent.AWGInfo.gb
+        r_symbol = np.random.choice(['o', 's', 't', 't1', 't2', 't3', 'd', '+', 'x', 'p', 'h', 'star'])
+        r_color = np.random.choice(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'd', 'l', 's'])
+        # self.plot_data.setData(z, w,pen='b')
+        self.plot_data.plot(z,w,pen='r')
+        self.plot_data.plot(z,gb,pen='b')
+        self.plot_data.showGrid(x=True,y=True)
 
 class OSACtrl(QtWidgets.QGroupBox):
     '''
@@ -837,38 +854,28 @@ class ADisplay(QtWidgets.QGroupBox):
 
         # 2
 
-        # x=np.random.normal(size=1000)
-        # y=np.random.normal(size=1000)
-        #
-        # r_symbol = np.random.choice(['o', 's', 't', 't1', 't2', 't3', 'd', '+', 'x', 'p', 'h', 'star'])
-        # r_color = np.random.choice(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'd', 'l', 's'])
-
+        # x = self.parent.AWGInfo.ts
+        # y = self.parent.AWGInfo.ys
         # 3
-        self.pw = pg.PlotWidget(self)
-        # self.plot_data = self.pw.plot(x, y, pen=None, symbol=r_symbol, symbolBrush=r_color)
-        # t=QtCore.QTimer()
-        # t.timeout.connect(self.update)
-        # t.start(10)
-
+        # self.pw = pg.PlotWidget(self)
+        # self.plot_data = self.pw.plot(x, y,'r')
+        self.pw=pg.MultiPlotWidget()
+        self.plot_data=self.pw.addPlot(left='Amp',bottom='Time',title='SBS')
         # 4
         self.plot_btn = QtWidgets.QPushButton('Replot', self)
-        self.plot_btn.clicked.connect(self.plot)
+        self.plot_btn.clicked.connect(self.plot1)
 
         self.v_layout = QtWidgets.QVBoxLayout()
         self.v_layout.addWidget(self.pw)
         self.v_layout.addWidget(self.plot_btn)
         self.setLayout(self.v_layout)
 
-    def plot(x,y,z,w):
-        pw = pg.PlotWidget()
-        r_symbol = np.random.choice(['o', 's', 't', 't1', 't2', 't3', 'd', '+', 'x', 'p', 'h', 'star'])
-        r_color = np.random.choice(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'd', 'l', 's'])
-        # self.plot_data.setData(x, y, pen=None, symbol=r_symbol, symbolBrush=r_color)
-        p1=pw.addplot(left='Amplitude',bottom='Time',pen=None, symbol=r_symbol, symbolBrush=r_color)
-        p2=pw.addplot(left='Amplitude',bottom='Freq',pen=None, symbol=r_symbol, symbolBrush=r_color)
-        for p,i,j in zip([p1,p2],[x,z],[y,w]):
-            p.plot(i,j)
-            p.showGrid(i=True,j=True)
+    def plot1(self):
+        self.plot_data.clear()
+        x = self.parent.AWGInfo.ts
+        y = self.parent.AWGInfo.ys
+        self.plot_data.plot(x, y,pen='r')
+        self.plot_data.showGrid(x=True, y=True)
 
 class VNAMonitor(QtWidgets.QGroupBox):
 

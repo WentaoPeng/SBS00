@@ -42,12 +42,19 @@ class AWGInfo():
         self.BWFreq=200*10**6
         self.DFFreq=10*10**6
         self.AWG_Status=False
-        self.mod_index=''
+        self.mod_index=0
+        self.mod_sel=''
         self.DAC_index=0
         self.ChannelNum=1
         self.AWGPower=500
         self.errMsg = ''
         self.Address='192.168.1.101'
+        # 设计波形参数
+        self.ts=0
+        self.ys=0
+        self.fs=0
+        self.hz=0
+        self.gb=0
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''
