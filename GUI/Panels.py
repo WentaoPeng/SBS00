@@ -686,21 +686,23 @@ class AWGCtrl(QtWidgets.QGroupBox):
         fs, hz = SBS_DSP.get_fft(ys, N_AWG)
         self.parent.AWGInfo.fs=fs
         self.parent.AWGInfo.hz=hz
-        g0=10
-        Tb=10*10**6  #10~30Mhz
-        Fsbs=7.6*10**9
-        gb=self.lorentz(fs,hz,Fsbs,g0,Tb)
-        self.parent.AWGInfo.gb=gb
+        # Lorenz拟合
+        Tb=10*10**6  #10~30Mh布里渊线宽
+        # x = np.linspace(10, 20 * 10 ** 3, 10 ** 6) #扫频范围MHz
+        total_lorenz=SBS_DSP.add_lorenz(hz,amp_list,f_list,Tb)
+
+    #     gb=self.lorentz(fs,hz,Fsbs,g0,Tb)
+        self.parent.AWGInfo.gb=total_lorenz
         plt.figure()
-        plt.xlim(9500, 10500)
-        plt.plot(hz,gb,'b')
+        # plt.xlim(9500, 10500)
+        plt.plot(hz,total_lorenz,'b')
         plt.show()
-
-    def lorentz(self,fs,hz,Fsbs,g0,Tb):
-
-        gb=g0*(((Tb/2)**2)/((hz-Fsbs)**2)+((Tb/2)**2))
-
-        return gb
+    #
+    # def lorentz(self,fs,hz,Fsbs,g0,Tb):
+    #
+    #     gb=g0*(((Tb/2)**2)/((hz-Fsbs)**2)+((Tb/2)**2))
+    #
+    #     return gb
 
 
 class FcombDisplay(QtWidgets.QGroupBox):

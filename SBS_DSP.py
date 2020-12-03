@@ -310,6 +310,27 @@ def get_awgfile(ys,center_F,bandwidth,df):
 
     return txt
 
+def lorenz(omega,omega_B,gamma_B):
+    # 输入：频率-omege；Omega_B布里渊增益最大点（BFS）；gamma_B布里渊线宽
+    # 输出：Lorenz型的增益因子g_B*g_0*L_eff/A_eff
+    omega_sbs=10**9
+    g_0=4*10**(-11) #代入石英光纤典型常量值，单位m/W
+    alpha=0.22 #光纤损耗，单位dB/km
+    L_eff=10**3*(1-np.exp(-alpha*10))/alpha
+    MFD=10.4*10**(-6)   #G652D模场直径：10.4+-0.8um  1550nm
+    A_eff=np.pi*MFD**2/4    #此处近似修正因子k=1
+    gain_max=g_0*L_eff/A_eff    #lorenz峰值
+    gamma_b22=(gamma_B/2)**2
+    gain_lorenz=gain_max*gamma_b22/((omega-omega_B-omega_sbs)**2+gamma_b22)
+    return gain_lorenz
+
+def add_lorenz(x,amp_seq,f_seq,gamma_b):
+    total_brian=np.zeros(len(x))
+    for i in range(len(f_seq)):
+        total_brian+=(amp_seq[i]**2)*lorenz(x,f_seq[i],gamma_b)
+    total_brian=10/np.log(10)*total_brian
+    return total_brian
+
 
 if __name__ == '__main__':
     FPGA_framerate = 2.5 * 10 ** 9  # FPGA采样率
