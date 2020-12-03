@@ -657,7 +657,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
 
     def DesignPump(self):
-        AWG_framerate = 64 * 10 ** 9 # AWG采样率
+        AWG_framerate = 64e9 # AWG采样率
         Df = 1 * 10 ** 6
         # FM_AWG = AWG_framerate / 2.56   # AWG最高分析频率
         N_AWG = int(AWG_framerate / Df)
@@ -671,7 +671,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         elif self.parent.AWGInfo.mod_index==1:
             f_list,amp_list,phase_list=SBS_DSP.triangle_filter(CF,BW,DF)
         elif self.parent.AWGInfo.mod_index==2:
-            f_list,amp_list,phase_list=SBS_DSP.Band_stop_filter(CF,BW,DF,signal_BW=5*10**9)
+            f_list,amp_list,phase_list=SBS_DSP.Band_stop_filter(CF,BW,DF,signal_BW=1*10**9)
         else:
             amp_list=[]
             f_list=[]
@@ -683,26 +683,20 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.parent.AWGInfo.ts=ts
         self.parent.AWGInfo.ys=ys
 
-        fs, hz = SBS_DSP.get_fft(ys, N_AWG)
-        self.parent.AWGInfo.fs=fs
-        self.parent.AWGInfo.hz=hz
+        FFT_y, Fre = SBS_DSP.get_fft(ys, AWG_framerate)
+        self.parent.AWGInfo.FFT_y=FFT_y
+        self.parent.AWGInfo.Fre=Fre
         # Lorenz拟合
-        Tb=10*10**6  #10~30Mh布里渊线宽
-        # x = np.linspace(10, 20 * 10 ** 3, 10 ** 6) #扫频范围MHz
-        total_lorenz=SBS_DSP.add_lorenz(hz,amp_list,f_list,Tb)
+        Tb=20*10**6  #10~30Mhz布里渊线宽
+        omega_sbs = 9.7e9   #布里渊平移量
+        f_measure=np.arange(CF-2*BW-omega_sbs,CF+2*BW-omega_sbs,10**6)
+        self.parent.AWGInfo.f_measure=f_measure
+        total_lorenz=SBS_DSP.add_lorenz(f_measure,amp_list*0.008,f_list,Tb)
 
-    #     gb=self.lorentz(fs,hz,Fsbs,g0,Tb)
         self.parent.AWGInfo.gb=total_lorenz
-        plt.figure()
-        # plt.xlim(9500, 10500)
-        plt.plot(hz,total_lorenz,'b')
-        plt.show()
-    #
-    # def lorentz(self,fs,hz,Fsbs,g0,Tb):
-    #
-    #     gb=g0*(((Tb/2)**2)/((hz-Fsbs)**2)+((Tb/2)**2))
-    #
-    #     return gb
+        # plt.figure()
+        # plt.plot(f_measure,total_lorenz,'b')
+        # plt.show()
 
 
 class FcombDisplay(QtWidgets.QGroupBox):
@@ -735,14 +729,15 @@ class FcombDisplay(QtWidgets.QGroupBox):
 
     def plot2(self):
         self.plot_data.clear()
-        z = self.parent.AWGInfo.hz
-        w = self.parent.AWGInfo.fs
+        z = self.parent.AWGInfo.Fre
+        w = self.parent.AWGInfo.FFT_y
         gb=self.parent.AWGInfo.gb
+        f_measure=self.parent.AWGInfo.f_measure
         r_symbol = np.random.choice(['o', 's', 't', 't1', 't2', 't3', 'd', '+', 'x', 'p', 'h', 'star'])
         r_color = np.random.choice(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'd', 'l', 's'])
         # self.plot_data.setData(z, w,pen='b')
         self.plot_data.plot(z,w,pen='r')
-        self.plot_data.plot(z,gb,pen='b')
+        self.plot_data.plot(f_measure,gb,pen='b')
         self.plot_data.showGrid(x=True,y=True)
 
 class OSACtrl(QtWidgets.QGroupBox):

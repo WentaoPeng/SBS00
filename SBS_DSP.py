@@ -57,46 +57,54 @@ def square_wave(start, zhouqi, midu, xdecimals, ydecimals):
 
 
 def square_filter(center_F, bandwidth, df):
-    start_F = center_F - bandwidth / 2
-    # end_F=center_F+bandwidth/2
+    # start_F = center_F - bandwidth / 2
+    # # end_F=center_F+bandwidth/2
     dots = int(bandwidth / df + 1)
-    # a = np.random.randint(0, df / (10 ** 6) + 1)
-    f_list = []
-    amp_list = np.empty(dots)
-    phase_list = []
-    i = 0
-    while i < dots:
-        # f_list.append(start_F + i * df + a * 10 ** 6)
-        f_list.append(start_F + i * df)
-        amp_list[i] = 2
-        phase_list.append(randen_phase())
-        i = i + 1
+    # # a = np.random.randint(0, df / (10 ** 6) + 1)
+    # f_list = []
+    # amp_list = np.empty(dots)
+    # phase_list = []
+    # i = 0
+    # while i < dots:
+    #     # f_list.append(start_F + i * df + a * 10 ** 6)
+    #     f_list.append(start_F + i * df)
+    #     amp_list[i] = 0.003
+    #     phase_list.append(randen_phase())
+    #     i = i + 1
+    amp_list=np.ones(dots)
+    f_list=np.arange(-dots//2+1,dots//2+1)*df+center_F
+    phase_list=np.random.randint(low=0,high=8,size=dots)*(np.pi/4)
 
     return f_list, amp_list, phase_list
 
 
 def triangle_filter(center_F, bandwidth, df):
     dots = int(bandwidth / df + 1)
-    start_F = center_F - bandwidth / 2
-    end_F = center_F + (center_F - start_F)
-    # a = np.random.randint(0, df / (10 ** 6) + 1)
-    f_list = []
-    amp_list = np.empty(dots)
-    phase_list = []
-    i = 0
-    j = int(dots / 2 + 1)
-    while i < dots:
-        # f_list.append(start_F + i * df + a * 10 ** 6)
-        f_list.append(start_F + i * df)
-        phase_list.append(randen_phase())
-        if i < j:
-            amp_list[i] = i * df * 2 / (center_F - start_F)
-            # continue
-        else:
-            amp_list[i] = -1*(end_F - start_F - i * df) * 2 / (start_F - center_F)
-            # continue
-
-        i = i + 1
+    # start_F = center_F - bandwidth / 2
+    # end_F = center_F + (center_F - start_F)
+    # # a = np.random.randint(0, df / (10 ** 6) + 1)
+    # f_list = []
+    # amp_list = np.empty(dots)
+    # phase_list = []
+    # i = 0
+    # j = int(dots / 2 + 1)
+    # while i < dots:
+    #     # f_list.append(start_F + i * df + a * 10 ** 6)
+    #     f_list.append(start_F + i * df)
+    #     phase_list.append(randen_phase())
+    #     if i < j:
+    #         amp_list[i] = 0.003*i * df * 2 / (center_F - start_F)
+    #     else:
+    #         amp_list[i] = -1*0.003*(end_F - start_F - i * df) * 2 / (start_F - center_F)
+    #
+    #     i = i + 1
+    phase_list = np.random.randint(low=0, high=8, size=dots) * (np.pi / 4)
+    f_list=np.arange(-dots//2+1,dots//2+1)*df+center_F
+    amp_list1=np.linspace(0,1,dots//2)
+    amp_list2=np.linspace(1,0,dots//2)
+    if dots%2==1:
+        amp_list2=np.insert(amp_list2,0,1+amp_list1[1])
+    amp_list=np.hstack((amp_list1,amp_list2))
 
     return f_list, amp_list, phase_list
 
@@ -115,9 +123,9 @@ def Band_stop_filter(center_F, bandwidth, df,signal_BW):
         f_list.append(start_F + i * df)
         phase_list.append(randen_phase())
         if mindot <= i < maxdot:
-            amp_list[i] = 0.2
+            amp_list[i] = 0.003
         else:
-            amp_list[i] = 2
+            amp_list[i] = 0.1
         i = i + 1
 
     return f_list, amp_list, phase_list
@@ -244,17 +252,12 @@ def synthesize1(amps, fs, ts, offset):
     return ys
 
 
-def get_fft(ys, N):
-    p = abs(fft(ys))
-    p1 = p / N
-    p2 = p1[range(int(N / 2))]
-    # p2=p1
-    hz = np.arange(len(ys))
-    hz1 = hz
-    hz2 = hz1[range(int(N / 2))]
-    # hz2=np.fft.fftfreq(int(N),1)
-
-    return p2, hz2
+def get_fft(ys, Fs):
+    L=len(ys)
+    FFT_y=abs(fft(ys))/L
+    Fre=np.arange(int(L/2))*Fs/L
+    FFT_y=FFT_y[range(int(L/2))]
+    return FFT_y,Fre
 
 
 def get_mifile(ys):
@@ -313,7 +316,7 @@ def get_awgfile(ys,center_F,bandwidth,df):
 def lorenz(omega,omega_B,gamma_B):
     # 输入：频率-omege；Omega_B布里渊增益最大点（BFS）；gamma_B布里渊线宽
     # 输出：Lorenz型的增益因子g_B*g_0*L_eff/A_eff
-    omega_sbs=10**9
+    # omega_sbs=10.7**9
     g_0=4*10**(-11) #代入石英光纤典型常量值，单位m/W
     alpha=0.22 #光纤损耗，单位dB/km
     L_eff=10**3*(1-np.exp(-alpha*10))/alpha
@@ -321,13 +324,13 @@ def lorenz(omega,omega_B,gamma_B):
     A_eff=np.pi*MFD**2/4    #此处近似修正因子k=1
     gain_max=g_0*L_eff/A_eff    #lorenz峰值
     gamma_b22=(gamma_B/2)**2
-    gain_lorenz=gain_max*gamma_b22/((omega-omega_B-omega_sbs)**2+gamma_b22)
+    gain_lorenz=gain_max*gamma_b22/((omega-omega_B)**2+gamma_b22)
     return gain_lorenz
 
 def add_lorenz(x,amp_seq,f_seq,gamma_b):
     total_brian=np.zeros(len(x))
     for i in range(len(f_seq)):
-        total_brian+=(amp_seq[i]**2)*lorenz(x,f_seq[i],gamma_b)
+        total_brian+=(amp_seq[i]**2)*lorenz(x,f_seq[i]-9.7e9,gamma_b)
     total_brian=10/np.log(10)*total_brian
     return total_brian
 

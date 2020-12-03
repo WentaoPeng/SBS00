@@ -52,9 +52,10 @@ class AWGInfo():
         # 设计波形参数
         self.ts=0
         self.ys=0
-        self.fs=0
-        self.hz=0
+        self.FFT_y=0
+        self.Fre=0
         self.gb=0
+        self.f_measure=0
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''
