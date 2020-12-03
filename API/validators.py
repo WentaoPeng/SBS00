@@ -19,6 +19,47 @@ def _compare(num1, op, num2):
 
     return ops[op](num1, num2)
 
+def val_edfa1power(power_text,power_unit):
+    '''
+    小功率EDFA
+    :param power: 输入功率文本
+    :param power_unit: 单位
+    :return: 实际功率
+    '''
+    if power_text:
+        power_num=siEval(power_text+power_unit)
+    else:
+        return 0,0
+    # 需要判断单位是什么
+    if power_unit=='dBm':
+        code,power=val_float(power_num, safe=[('>=', 0), ('<=', 10)],
+                               warning=[('>', 10), ('<=', 20)])
+    else:
+        code, power = val_float(power_num, safe=[('>=', 0), ('<=', 0.0099)],
+                                warning=[('>', 0.0099), ('<=', 0.0999)])
+
+    return code,power
+
+
+def val_edfa2power(power_text, power_unit):
+    '''
+    大功率EDFA
+    :param power: 输入功率文本
+    :param power_unit: 单位
+    :return: 实际功率
+    '''
+    if power_text:
+        power_num = siEval(power_text + power_unit)
+    else:
+        return 0, 0
+    if power_unit=='dBm':
+        code,power=val_float(power_num, safe=[('>=', 0), ('<=', 35)],
+                               warning=[('>', 35), ('<=', 40)])
+    else:
+        code, power = val_float(power_num, safe=[('>=', 0), ('<=', 3.1623)],
+                                warning=[('>', 3.1623), ('<=', 10)])
+    return code, power
+
 def val_awgCW_mod_freq(freq_text, freq_unit_text):
     ''' Validate frequency input.
         Arguments

@@ -109,8 +109,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.AWGInfo = Shared.AWGInfo()
         self.EVNAInfo = Shared.EVNAInfo()
         self.OSAInfo = Shared.OSAInfo()
-        self.EDFA1Info = Shared.EDFA1Info()
-        self.EDFA2Info = Shared.EDFA2Info()
+        self.EDFAInfo = Shared.EDFAInfo()
 
         # 状态监控栏
         self.AWGStatus = Panels.AWGStatus(self)
@@ -144,7 +143,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainLayout.addWidget(self.AWGCtrl, 0, 0, 2, 2)
         self.mainLayout.addWidget(self.PNACtrl, 2, 0, 3, 2)
         # self.mainLayout.addWidget(self.OSACtrl, 4, 0, 2, 2)
-        self.mainLayout.addWidget(self.EDFACtrl, 2, 2, 2, 2)
+        self.mainLayout.addWidget(self.EDFACtrl, 2, 2, 3, 2)
         # self.mainLayout.addWidget(self.EDFA2Ctrl, 8, 0, 2, 2)
 
         self.mainLayout.addWidget(self.testModeSignLabel, 10, 0, 1, 2)

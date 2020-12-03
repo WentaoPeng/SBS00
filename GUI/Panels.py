@@ -206,53 +206,6 @@ class OSAStatus(QtWidgets.QGroupBox):
         self.parent.OSAStatus.print_info()
 
 
-class EDFA1Status(QtWidgets.QGroupBox):
-    '''小信号EDFA1状态信息'''
-
-    def __init__(self, parent):
-        QtWidgets.QGroupBox.__init__(self, parent)
-        self.parent = parent
-
-        self.setTitle('EDFA Status')
-        self.setAlignment(QtCore.Qt.AlignLeft)
-        self.setCheckable(True)
-        self.setChecked(False)
-
-    def check(self):
-        if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
-            self.setChecked(True)
-            self.parent.synStatus.setChecked(True)
-        else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
-            msg.exec_()
-            self.setChecked(False)
-            self.parent.synStatus.setChecked(False)
-        self.parent.EDFA1Status.print_info()
-
-
-class EDFA2Status(QtWidgets.QGroupBox):
-    '''级联大信号EDFA2状态信息'''
-
-    def __init__(self, parent):
-        QtWidgets.QGroupBox.__init__(self, parent)
-        self.parent = parent
-        self.setTitle('EDFA2 Status')
-        self.setAlignment(QtCore.Qt.AlignLeft)
-        self.setCheckable(True)
-        self.setChecked(False)
-
-    def Check(self):
-        if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
-            self.setChecked(True)
-            self.parent.synStatus.setChecked(True)
-        else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
-            msg.exec_()
-            self.setChecked(False)
-            self.parent.synStatus.setChecked(False)
-        self.parent.EDFA2Status.print_info()
-
-
 class PNACtrl(QtWidgets.QGroupBox):
     '''
     VNA控制界面
@@ -288,12 +241,12 @@ class PNACtrl(QtWidgets.QGroupBox):
 
         responseLayout.addWidget(QtWidgets.QLabel('Inst:'), 0, 0)
         responseLayout.addWidget(self.addressText, 0, 1, 1, 3)
-        responseLayout.addWidget(QtWidgets.QLabel('Scale'),1,0)
+        responseLayout.addWidget(QtWidgets.QLabel('Scale'), 1, 0)
         responseLayout.addWidget(self.ScaleSetUnitSel, 1, 1, 1, 3)
         responseLayout.addWidget(QtWidgets.QLabel('AvgPoints'), 2, 0)
-        responseLayout.addWidget(self.AvgPoints, 2, 1,1,3)
-        responseLayout.addWidget(self.EnterBtu, 3, 0,1,2)
-        responseLayout.addWidget(self.AllMeasBtu, 3, 2,1,2)
+        responseLayout.addWidget(self.AvgPoints, 2, 1, 1, 3)
+        responseLayout.addWidget(self.EnterBtu, 3, 0, 1, 2)
+        responseLayout.addWidget(self.AllMeasBtu, 3, 2, 1, 2)
         response.setLayout(responseLayout)
 
         stimulus = QtWidgets.QGroupBox()
@@ -770,14 +723,90 @@ class EDFACtrl(QtWidgets.QGroupBox):
     def __init__(self, parent):
         QtWidgets.QGroupBox.__init__(self, parent)
         self.parent = parent
-        self.setTitle('EDFA1 Ctrl')
+        self.setTitle('EDFA Ctrl')
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
 
-        self.addressEDFA1=QtWidgets.QLabel()
-        self.addressEDFA2=QtWidgets.QLabel()
+        EDFA1 = QtWidgets.QGroupBox()
+        EDFA1.setTitle('EDFA1')
+        EDFA1.setFlat(True)
+        EDFA1.setAlignment(QtCore.Qt.AlignTop)
+        EDFA1Layout = QtWidgets.QGridLayout()
+        EDFA1Layout.setAlignment(QtCore.Qt.AlignTop)
 
+        self.addressEDFA1 = QtWidgets.QLabel()
+
+        self.setPower1 = QtWidgets.QWidget()
+        self.setPower1Fill = QtWidgets.QLineEdit('5')
+        self.setPower1UnitSel = QtWidgets.QComboBox()
+        self.setPower1UnitSel.addItems(['dBm', 'mW'])
+        self.setPower1UnitSel.setCurrentIndex(0)
+
+        setPower1Layout = QtWidgets.QHBoxLayout()
+        setPower1Layout.addWidget(QtWidgets.QLabel('SetPower'))
+        setPower1Layout.addWidget(self.setPower1Fill)
+        setPower1Layout.addWidget(self.setPower1UnitSel)
+        self.setPower1.setLayout(setPower1Layout)
+
+        self.P1slider = QtWidgets.QSlider()
+        self.P1slider.setOrientation(QtCore.Qt.Horizontal)
+        self.P1slider.setMaximum(20)
+        self.P1slider.setMinimum(0)
+        self.P1slider.setValue(5)
+        # self.P1slider.setSingleStep(0.01)
+        self.P1slider.setTickInterval(0.01)
+
+        EDFA1Layout.addWidget(QtWidgets.QLabel('Inst_COM:'), 0, 0)
+        EDFA1Layout.addWidget(self.addressEDFA1, 0, 1, 1, 3)
+        EDFA1Layout.addWidget(self.setPower1, 1, 0, 1, 3)
+        EDFA1Layout.addWidget(self.P1slider, 3, 0, 1, 3)
+        EDFA1.setLayout(EDFA1Layout)
+
+        EDFA2 = QtWidgets.QGroupBox()
+        EDFA2.setTitle('EDFA2')
+        EDFA2.setFlat(True)
+        EDFA2.setAlignment(QtCore.Qt.AlignTop)
+        EDFA2Layout = QtWidgets.QGridLayout()
+        EDFA2Layout.setAlignment(QtCore.Qt.AlignTop)
+
+        self.addressEDFA2 = QtWidgets.QLabel()
+
+        self.setPower2 = QtWidgets.QWidget()
+        self.setPower2Fill = QtWidgets.QLineEdit('5')
+        self.setPower2UnitSel = QtWidgets.QComboBox()
+        self.setPower2UnitSel.addItems(['dBm', 'mW'])
+        self.setPower2UnitSel.setCurrentIndex(0)
+
+        setPower2Layout = QtWidgets.QHBoxLayout()
+        setPower2Layout.addWidget(QtWidgets.QLabel('SetPower'))
+        setPower2Layout.addWidget(self.setPower2Fill)
+        setPower2Layout.addWidget(self.setPower2UnitSel)
+        self.setPower2.setLayout(setPower2Layout)
+
+        self.P2slider = QtWidgets.QSlider()
+        self.P2slider.setOrientation(QtCore.Qt.Horizontal)
+        self.P2slider.setMaximum(20)
+        self.P2slider.setMinimum(0)
+        self.P2slider.setValue(5)
+        self.P2slider.setSingleStep(0.01)
+
+        EDFA2Layout.addWidget(QtWidgets.QLabel('Inst_COM:'), 0, 0)
+        EDFA2Layout.addWidget(self.addressEDFA2, 0, 1, 1, 3)
+        EDFA2Layout.addWidget(self.setPower2, 1, 0, 1, 3)
+        EDFA2Layout.addWidget(self.P2slider, 3, 0, 1, 3)
+        EDFA2.setLayout(EDFA2Layout)
+
+        mainLayout = QtWidgets.QVBoxLayout()
+        mainLayout.setAlignment(QtCore.Qt.AlignTop)
+        mainLayout.addWidget(EDFA1)
+        mainLayout.addWidget(EDFA2)
+        self.setLayout(mainLayout)
+
+        self.setPower1Fill.textChanged.connect(self.EDFAChangeFun)
+        self.P1slider.valueChanged.connect(self.EDFAChangeFun)
+        self.setPower2Fill.textChanged.connect(self.EDFAFillChangeFun)
+        self.P2slider.valueChanged.connect(self.EDFAChangeFun)
 
 
     def check(self):
@@ -790,6 +819,27 @@ class EDFACtrl(QtWidgets.QGroupBox):
             self.setChecked(False)
             self.parent.synStatus.setChecked(False)
         self.parent.EDFA1Ctrl.print_info()
+
+    def EDFAChangeFun(self):
+
+        self.setPower1Fill.setText(str(self.P1slider.value()))
+        self.setPower2Fill.setText(str(self.P2slider.value()))
+        EDFA1_status, EDFA1_Power = api_val.val_edfa1power(self.setPower1Fill.text(),
+                                                           self.setPower1UnitSel.currentText())
+        EDFA2_status, EDFA2_Power = api_val.val_edfa2power(self.setPower2Fill.text(),
+                                                           self.setPower2UnitSel.currentText())
+        self.parent.EDFAInfo.EDFA1power = EDFA1_Power
+        self.parent.EDFAInfo.EDFA2power = EDFA2_Power
+
+    def EDFAFillChangeFun(self):
+        self.P1slider.setValue(int(self.setPower1Fill.text()))
+        self.P2slider.setValue(int(self.setPower2Fill.text()))
+        EDFA1_status, EDFA1_Power = api_val.val_edfa1power(self.setPower1Fill.text(),
+                                                           self.setPower1UnitSel.currentText())
+        EDFA2_status, EDFA2_Power = api_val.val_edfa2power(self.setPower2Fill.text(),
+                                                           self.setPower2UnitSel.currentText())
+        self.parent.EDFAInfo.EDFA1power = EDFA1_Power
+        self.parent.EDFAInfo.EDFA2power = EDFA2_Power
 
 
 class VNAMonitor(QtWidgets.QGroupBox):
