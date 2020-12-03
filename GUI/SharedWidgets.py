@@ -38,33 +38,34 @@ class AWGInfo():
     def __init__(self):
         self.instName = 'AWG M9502A'
         self.ChannelNum = 0
-        self.CFFreq=10*10**9
-        self.BWFreq=200*10**6
-        self.DFFreq=10*10**6
-        self.AWG_Status=False
-        self.mod_index=0
-        self.mod_sel=''
-        self.DAC_index=0
-        self.ChannelNum=1
-        self.AWGPower=500
+        self.CFFreq = 10 * 10 ** 9
+        self.BWFreq = 200 * 10 ** 6
+        self.DFFreq = 10 * 10 ** 6
+        self.AWG_Status = False
+        self.mod_index = 0
+        self.mod_sel = ''
+        self.DAC_index = 0
+        self.ChannelNum = 1
+        self.AWGPower = 500
         self.errMsg = ''
-        self.Address='192.168.1.101'
+        self.Address = '192.168.1.101'
         # 设计波形参数
-        self.ts=0
-        self.ys=0
-        self.FFT_y=0
-        self.Fre=0
-        self.gb=0
-        self.f_measure=0
+        self.ts = 0
+        self.ys = 0
+        self.FFT_y = 0
+        self.Fre = 0
+        self.gb = 0
+        self.f_measure = 0
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''
         if AWGHandle:
             self.instName = AWGHandle.resource_name
-            self.AWG_Status=api_awg.M9502A.read_power_toggle
+            self.AWG_Status = api_awg.M9502A.read_power_toggle
             self.errMsg = ''
         else:
-            self.instName='No Instrument'
+            self.instName = 'No Instrument'
+
 
 class EVNAInfo():
     '''EVNA信息'''
@@ -80,57 +81,66 @@ class EVNAInfo():
             self.instInterface = str(EVNAHandle.interface_type)
             self.instInterfaceNum = EVNAHandle.interface_number
 
+
 class OSAInfo():
     '''OSA信息'''
 
     def __init__(self):
-        self.instName=''
+        self.instName = ''
         self.instInterface = ''
         self.instInterfaceNum = 0
 
-    def full_info_query(self,OSAHandle):
+    def full_info_query(self, OSAHandle):
         if OSAHandle:
-            self.instName=OSAHandle.resource_name
-            self.instInterface=str(OSAHandle.interface_type)
-            self.instInterfaceNum=OSAHandle.interface_number
+            self.instName = OSAHandle.resource_name
+            self.instInterface = str(OSAHandle.interface_type)
+            self.instInterfaceNum = OSAHandle.interface_number
+
 
 class EDFA1Info():
     '''EDFA1 信息'''
+
     def __init__(self):
-        self.instName=''
+        self.instName = ''
         self.instInterface = ''
         self.instInterfaceNum = 0
-    def full_info_query(self,EDFA1Handle):
+
+    def full_info_query(self, EDFA1Handle):
         if EDFA1Handle:
-            self.instName=EDFA1Handle.resource_name
-            self.instInterface=str(EDFA1Handle.interface_type)
-            self.instInterfaceNum=EDFA1Handle.interface_number
+            self.instName = EDFA1Handle.resource_name
+            self.instInterface = str(EDFA1Handle.interface_type)
+            self.instInterfaceNum = EDFA1Handle.interface_number
 
 
 class EDFA2Info():
     '''EDFA2 信息'''
+
     def __init__(self):
-        self.instName=''
+        self.instName = ''
         self.instInterface = ''
         self.instInterfaceNum = 0
-    def full_info_query(self,EDFA2Handle):
+
+    def full_info_query(self, EDFA2Handle):
         if EDFA2Handle:
-            self.instName=EDFA2Handle.resource_name
-            self.instInterface=str(EDFA2Handle.interface_type)
-            self.instInterfaceNum=EDFA2Handle.interface_number
+            self.instName = EDFA2Handle.resource_name
+            self.instInterface = str(EDFA2Handle.interface_type)
+            self.instInterfaceNum = EDFA2Handle.interface_number
+
 
 class AWGChannelBox(QtWidgets.QComboBox):
     '''AWG通道选取'''
+
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
 
-        bandList=[]
+        bandList = []
 
         for key in api_val.AWGCHANNELSET:
-            msg='Channel:{:d}'.format(api_val.AWGCHANNELSET[key])
+            msg = 'Channel:{:d}'.format(api_val.AWGCHANNELSET[key])
             bandList.append(msg)
         self.addItems(bandList)
         self.setCurrentIndex(4)
+
 
 def msgcolor(status_code):
     ''' Return message color based on status_code.

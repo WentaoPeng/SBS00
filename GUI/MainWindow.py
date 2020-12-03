@@ -14,6 +14,7 @@ import traceback
 import sys
 import pyqtgraph as pg
 
+
 class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
@@ -25,7 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.testModeSignLabel = QtWidgets.QLabel('[TEST MODE ACTIVE -- NOTHING IS REAL]!')
         self.testModeSignLabel.setStyleSheet('color: {:s}'.format(Shared.msgcolor(0)))
         self.testModeSignLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.errorSignLabel=QtWidgets.QLabel()
+        self.errorSignLabel = QtWidgets.QLabel()
         self.errorSignLabel.setStyleSheet('color:{:s}'.format(Shared.msgcolor(0)))
         self.errorSignLabel.setAlignment(QtCore.Qt.AlignCenter)
         # 提取后台log文档并显示
@@ -33,13 +34,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # self.errorSignLabel.setText(self.predicted(features))
 
-
         # 初始化设备
         self.VNAHandle = None
         self.AWGHandle = None
         self.OSAHandle = None
-        self.EDFA1Handle = None
-        self.EDFA2Handle = None
+        self.EDFAHandle = None
+        # self.EDFA2Handle = None
         # self.DC1Handle = None
         # self.DC2Handle = None
         # self.DC3Handle = None
@@ -58,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         seleInstAction.setStatusTip('Select Instrument Port')
         seleInstAction.triggered.connect(self.select_inst)
         # 手动输入
-        ManualInstAction=QtWidgets.QAction('Manual input',self)
+        ManualInstAction = QtWidgets.QAction('Manual input', self)
         ManualInstAction.setShortcut('Ctrl+Shift+M')
         ManualInstAction.setStatusTip('Manual input(LAN_IP)')
         ManualInstAction.triggered.connect(self.Manual_inst)
@@ -123,12 +123,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.AWGCtrl = Panels.AWGCtrl(self)
         self.PNACtrl = Panels.PNACtrl(self)
         # self.OSACtrl = Panels.OSACtrl(self)
-        self.EDFA1Ctrl = Panels.EDFA1Ctrl(self)
+        self.EDFACtrl = Panels.EDFACtrl(self)
         # self.EDFA2Ctrl = Panels.EDFA2Ctrl(self)
 
         # 设置显示模块
-        self.AWGDisplay=Panels.ADisplay(self)
-        self.FcombDisplay=Panels.FcombDisplay(self)
+        self.AWGDisplay = Panels.ADisplay(self)
+        self.FcombDisplay = Panels.FcombDisplay(self)
         self.VNAMonitor = Panels.VNAMonitor(self)
         # self.OSAMonitor = Panels.OSAMonitor(self)
 
@@ -144,15 +144,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainLayout.addWidget(self.AWGCtrl, 0, 0, 2, 2)
         self.mainLayout.addWidget(self.PNACtrl, 2, 0, 3, 2)
         # self.mainLayout.addWidget(self.OSACtrl, 4, 0, 2, 2)
-        self.mainLayout.addWidget(self.EDFA1Ctrl, 2, 2, 2, 2)
+        self.mainLayout.addWidget(self.EDFACtrl, 2, 2, 2, 2)
         # self.mainLayout.addWidget(self.EDFA2Ctrl, 8, 0, 2, 2)
 
         self.mainLayout.addWidget(self.testModeSignLabel, 10, 0, 1, 2)
-        self.mainLayout.addWidget(self.errorSignLabel,10,2,1,2)
+        self.mainLayout.addWidget(self.errorSignLabel, 10, 2, 1, 2)
 
-        self.mainLayout.addWidget(self.AWGDisplay,0,5,2,2)  #画两幅，时域与频域2*2
-        self.mainLayout.addWidget(self.FcombDisplay,0,7,2,2)
-        self.mainLayout.addWidget(self.VNAMonitor, 2, 5, 4, 4)
+        self.mainLayout.addWidget(self.AWGDisplay, 0, 5, 2, 2)  # 画两幅，时域与频域2*2
+        self.mainLayout.addWidget(self.FcombDisplay, 0, 7, 2, 2)
+        self.mainLayout.addWidget(self.VNAMonitor, 3, 5, 4, 4)
         # self.mainLayout.addWidget(self.OSAMonitor, 5, 5, 4, 4)
 
         self.mainWidget = QtWidgets.QWidget()
@@ -188,7 +188,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.AWGCtrl.setChecked(True)
             self.PNACtrl.setChecked(True)
             # self.OSACtrl.setChecked(True)
-            self.EDFA1Ctrl.setChecked(True)
+            self.EDFACtrl.setChecked(True)
             # self.EDFA2Ctrl.setChecked(True)
 
             self.AWGStatus.setChecked(True)
@@ -200,7 +200,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.PNACtrl.setChecked(not (self.VNAHandle is None))
             # self.OSACtrl.setChecked(not (self.OSAHandle is None))
             # self.EDFA2Ctrl.setChecked(not (self.EDFA2Handle is None))
-            self.EDFA1Ctrl.setChecked(not (self.EDFA1Handle is None))
+            self.EDFACtrl.setChecked(not (self.EDFAHandle is None))
 
             self.AWGStatus.setChecked(not (self.AWGHandle is None))
             # self.PNAStatus.setChecked(not (self.VNAHandle is None))
@@ -208,7 +208,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def load_dialogs(self):
         # 加载小部件
         self.selInstDialog = Dialogs.selectInstDialog(self)
-        self.ManualInstDialog=Dialogs.manualInstDialog(self)
+        self.ManualInstDialog = Dialogs.manualInstDialog(self)
         self.viewInstDialog = Dialogs.viewInstDialog(self)
 
     def on_exit(self):
@@ -218,7 +218,7 @@ class MainWindow(QtWidgets.QMainWindow):
     # def savedata(self):
 
     def Manual_inst(self):
-        result=self.ManualInstDialog.exec_()
+        result = self.ManualInstDialog.exec_()
 
     def select_inst(self):
         result = self.selInstDialog.exec_()
