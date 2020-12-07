@@ -3,18 +3,39 @@ import pyvisa
 import visa
 import os.path
 import socketscpi
+import numpy as np
 """
 TODO:
 1.针对M9502A创建SCPI类
 """
 Shape_MODE_LIST = ['Rectangle', 'Triangle', 'Band Stop']
 
+def wraparound_calc(length, gran, minLen):
+    """
+    HELPER FUNCTION
+    Computes the number of times to repeat a waveform based on
+    generator granularity requirements.
+    Args:
+        length (int): Length of waveform
+        gran (int): Granularity of waveform, determined by signal generator class
+        minLen: Minimum wfm length, determined by signal generator class
+
+    Returns:
+        (int) Number of repeats required to satisfy gran and minLen requirements
+    """
+
+    repeats = 1
+    temp = length
+    while temp % gran != 0 or temp < minLen:
+        temp += length
+        repeats += 1
+    return repeats
+
 class M9502A(socketscpi.SocketInstrument):
 
     '''
-    Generic class for controlling Keysight M9502A AWG.
-
-
+    Keysight M9502A AWG
+    通用类：M9502A
     '''
     def __init__(self,host,port=5025,timeout=10,reset=False):
         super().__init__(host,port,timeout)
@@ -99,13 +120,12 @@ class M9502A(socketscpi.SocketInstrument):
         self.write(f'inst:dacm {dacMode}')
         self.dacMode = self.query('inst:dacm?').strip().lower()
 
-        def set_memDiv(self, memDiv=1):
+    def set_memDiv(self, memDiv=1):
             """
             Sets and reads memory divider rate using SCPI commands.
             Args:
                 memDiv (int): Clock/memory divider rate. (1, 2, 4)
             """
-
             if memDiv not in [1, 2, 4]:
                 raise ValueError('Memory divider must be 1, 2, or 4.')
             self.write(f'instrument:memory:extended:rdivider div{memDiv}')
@@ -234,9 +254,9 @@ class M9502A(socketscpi.SocketInstrument):
         wfm = np.tile(wfmData, repeats)
         rl = len(wfm)
         if rl < self.minLen:
-            raise error.AWGError(f'Waveform length: {rl}, must be at least {self.minLen}.')
+            raise AWGError(f'Waveform length: {rl}, must be at least {self.minLen}.')
         if rl % self.gran != 0:
-            raise error.GranularityError(f'Waveform must have a granularity of {self.gran}.')
+            raise GranularityError(f'Waveform must have a granularity of {self.gran}.')
 
         # Apply the binary multiplier, cast to int16, and shift samples over if required
         return np.array(self.binMult * wfm, dtype=np.int8) << self.binShift
@@ -314,4 +334,8 @@ class M9502A(socketscpi.SocketInstrument):
 
 class AWGError(Exception):
     """AWG Exception class"""
+    pass
+
+class GranularityError(Exception):
+    """Waveform Granularity Exception class"""
     pass
