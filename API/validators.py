@@ -110,6 +110,15 @@ def val_awgDF_mod_freq(freq_text,freq_unit_text):
                            warning=[('>', 50e6), ('<=', 100e6)])
     return code, freq
 
+def val_PNA_F(freq_text,freq_unit_text):
+    if freq_text:
+        freq_num=siEval(freq_text+freq_unit_text)
+    else:
+        return 0,0
+    code,freq=val_float(freq_num)
+
+    return code,freq
+
 def val_float(text, safe=[], warning=[]):
     ''' General validator for int number.
         Comparison operators can be passed through safe & warning

@@ -72,15 +72,19 @@ class PNAInfo():
 
     def __init__(self):
         self.instName = ''
-        self.instInterface = ''
-        self.instInterfaceNum = 0
+        self.Scale=''
+        self.AvgPoints=0
+        self.Power=0
+        self.SweepPoints=0
+        self.StartFerq=10**7
+        self.EndFerq=50*10**9
 
 
     def full_info_query(self, PNAHandle):
         if PNAHandle:
             self.instName = PNAHandle.resource_name
-            self.instInterface = str(PNAHandle.interface_type)
-            self.instInterfaceNum = PNAHandle.interface_number
+        else:
+            self.instName='NoInstrument'
 
 
 class LightInfo():

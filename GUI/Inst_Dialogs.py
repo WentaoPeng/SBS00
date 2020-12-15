@@ -52,9 +52,7 @@ class selectInstDialog(QtWidgets.QDialog):
         selInstLayout.addRow(QtWidgets.QLabel('EDFA1'), self.selEDFA1)
         selInstLayout.addRow(QtWidgets.QLabel('EDFA2'), self.selEDFA2)
         selInstLayout.addRow(QtWidgets.QLabel('LightWave'), self.selLight)
-        # selInstLayout.addRow(QtWidgets.QLabel('DC1'), self.selDC1)
-        # selInstLayout.addRow(QtWidgets.QLabel('DC2'), self.selDC2)
-        # selInstLayout.addRow(QtWidgets.QLabel('DC3'), self.selDC3)
+
         selInst.setLayout(selInstLayout)
 
         mainLayout = QtWidgets.QGridLayout()
@@ -101,12 +99,11 @@ class selectInstDialog(QtWidgets.QDialog):
                            self.parent.EDFA1Handle,
                            self.parent.EDFA2Handle,)
         # 开启新的设备连接
-        self.parent.AWGHandle = api_gen.list_inst(self.selAWG.currentText())
-        self.parent.PNAHandle = api_gen.list_inst(self.selPNA.currentText())
-        self.parent.LightHandle = api_gen.list_inst(self.selLight.currentText())
-        self.parent.EDFA1Handle = api_gen.list_inst(self.selEDFA1.currentText())
-        self.parent.EDFA2Handle = api_gen.list_inst(self.selEDFA2.currentText())
-
+        self.parent.AWGHandle = api_gen.open_inst(self.selAWG.currentText())
+        self.parent.PNAHandle = api_gen.open_inst(self.selPNA.currentText())
+        self.parent.LightHandle = api_gen.open_inst(self.selLight.currentText())
+        self.parent.EDFA1Handle = api_gen.open_inst(self.selEDFA1.currentText())
+        self.parent.EDFA2Handle = api_gen.open_inst(self.selEDFA2.currentText())
 
         self.done(True)
 
@@ -119,6 +116,7 @@ class manualInstDialog(QtWidgets.QDialog):
         self.parent=parent
         self.setMinimumSize(200,200)
         self.setWindowTitle('Manual Input Inst_IP')
+        self.awgip='192.168.1.103'
 
         acceptButton = QtGui.QPushButton(Shared.btn_label('confirm'))
         cancelButton = QtGui.QPushButton(Shared.btn_label('reject'))
@@ -129,12 +127,12 @@ class manualInstDialog(QtWidgets.QDialog):
         self.AWGIPFill=QtWidgets.QLineEdit()
         self.AWGIPFill.setInputMask("000.000.000.000")
 
-        self.PNAIP=QtWidgets.QWidget()
-        self.PNAIPFill=QtWidgets.QLineEdit()
-        self.PNAIPFill.setInputMask("000.000.000.000")
+        # self.PNAIP=QtWidgets.QWidget()
+        # self.PNAIPFill=QtWidgets.QLineEdit()
+        # self.PNAIPFill.setInputMask("000.000.000.000")
 
         ManualInstLayout.addRow("AWG_IP",self.AWGIPFill)
-        ManualInstLayout.addRow("PNA_IP",self.PNAIPFill)
+        # ManualInstLayout.addRow("PNA_IP",self.PNAIPFill)
 
         ManualInst.setLayout(ManualInstLayout)
 
@@ -149,15 +147,22 @@ class manualInstDialog(QtWidgets.QDialog):
 
         # 更新后台ip
         self.AWGIPFill.textChanged.connect(self.updateIP)
-        self.PNAIPFill.textChanged.connect(self.updateIP)
+        # self.PNAIPFill.textChanged.connect(self.updateIP)
 
     def updateIP(self):
         self.awgip=self.AWGIPFill.text()
-        self.pnaip=self.PNAIPFill.text()
+        # self.pnaip=self.PNAIPFill.text()
 
     def accept(self):
-        self.parent.AWGHandle=api_gen.AWG_IP(self.awgip).open_IPinst()
-        self.parent.PNAHandle =api_gen.PNA_IP(self.pnaip).open_IPinst()
+        if self.awgip=='N.A.':
+            return None
+        else:
+            try:
+                self.parent.AWGHandle=api_awg.M9502A(self.awgip,reset=True)
+                print(self.parent.AWGHandle)
+                self.done(True)
+            except:
+                return None
 
         self.done(True)
 

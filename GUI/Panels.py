@@ -10,6 +10,7 @@ import numpy as np
 from GUI import SharedWidgets as Shared
 from API import AWGapi as api_awg
 from API import validators as api_val
+from API import PNAapi as api_pna
 from pyqtgraph import siEval
 import SBS_DSP
 import matplotlib.pyplot as plt
@@ -248,6 +249,39 @@ class PNACtrl(QtWidgets.QGroupBox):
         mainLayout.addWidget(response)
         mainLayout.addWidget(stimulus)
         self.setLayout(mainLayout)
+
+        # 信息同步，单位转换
+        self.AvgPoints.valueChanged.connect(self.tune_mod_parameter)
+        self.ScaleSetUnitSel.currentIndexChanged.connect(self.tune_mod_parameter)
+        self.powersetFill.textChanged.connect(self.tune_mod_parameter)
+        self.SPoints.valueChanged.connect(self.tune_mod_parameter)
+        self.StartFsetFill.textChanged.connect(self.tune_mod_parameter)
+        self.EndFsetFill.textChanged.connect(self.tune_mod_parameter)
+
+        self.EnterBtu.clicked.connect(self.setPNA)
+        self.AllMeasBtu.clicked.connect(self.display)
+
+    def display(self):
+        '''需要实时获取数据并绘图'''
+
+
+    def setPNA(self):
+        api_pna.PNA_setup(self.parent.PNAHandle,start=self.parent.PNAInfo.StartFerq,stop=self.parent.PNAInfo.EndFerq,
+                          numPoints=self.parent.PNAInfo.SweepPoints,measParam=self.parent.PNAInfo.Scale)
+
+
+    def tune_mod_parameter(self):
+        self.parent.PNAInfo.Scale=self.ScaleSetUnitSel.currentText()
+        self.parent.PNAInfo.AvgPoints=self.AvgPoints.value()
+        self.parent.PNAInfo.SweepPoints=self.SPoints.value()
+        SF_status,SF_value=api_val.val_PNA_F(self.StartFsetFill.text(),
+                                             self.StartFsetUnitSel.currentText())
+        EF_status,EF_value=api_val.val_PNA_F(self.EndFsetFill.text(),
+                                             self.EndFsetUnitSel.currentText())
+        self.parent.PNAInfo.StartFerq=SF_value
+        self.parent.PNAInfo.EndFerq=EF_value
+
+
 
     def check(self):
         ''' Enable/disable this groupbox '''
