@@ -7,7 +7,10 @@ import numpy as np
 """
 TODO:
 1.针对M9502A创建SCPI类
+2.
 """
+
+# 滤波器分类列表
 Shape_MODE_LIST = ['Rectangle', 'Triangle', 'Band Stop']
 
 def wraparound_calc(length, gran, minLen):

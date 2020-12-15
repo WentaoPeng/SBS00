@@ -34,35 +34,27 @@ class selectInstDialog(QtWidgets.QDialog):
         self.selAWG = QtWidgets.QComboBox()
         self.selAWG.addItems(['N.A.'])
         self.selAWG.addItems(instList)
-        self.selEVNA = QtWidgets.QComboBox()
-        self.selEVNA.addItems(['N.A.'])
-        self.selEVNA.addItems(instList)
+        self.selPNA = QtWidgets.QComboBox()
+        self.selPNA.addItems(['N.A.'])
+        self.selPNA.addItems(instList)
         self.selEDFA1 = QtWidgets.QComboBox()
         self.selEDFA1.addItems(['N.A.'])
         self.selEDFA1.addItems(instList)
         self.selEDFA2 = QtWidgets.QComboBox()
         self.selEDFA2.addItems(['N.A.'])
         self.selEDFA2.addItems(instList)
-        self.selOSA = QtWidgets.QComboBox()
-        self.selOSA.addItems(['N.A.'])
-        self.selOSA.addItems(instList)
-        self.selDC1 = QtWidgets.QComboBox()
-        self.selDC1.addItems(['N.A.'])
-        self.selDC1.addItems(instList)
-        self.selDC2 = QtWidgets.QComboBox()
-        self.selDC2.addItems(['N.A.'])
-        self.selDC2.addItems(instList)
-        self.selDC3 = QtWidgets.QComboBox()
-        self.selDC3.addItems(['N.A.'])
-        self.selDC3.addItems(instList)
+        self.selLight = QtWidgets.QComboBox()
+        self.selLight.addItems(['N.A.'])
+        self.selLight.addItems(instList)
+
         selInstLayout.addRow(QtWidgets.QLabel('AWG'), self.selAWG)
-        selInstLayout.addRow(QtWidgets.QLabel('EVNA'), self.selEVNA)
+        selInstLayout.addRow(QtWidgets.QLabel('PNA'), self.selPNA)
         selInstLayout.addRow(QtWidgets.QLabel('EDFA1'), self.selEDFA1)
         selInstLayout.addRow(QtWidgets.QLabel('EDFA2'), self.selEDFA2)
-        selInstLayout.addRow(QtWidgets.QLabel('OSA'), self.selOSA)
-        selInstLayout.addRow(QtWidgets.QLabel('DC1'), self.selDC1)
-        selInstLayout.addRow(QtWidgets.QLabel('DC2'), self.selDC2)
-        selInstLayout.addRow(QtWidgets.QLabel('DC3'), self.selDC3)
+        selInstLayout.addRow(QtWidgets.QLabel('LightWave'), self.selLight)
+        # selInstLayout.addRow(QtWidgets.QLabel('DC1'), self.selDC1)
+        # selInstLayout.addRow(QtWidgets.QLabel('DC2'), self.selDC2)
+        # selInstLayout.addRow(QtWidgets.QLabel('DC3'), self.selDC3)
         selInst.setLayout(selInstLayout)
 
         mainLayout = QtWidgets.QGridLayout()
@@ -90,41 +82,31 @@ class selectInstDialog(QtWidgets.QDialog):
 
         for i in range(item_count - 1):
             self.selAWG.removeItem(1)
-            self.selEVNA.removeItem(1)
+            self.selPNA.removeItem(1)
             self.selEDFA1.removeItem(1)
             self.selEDFA2.removeItem(1)
-            self.selOSA.removeItem(1)
-            self.selDC3.removeItem(1)
-            self.selDC2.removeItem(1)
-            self.selDC1.removeItem(1)
+            self.selLight.removeItem(1)
         self.selAWG.addItems(instList)
-        self.selEVNA.addItems(instList)
+        self.selPNA.addItems(instList)
         self.selEDFA1.addItems(instList)
         self.selEDFA2.addItems(instList)
-        self.selOSA.addItems(instList)
-        self.selDC1.addItems(instList)
-        self.selDC2.addItems(instList)
-        self.selDC3.addItems(instList)
+        self.selLight.addItems(instList)
+
 
     def accept(self):
         # 关闭旧的设备连接
         api_gen.close_inst(self.parent.AWGHandle,
-                           self.parent.EVNAHandle,
-                           self.parent.OSAHandle,
+                           self.parent.PNAHandle,
+                           self.parent.LightHandle,
                            self.parent.EDFA1Handle,
-                           self.parent.EDFA2Handle,
-                           self.parent.DC1Handle,
-                           self.parent.DC2Handle,
-                           self.parent.DC3Handle)
+                           self.parent.EDFA2Handle,)
         # 开启新的设备连接
         self.parent.AWGHandle = api_gen.list_inst(self.selAWG.currentText())
-        self.parent.EVNAHandle = api_gen.list_inst(self.selEVNA.currentText())
-        self.parent.OSAHandle = api_gen.list_inst(self.selOSA.currentText())
+        self.parent.PNAHandle = api_gen.list_inst(self.selPNA.currentText())
+        self.parent.LightHandle = api_gen.list_inst(self.selLight.currentText())
         self.parent.EDFA1Handle = api_gen.list_inst(self.selEDFA1.currentText())
         self.parent.EDFA2Handle = api_gen.list_inst(self.selEDFA2.currentText())
-        self.parent.DC1Handle = api_gen.list_inst(self.selDC1.currentText())
-        self.parent.DC2Handle = api_gen.list_inst(self.selDC2.currentText())
-        self.parent.DC3Handle = api_gen.list_inst(self.selDC3.currentText())
+
 
         self.done(True)
 
@@ -147,12 +129,12 @@ class manualInstDialog(QtWidgets.QDialog):
         self.AWGIPFill=QtWidgets.QLineEdit()
         self.AWGIPFill.setInputMask("000.000.000.000")
 
-        self.VNAIP=QtWidgets.QWidget()
-        self.VNAIPFill=QtWidgets.QLineEdit()
-        self.VNAIPFill.setInputMask("000.000.000.000")
+        self.PNAIP=QtWidgets.QWidget()
+        self.PNAIPFill=QtWidgets.QLineEdit()
+        self.PNAIPFill.setInputMask("000.000.000.000")
 
         ManualInstLayout.addRow("AWG_IP",self.AWGIPFill)
-        ManualInstLayout.addRow("VNA_IP",self.VNAIPFill)
+        ManualInstLayout.addRow("PNA_IP",self.PNAIPFill)
 
         ManualInst.setLayout(ManualInstLayout)
 
@@ -167,15 +149,15 @@ class manualInstDialog(QtWidgets.QDialog):
 
         # 更新后台ip
         self.AWGIPFill.textChanged.connect(self.updateIP)
-        self.VNAIPFill.textChanged.connect(self.updateIP)
+        self.PNAIPFill.textChanged.connect(self.updateIP)
 
     def updateIP(self):
-        self.AWGIPd=self.AWGIPFill.text()
-        self.VNAIPd=self.VNAIPFill.text()
+        self.awgip=self.AWGIPFill.text()
+        self.pnaip=self.PNAIPFill.text()
 
     def accept(self):
-        self.parent.AWGHandle=api_gen.AWG_IP(self.AWGIPd).open_IPinst()
-        self.parent.VNAHandle =api_gen.VNA_IP(self.VNAIPd).open_IPinst()
+        self.parent.AWGHandle=api_gen.AWG_IP(self.awgip).open_IPinst()
+        self.parent.PNAHandle =api_gen.PNA_IP(self.pnaip).open_IPinst()
 
         self.done(True)
 

@@ -5,6 +5,7 @@ import scipy
 # import numpy.fft as fft
 import os
 import shutil
+import multi_Lorenz_2_triangle as FB
 
 from scipy.fftpack import fft, ifft
 

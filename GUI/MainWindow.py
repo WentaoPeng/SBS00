@@ -7,7 +7,7 @@ from GUI import SharedWidgets as Shared
 from GUI import Inst_Dialogs as Dialogs
 from GUI import Panels
 from API import AWGapi
-from API import EVNAapi
+from API import PNAapi
 from API import general as api_gen
 import logging
 import traceback
@@ -29,17 +29,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.errorSignLabel = QtWidgets.QLabel()
         self.errorSignLabel.setStyleSheet('color:{:s}'.format(Shared.msgcolor(0)))
         self.errorSignLabel.setAlignment(QtCore.Qt.AlignCenter)
+        # self.setWindowOpacity(1)  # 设置窗口透明度
+        # self.setAttribute(QtCore.Qt.WA_TranslucentBackground)  # 设置窗口背景透明
+        # self.setWindowFlag(QtCore.Qt.FramelessWindowHint)  # 隐藏边框
         # 提取后台log文档并显示
         # self.logger=self.get_logger('./log.txt',logging.INFO)
 
         # self.errorSignLabel.setText(self.predicted(features))
 
         # 初始化设备
-        self.VNAHandle = None
+        self.PNAHandle = None
         self.AWGHandle = None
-        self.OSAHandle = None
-        self.EDFAHandle = None
-        # self.EDFA2Handle = None
+        self.LightHandle = None
+        self.EDFA1Handle = None
+        self.EDFA2Handle = None
+        # self.LightHandle=None
         # self.DC1Handle = None
         # self.DC2Handle = None
         # self.DC3Handle = None
@@ -107,52 +111,43 @@ class MainWindow(QtWidgets.QMainWindow):
         menuTest.addAction(self.testModeAction)
 
         self.AWGInfo = Shared.AWGInfo()
-        self.EVNAInfo = Shared.EVNAInfo()
-        self.OSAInfo = Shared.OSAInfo()
+        self.PNAInfo = Shared.PNAInfo()
+        self.LightInfo = Shared.LightInfo()
         self.EDFAInfo = Shared.EDFAInfo()
 
         # 状态监控栏
         self.AWGStatus = Panels.AWGStatus(self)
-        # self.PNAStatus = Panels.PNAStatus(self)
-        # self.OSAStatus = Panels.OSAStatus(self)
-        # self.EDFA1Status = Panels.EDFA1Status(self)
-        # self.EDFA2Status = Panels.EDFA2Status(self)
-
         # 设备控制栏
         self.AWGCtrl = Panels.AWGCtrl(self)
         self.PNACtrl = Panels.PNACtrl(self)
-        # self.OSACtrl = Panels.OSACtrl(self)
+        self.LightCtrl = Panels.LightCtrl(self)
         self.EDFACtrl = Panels.EDFACtrl(self)
-        # self.EDFA2Ctrl = Panels.EDFA2Ctrl(self)
 
         # 设置显示模块
         self.AWGDisplay = Panels.ADisplay(self)
         self.FcombDisplay = Panels.FcombDisplay(self)
         self.VNAMonitor = Panels.VNAMonitor(self)
-        # self.OSAMonitor = Panels.OSAMonitor(self)
+
+        # 反馈模块
+        self.Feedback=Panels.Feedback(self)
 
         # 设置主要模块显示位置
         self.mainLayout = QtWidgets.QGridLayout()
         self.mainLayout.setSpacing(11)
         self.mainLayout.addWidget(self.AWGStatus, 0, 2, 2, 2)
-        # self.mainLayout.addWidget(self.PNAStatus, 2, 0, 2, 2)
-        # self.mainLayout.addWidget(self.OSAStatus, 4, 0, 2, 2)
-        # self.mainLayout.addWidget(self.EDFA1Status, 6, 0, 2, 2)
-        # self.mainLayout.addWidget(self.EDFA2Status, 8, 0, 2, 2)
 
         self.mainLayout.addWidget(self.AWGCtrl, 0, 0, 2, 2)
         self.mainLayout.addWidget(self.PNACtrl, 2, 0, 3, 2)
-        # self.mainLayout.addWidget(self.OSACtrl, 4, 0, 2, 2)
+        self.mainLayout.addWidget(self.LightCtrl, 5, 0, 2, 4)
         self.mainLayout.addWidget(self.EDFACtrl, 2, 2, 3, 2)
-        # self.mainLayout.addWidget(self.EDFA2Ctrl, 8, 0, 2, 2)
 
         self.mainLayout.addWidget(self.testModeSignLabel, 10, 0, 1, 2)
         self.mainLayout.addWidget(self.errorSignLabel, 10, 2, 1, 2)
 
         self.mainLayout.addWidget(self.AWGDisplay, 0, 5, 2, 2)  # 画两幅，时域与频域2*2
         self.mainLayout.addWidget(self.FcombDisplay, 0, 7, 2, 2)
+        self.mainLayout.addWidget(self.Feedback,2,5,1,4)
         self.mainLayout.addWidget(self.VNAMonitor, 3, 5, 4, 4)
-        # self.mainLayout.addWidget(self.OSAMonitor, 5, 5, 4, 4)
 
         self.mainWidget = QtWidgets.QWidget()
         self.mainWidget.setLayout(self.mainLayout)
@@ -186,23 +181,22 @@ class MainWindow(QtWidgets.QMainWindow):
             self.testModeSignLabel.show()
             self.AWGCtrl.setChecked(True)
             self.PNACtrl.setChecked(True)
-            # self.OSACtrl.setChecked(True)
+            self.LightCtrl.setChecked(True)
             self.EDFACtrl.setChecked(True)
-            # self.EDFA2Ctrl.setChecked(True)
 
             self.AWGStatus.setChecked(True)
-            # self.PNAStatus.setChecked(True)
         else:
             self.setWindowTitle('SBSSystem')
             self.testModeSignLabel.hide()
             self.AWGCtrl.setChecked(not (self.AWGHandle is None))
-            self.PNACtrl.setChecked(not (self.VNAHandle is None))
+            self.PNACtrl.setChecked(not (self.PNAHandle is None))
+            self.LightCtrl.setChecked(not(self.LightHandle is None))
             # self.OSACtrl.setChecked(not (self.OSAHandle is None))
             # self.EDFA2Ctrl.setChecked(not (self.EDFA2Handle is None))
-            self.EDFACtrl.setChecked(not (self.EDFAHandle is None))
+            self.EDFACtrl.setChecked(not (self.EDFA1Handle or self.EDFA2Handle is None))
 
             self.AWGStatus.setChecked(not (self.AWGHandle is None))
-            # self.PNAStatus.setChecked(not (self.VNAHandle is None))
+            # self.PNAStatus.setChecked(not (self.PNAHandle is None))
 
     def load_dialogs(self):
         # 加载小部件

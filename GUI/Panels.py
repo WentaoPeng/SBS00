@@ -15,37 +15,6 @@ import SBS_DSP
 import matplotlib.pyplot as plt
 
 
-class VNAStatus(QtWidgets.QGroupBox):
-    '''
-        VNA状态显示
-    '''
-
-    def __init__(self, parent):
-        QtWidgets.QGroupBox.__init__(self, parent)
-        self.parent = parent
-
-        self.setTitle('VNA Status')
-        self.setAlignment(QtCore.Qt.AlignLeft)
-        self.setCheckable(True)
-        self.setChecked(False)
-
-    # 设定检测VNA状态信息，扫频信号功率，频率范围，数据点
-
-    def check(self):
-        ''' Enable/disable this groupbox '''
-
-        if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
-            self.setChecked(True)
-            self.parent.synStatus.setChecked(True)
-        else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
-            msg.exec_()
-            self.setChecked(False)
-            self.parent.synStatus.setChecked(False)
-
-        self.parent.synStatus.print_info()
-
-
 class AWGStatus(QtWidgets.QGroupBox):
     '''
         AWG状态显示
@@ -176,34 +145,6 @@ class AWGStatus(QtWidgets.QGroupBox):
         else:
             pass
 
-
-class OSAStatus(QtWidgets.QGroupBox):
-    '''
-    光谱仪状态显示
-    '''
-
-    def __init__(self, parent):
-        QtWidgets.QGroupBox.__init__(self, parent)
-        self.parent = parent
-
-        self.setTitle('OSA Status')
-        self.setAlignment(QtCore.Qt.AlignLeft)
-        self.setCheckable(True)
-        self.setChecked(False)
-
-    def check(self):
-        ''' Enable/disable this groupbox '''
-
-        if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
-            self.setChecked(True)
-            self.parent.synStatus.setChecked(True)
-        else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
-            msg.exec_()
-            self.setChecked(False)
-            self.parent.synStatus.setChecked(False)
-
-        self.parent.OSAStatus.print_info()
 
 
 class PNACtrl(QtWidgets.QGroupBox):
@@ -688,33 +629,61 @@ class FcombDisplay(QtWidgets.QGroupBox):
         self.plot_data.showGrid(x=True, y=True)
 
 
-class OSACtrl(QtWidgets.QGroupBox):
+class LightCtrl(QtWidgets.QGroupBox):
     '''
-    光谱仪控制显示,功能带扩展
+    激光器控制模块
     '''
 
     def __init__(self, parent):
         QtWidgets.QGroupBox.__init__(self, parent)
         self.parent = parent
 
-        self.setTitle('OSA Ctrl')
+        self.setTitle('LightWave Ctrl')
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
 
+        # 激光器控制面板
+        LightWidget=QtWidgets.QGroupBox()
+        LightWidget.setFlat(True)
+        LightWidget.setAlignment(QtCore.Qt.AlignLeft)
+
+        self.CenterWave=QtWidgets.QLineEdit(self)
+        self.Power=QtWidgets.QLineEdit(self)
+        self.ActiveBtu=QtWidgets.QPushButton('Active')
+        self.ActiveBtu.setStyleSheet('''QPushButton{background:rgb(170,200,50);border-radius:15px;}QPushButton:hover{background:yellow;}''')
+        self.ActiveBtu.setMaximumSize(200,200)
+        self.ActiveBtu.setCheckable(True)
+        LightLayout=QtWidgets.QGridLayout()
+        # LightLayout.setSpacing(0)
+        LightLayout.addWidget(QtWidgets.QLabel('Wavelength：'),0,0)
+        LightLayout.addWidget(self.CenterWave,0,1)
+        LightLayout.addWidget(QtWidgets.QLabel('nm  '),0,2)
+        LightLayout.addWidget(QtWidgets.QLabel('Power:'),0,3)
+        LightLayout.addWidget(self.Power,0,4)
+        LightLayout.addWidget(QtWidgets.QLabel('dBm  '),0,5)
+        LightLayout.addWidget(self.ActiveBtu,1,0,4,2)
+        LightWidget.setLayout(LightLayout)
+
+        mainLayout=QtWidgets.QVBoxLayout()
+        mainLayout.setAlignment(QtCore.Qt.AlignTop)
+        mainLayout.addWidget(LightWidget)
+        self.setLayout(mainLayout)
+
+
+
+
     def check(self):
         ''' Enable/disable this groupbox '''
 
-        if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
+        if (self.parent.testModeAction.isChecked() or self.parent.LightHandle):
             self.setChecked(True)
-            self.parent.synStatus.setChecked(True)
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
             msg.exec_()
             self.setChecked(False)
-            self.parent.synStatus.setChecked(False)
 
-        self.parent.OSACtrl.print_info()
+        self.parent.LightCtrl.print_info()
 
 
 class EDFACtrl(QtWidgets.QGroupBox):
@@ -840,6 +809,28 @@ class EDFACtrl(QtWidgets.QGroupBox):
                                                            self.setPower2UnitSel.currentText())
         self.parent.EDFAInfo.EDFA1power = EDFA1_Power
         self.parent.EDFAInfo.EDFA2power = EDFA2_Power
+
+
+class Feedback(QtWidgets.QGroupBox):
+    '''
+    反馈算法
+    1.带内平整度计算显示（3dB）
+    2.均方误差
+    3.反馈次数
+    4.收敛方式？
+    '''
+    def __init__(self,parent):
+        QtWidgets.QGroupBox.__init__(self, parent)
+        self.parent = parent
+
+        self.setTitle('FB_Algorithm')
+        self.setAlignment(QtCore.Qt.AlignLeft)
+
+        # 反馈算法监控系数
+        FBWidget=QtWidgets.QGroupBox()
+        FBWidget.setFlat(True)
+        FBWidget.setAlignment(QtCore.Qt.AlignLeft)
+
 
 
 class VNAMonitor(QtWidgets.QGroupBox):

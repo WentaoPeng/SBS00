@@ -27,11 +27,11 @@ def list_inst():
             text=temp.query('IDN?')
             inst_dict[inst]=text.strip()
             # 如果是GPIB，查询名称
-            # if int(temp.interface_type) == 1:
-            #     text = temp.query('IDN?')
-            #     inst_dict[inst] = text.strip()
-            # else:
-            #     inst_dict[inst] = inst
+            if int(temp.interface_type) == 1:
+                text = temp.query('IDN?')
+                inst_dict[inst] = text.strip()
+            else:
+                inst_dict[inst] = inst
             # 关闭设备
             temp.close()
         except:
@@ -101,12 +101,12 @@ class AWG_IP():
         self.instance=None
 
 
-class VNA_IP():
+class PNA_IP():
     def __init__(self, ip, visaDLL=None, *args):
         self.ip = ip
         self.visaDLL = 'c:/Windows/SysWOW64/visa32.dll' if visaDLL is None else visaDLL
         # inst0=5025
-        self.address = 'TCPIP::%S::inst0::SOCKET' % self.ip
+        self.address = 'TCPIP::%S::hislip0::INSTR' % self.ip
         self.resourceManager = visa.ResourceManager(self.visaDLL)
 
     def open_IPinst(self):
