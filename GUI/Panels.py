@@ -96,16 +96,16 @@ class AWGStatus(QtWidgets.QGroupBox):
     def check(self):
         ''' Enable/disable this groupbox '''
 
-        if (self.parent.testModeAction.isChecked() or self.parent.synHandle):
+        if (self.parent.testModeAction.isChecked() or self.parent.AWGHandle):
             self.setChecked(True)
-            self.parent.synStatus.setChecked(True)
+            self.parent.AWGStatus.setChecked(True)
         else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
+            msg = Shared.MsgError(self, 'No Instrument!', 'No AWG is connected!')
             msg.exec_()
             self.setChecked(False)
-            self.parent.synStatus.setChecked(False)
+            self.parent.AWGStatus.setChecked(False)
 
-        self.parent.synStatus.print_info()
+        self.parent.AWGStatus.print_info()
 
     def print_info(self):
         '''初始见面显示信息'''
@@ -261,6 +261,8 @@ class PNACtrl(QtWidgets.QGroupBox):
         self.EnterBtu.clicked.connect(self.setPNA)
         self.AllMeasBtu.clicked.connect(self.display)
 
+        self.clicked.connect(self.check)
+
     def display(self):
         '''需要实时获取数据并绘图'''
 
@@ -285,16 +287,16 @@ class PNACtrl(QtWidgets.QGroupBox):
 
     def check(self):
         ''' Enable/disable this groupbox '''
-        if (self.parent.testModeAction.isChecked() or self.parent.VNAHandle):
+        if (self.parent.testModeAction.isChecked() or self.parent.PNAHandle):
             self.setChecked(True)
-            self.parent.synStatus.setChecked(True)
+            self.parent.PNACtrl.setChecked(True)
         else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
+            msg = Shared.MsgError(self, 'No Instrument!', 'No PNAN5225A is connected!')
             msg.exec_()
             self.setChecked(False)
-            self.parent.synStatus.setChecked(False)
+            self.parent.PNACtrl.setChecked(False)
 
-        self.parent.synStatus.print_info()
+        # self.parent.PNACtrl.print_info()
 
 
 class AWGCtrl(QtWidgets.QGroupBox):
@@ -396,11 +398,11 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.PumpDesignDoneBtu.setCheckable(True)
 
         PumpLayout.addWidget(QtWidgets.QLabel('Pump Shape :'), 0, 0)
-        PumpLayout.addWidget(self.PumpDesignDoneBtu, 1, 0, 3, 1)
+        PumpLayout.addWidget(self.PumpDesignDoneBtu, 1, 0, 4, 1)
         PumpLayout.addWidget(self.PumpModeSel, 0, 1)
-        PumpLayout.addWidget(self.CenterFreq, 1, 1, 1, 3)
-        PumpLayout.addWidget(self.BandWidth, 2, 1, 1, 3)
-        PumpLayout.addWidget(self.CombFreq, 3, 1, 1, 3)
+        PumpLayout.addWidget(self.CenterFreq, 1, 1, 2, 3)
+        PumpLayout.addWidget(self.BandWidth, 2, 1, 2, 3)
+        PumpLayout.addWidget(self.CombFreq, 3, 1, 2, 3)
         PumpDesign.setLayout(PumpLayout)
 
         #     设置主界面
@@ -436,14 +438,14 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         if (self.parent.testModeAction.isChecked() or self.parent.AWGHandle):
             self.setChecked(True)
-            self.parent.synStatus.setChecked(True)
+            self.parent.AWGCtrl.setChecked(True)
         else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
+            msg = Shared.MsgError(self, 'No Instrument!', 'No AWG is connected!')
             msg.exec_()
             self.setChecked(False)
-            self.parent.synStatus.setChecked(False)
+            self.parent.AWGCtrl.setChecked(False)
 
-        self.parent.synStatus.print_info()
+        # self.parent.AWGCtrl.print_info()
 
     def AWGRFPower(self):
         if self.parent.testModeAction.isChecked():
@@ -464,10 +466,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
             self.AWGPowerSwitchBtu.setChecked(True)
             self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower - target_Power))
             self.powerSwitchProgBar.setValue(1000)
-            if self.parent.AWGInfo.AWGPower > target_Power:
-                self.ramper = api_awg.ramp_down(self.parent.AWGInfo.AWGPower, target_Power)
-            else:
-                self.ramper = api_awg.ramp_up(self.parent.AWGInfo.AWGPower, target_Power)
             self.ramp_AWGRFPower()
             self.progDialog.exec_()
         else:
@@ -704,6 +702,7 @@ class LightCtrl(QtWidgets.QGroupBox):
         mainLayout.addWidget(LightWidget)
         self.setLayout(mainLayout)
 
+        self.clicked.connect(self.check)
 
 
 
@@ -712,12 +711,14 @@ class LightCtrl(QtWidgets.QGroupBox):
 
         if (self.parent.testModeAction.isChecked() or self.parent.LightHandle):
             self.setChecked(True)
+            self.parent.LightCtrl.setCheckable(True)
         else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
+            msg = Shared.MsgError(self, 'No Instrument!', 'No LightWave is connected!')
             msg.exec_()
             self.setChecked(False)
+            self.parent.LightCtrl.setChecked(False)
 
-        self.parent.LightCtrl.print_info()
+        # self.parent.LightCtrl.print_info()
 
 
 class EDFACtrl(QtWidgets.QGroupBox):
@@ -810,18 +811,18 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.P1slider.valueChanged.connect(self.EDFAChangeFun)
         self.setPower2Fill.textChanged.connect(self.EDFAFillChangeFun)
         self.P2slider.valueChanged.connect(self.EDFAChangeFun)
-
+        self.clicked.connect(self.check)
 
     def check(self):
-        if (self.parent.testModeAction.isChecked() or self.parent.EDFAHandle):
+        if (self.parent.testModeAction.isChecked() or self.parent.EDFA1Handle or self.parent.EDFA2Handle):
             self.setChecked(True)
-            self.parent.synStatus.setChecked(True)
+            self.parent.EDFACtrl.setChecked(True)
         else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No synthesizer is connected!')
+            msg = Shared.MsgError(self, 'No Instrument!', 'No EDFA is connected!')
             msg.exec_()
             self.setChecked(False)
-            self.parent.synStatus.setChecked(False)
-        self.parent.EDFA1Ctrl.print_info()
+            self.parent.EDFACtrl.setChecked(False)
+        # self.parent.EDFACtrl.print_info()
 
     def EDFAChangeFun(self):
 

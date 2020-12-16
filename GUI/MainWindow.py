@@ -232,3 +232,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def close_sel_inst(self):
         return
+
+    def closeEvent(self, event):
+        q = QtGui.QMessageBox.question(self, 'Quit?',
+                       'Are you sure to quit?', QtGui.QMessageBox.Yes |
+                       QtGui.QMessageBox.No, QtGui.QMessageBox.Yes)
+        if q == QtGui.QMessageBox.Yes:
+            status = api_gen.close_inst(self.AWGHandle, self.PNAHandle,
+                                       self.LightHandle, self.EDFA1Handle,self.EDFA2Handle)
+            if not status:    # safe to close
+                self.close()
+            else:
+                qq = QtGui.QMessageBox.question(self, 'Error',
+                        '''Error in disconnecting instruments.
+                        Are you sure to force quit?''', QtGui.QMessageBox.Yes |
+                        QtGui.QMessageBox.No, QtGui.QMessageBox.No)
+                if qq == QtGui.QMessageBox.Yes:
+                    self.close()
+                else:
+                    event.ignore()
+        else:
+            event.ignore()

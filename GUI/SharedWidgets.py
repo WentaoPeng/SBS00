@@ -86,6 +86,16 @@ class PNAInfo():
         else:
             self.instName='NoInstrument'
 
+class MsgError(QtGui.QMessageBox):
+    ''' Error message box '''
+
+    def __init__(self, parent, title_text, moretext=''):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.setIcon(QtGui.QMessageBox.Critical)
+        self.addButton(QtGui.QMessageBox.Ok)
+        self.setWindowTitle(title_text)
+        self.setText(moretext)
 
 class LightInfo():
     '''Lightwave信息'''
