@@ -184,7 +184,7 @@ class M9502A(socketscpi.SocketInstrument):
         self.refFreq = float(self.query('roscillator:frequency?').strip())
 
     def set_amplitude(self,amplitude=500,channel=1):
-        return
+
         if channel not in  [1,2,3,4]:
             raise AWGError('\'channel\'must be 1,2,3,or4.')
         if not isinstance(amplitude,float)and not isinstance(amplitude,int):
@@ -193,6 +193,7 @@ class M9502A(socketscpi.SocketInstrument):
             raise AWGError('\'amplitude\'must be between 0 and 1V.')
         self.write(f'voltage{channel}{amplitude}')
         exec(f"self.amp{channel}=float(self.query('voltage{channel}?'))")
+        return
 
     def sanity_check(self):
         """Prints out user-accessible class attributes."""

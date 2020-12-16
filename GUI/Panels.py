@@ -259,17 +259,27 @@ class PNACtrl(QtWidgets.QGroupBox):
         self.EndFsetFill.textChanged.connect(self.tune_mod_parameter)
 
         self.EnterBtu.clicked.connect(self.setPNA)
+        self.AllMeasBtu=0
         self.AllMeasBtu.clicked.connect(self.display)
 
         self.clicked.connect(self.check)
 
     def display(self):
         '''需要实时获取数据并绘图'''
+        if self.AllMeasBtu==0:
+            VNAMonitor.plot
+            self.AllMeasBtu=1
+            return
+
+        if self.AllMeasBtu==1:
+            VNAMonitor.close
+            self.AllMeasBtu=0
+            return
 
 
     def setPNA(self):
         api_pna.PNA_setup(self.parent.PNAHandle,start=self.parent.PNAInfo.StartFerq,stop=self.parent.PNAInfo.EndFerq,
-                          numPoints=self.parent.PNAInfo.SweepPoints,measParam=self.parent.PNAInfo.Scale)
+                          numPoints=self.parent.PNAInfo.SweepPoints,measParam=self.parent.PNAInfo.Scale,avgpoions=self.parent.PNAInfo.AvgPoints)
 
 
     def tune_mod_parameter(self):
@@ -426,7 +436,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         AWGPowerInput.clicked.connect(self.AWGRFPower)
         self.AWGPowerSwitchBtu.clicked.connect(self.AWGRFPowerSwitch_auto)
-        self.AWGPowerSwitchBtu.clicked.connect(self.AWGPowerSwitch_Label)
+        self.AWGPowerSwitchBtu.toggled.connect(self.AWGPowerSwitch_Label)
         self.powerSwitchTimer.timeout.connect(self.ramp_AWGRFPower)
         # 设计泵浦事件
         self.PumpDesignDoneBtu.clicked.connect(self.DesignPump)
@@ -451,7 +461,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         if self.parent.testModeAction.isChecked():
             self.parent.AWGInfo.AWGPower = 500
         else:
-            self.parent.AWGInfo.AWGPower = api_awg.read_AWG_power(self.parent.AWGHandle)
+            self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.api_awg.M9502A.read_power_toggle
 
         target_Power, okay = QtWidgets.QInputDialog.getInt(self, 'RF POWER',
                                                            'Manual Input (0mV to 1000mV)', self.parent.AWGInfo.AWGPower,
@@ -476,21 +486,22 @@ class AWGCtrl(QtWidgets.QGroupBox):
         if self.parent.testModeAction.isChecked():
             self.parent.AWGInfo.AWGPower = 500
         else:
-            self.parent.AWGInfo.AWGPower = api_awg.read_AWG_power(self.parent.AWGHandle)
+            self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.api_awg.M9502A.read_power_toggle
 
         if btu_pressed:
             if self.parent.testModeAction():
                 pass
             else:
-                # 带更改需要Running代码
-                api_awg.set_AWG_power(self.parent.AWGHandle, True)
-            self.ramper = api_awg.ramp_up(self.parent.AWGInfo.AWGPower, 1000)
+                # 为AWG设置功率
+                self.parent.AWGHandle.api_awg.M9502A.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,channel=self.parent.AWGInfo.ChannelNum)
+
+            self.ramper = api_awg.M9502A.ramp_up(self.parent.AWGInfo.AWGPower, 1000)
             self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower))
             self.powerSwitchProgBar.setValue(1000)
             self.ramp_AWGRFPower()
             self.progDialog.exec_()
         elif self.parent.AWGInfo.AWGPower > 0:
-            self.ramper = api_awg.ramp_down(self.parent.AWGInfo.AWGPower, 0)
+            self.ramper = api_awg.M9502A.ramp_down(self.parent.AWGInfo.AWGPower, 0)
             self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower + 0))
             self.powerSwitchProgBar.setValue(1000)
             self.ramp_AWGRFPower()
@@ -498,9 +509,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
             if self.parent.testModeAction.isChecked():
                 self.AWGPowerSwitchBtu.setChecked(False)
             else:
-                self.parent.AWGInfo.AWGPower = api_awg.read_AWG_power(self.parent.AWGHandle)
+                self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.api_awg.M9502A.read_power_toggle
                 if result and (self.parent.AWGInfo.AWGPower <= 0):
-                    api_awg.set_AWG_power(self.parent.AWGHandle, False)
+                    self.parent.AWGHandle.api_awg.M9502A.stop(ch=self.parent.AWGInfo.ChannelNum)
                     self.AWGPowerSwitchBtu.setChecked(False)
                 else:
                     self.AWGPowerSwitchBtu.setChecked(True)
@@ -508,7 +519,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
             if self.parent.testModeAction.isChecked():
                 pass
             else:
-                api_awg.set_AWG_power(self.parent.AWGHandle, False)
+                self.parent.AWGHandle.api_awg.M9502A.set_amplitude(self.parent.AWGInfo.AWGPower,self.parent.AWGInfo.ChannelNum)
             self.AWGPowerSwitchBtu.setChecked(False)
 
         self.parent.AWGStatus.print_info()
@@ -521,7 +532,24 @@ class AWGCtrl(QtWidgets.QGroupBox):
             self.AWGPowerSwitchBtu.setText('OFF')
 
     def ramp_AWGRFPower(self):
-        return
+        '''
+
+        :return: 成功状态
+        '''
+        try:
+            this_power=next(self.ramper)
+            if self.parent.testModeAction.isChecked():
+                vCode=pyvisa.constants.StatusCode.success
+            else:
+                vCode=self.parent.AWGHandle.api_awg.M9502A.set_amplitude(amplitude=this_power,channel=self.parent.AWGInfo.ChannelNum)
+
+            if vCode==pyvisa.constants.StatusCode.success:
+                return
+            else:
+                return
+    pass
+    # 待补充
+
 
     def tune_mod_parameter(self):
         # 状态信息同步
@@ -874,26 +902,28 @@ class VNAMonitor(QtWidgets.QGroupBox):
         QtWidgets.QWidget.__init__(self, parent)
         self.parent = parent
         self.pgPlot = pg.PlotWidget(title='PNA Monitor')
+
         mainLayout = QtWidgets.QGridLayout()
         mainLayout.setAlignment(QtCore.Qt.AlignTop)
         mainLayout.addWidget(self.pgPlot, 0, 0)
         self.setLayout(mainLayout)
+        # self.data=np.empty()
+        self.timer_start()
+
+
+    def timer_start(self):
+        self.timer=QtCore.QTimer(self)
+        self.timer.timeout.connect(self.plot)
+        self.timer.start(1000)
+
 
     def plot(self):
-        pass
+        if self.parent.PNAHandle:
+            freq, result = api_pna.pna_acquire(self.parent.PNAHandle)
+            self.pgPlot.plot().setData(freq,result,pen='g')
+        else:
+            pass
 
 
-class OSAMonitor(QtWidgets.QGroupBox):
-
-    def __init__(self, parent):
-        QtWidgets.QWidget.__init__(self, parent)
-        self.parent = parent
-
-        self.pgPlot = pg.PlotWidget(title='OSA Monitor')
-        mainLayout = QtWidgets.QGridLayout()
-        mainLayout.setAlignment(QtCore.Qt.AlignTop)
-        mainLayout.addWidget(self.pgPlot, 0, 0)
-        self.setLayout(mainLayout)
-
-    def plot(self):
-        pass
+    def close(self):
+        self.pgPlot.clearMouse()

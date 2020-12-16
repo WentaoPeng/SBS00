@@ -43,10 +43,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.LightHandle = None
         self.EDFA1Handle = None
         self.EDFA2Handle = None
-        # self.LightHandle=None
-        # self.DC1Handle = None
-        # self.DC2Handle = None
-        # self.DC3Handle = None
         # 设置菜单栏动作
         # 退出系统
         exitAction = QtWidgets.QAction('Exit', self)

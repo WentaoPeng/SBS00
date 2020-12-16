@@ -2,7 +2,7 @@
 import pyvisa
 import os.path
 import socketscpi
-# This program provides a socket interface to Keysight test equipment.
+import numpy as np
 """
 TODO:
 1.通过ip访问
@@ -14,7 +14,7 @@ TODO:
     可设置探测光功率
 3.自检
 """
-def PNA_setup(vna,start=10e6,stop=20e9,numPoints=20001,ifBw=1e3,dwell=1e-3,measName=['meas1'],measParam=['S11']):
+def PNA_setup(vna,start=10e6,stop=20e9,numPoints=20001,ifBw=1e3,dwell=1e-3,measName=['meas1'],measParam=['S11'],avgpoions=0):
     """Sets up basic S parameter measurement(s).
 
     Configures measurements and traces in a single window, sets start/stop
@@ -41,6 +41,7 @@ def PNA_setup(vna,start=10e6,stop=20e9,numPoints=20001,ifBw=1e3,dwell=1e-3,measN
     vna.write(f'sense1:sweep:points {numPoints}')
     vna.write(f'sense1:sweep:dwell {dwell}')
     vna.write(f'sense1:bandwidth {ifBw}')
+    vna.write(f'SENSe1:AVERage:Count{avgpoions}')
 
 def pna_acquire(vna,measName='meas1'):
     """Acquires frequency and measurement data from selected measurement on VNA for plotting."""
@@ -65,3 +66,4 @@ def pna_acquire(vna,measName='meas1'):
     vna.query('*opc?')
 
     return freq, meas
+
