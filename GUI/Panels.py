@@ -259,19 +259,19 @@ class PNACtrl(QtWidgets.QGroupBox):
         self.EndFsetFill.textChanged.connect(self.tune_mod_parameter)
 
         self.EnterBtu.clicked.connect(self.setPNA)
-        self.AllMeasBtu=0
+        self.AllMeasBtu1=0
         self.AllMeasBtu.clicked.connect(self.display)
 
         self.clicked.connect(self.check)
 
     def display(self):
         '''需要实时获取数据并绘图'''
-        if self.AllMeasBtu==0:
+        if self.AllMeasBtu1==0:
             VNAMonitor.plot
             self.AllMeasBtu=1
             return
 
-        if self.AllMeasBtu==1:
+        if self.AllMeasBtu1==1:
             VNAMonitor.close
             self.AllMeasBtu=0
             return
@@ -544,11 +544,18 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 vCode=self.parent.AWGHandle.api_awg.M9502A.set_amplitude(amplitude=this_power,channel=self.parent.AWGInfo.ChannelNum)
 
             if vCode==pyvisa.constants.StatusCode.success:
-                return
+                self.parent.AWGInfo.AWGPower=self.parent.AWGHandle.api_awg.M9502A.read_power_toggle()
+                self.parent.AWGStatus.print_info()
+                self.powerSwitchProgBar.setValue(self.powerSwitchProgBar.value())
+                # 开始timer
+                self.powerSwitchTimer.start()
             else:
-                return
-    pass
-    # 待补充
+                self.powerSwitchTimer.stop()
+                msg=Shared.InstStatus(self,vCode)
+                msg.exec_()
+        except StopIteration:
+            self.powerSwitchTimer.stop()
+            self.progDialog.accept()
 
 
     def tune_mod_parameter(self):

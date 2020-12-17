@@ -97,6 +97,20 @@ class MsgError(QtGui.QMessageBox):
         self.setWindowTitle(title_text)
         self.setText(moretext)
 
+class InstStatus(QtGui.QMessageBox):
+    ''' Message box of instrument communication status. Silent if communication
+        is successful. Pop up error message in pyvisa.constants.StatusCode
+    '''
+
+    def __init__(self, parent, code):
+        QtGui.QWidget.__init__(self, parent)
+
+        self.setIcon(QtGui.QMessageBox.Critical)
+        self.addButton(QtGui.QMessageBox.Ok)
+        self.setText(str(code))
+        self.setWindowTitle('Instrument Communication Failure!')
+
+
 class LightInfo():
     '''Lightwave信息'''
 
