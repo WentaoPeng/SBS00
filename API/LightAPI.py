@@ -1,5 +1,6 @@
 #! encoding=utf_8
 import pyvisa
+import visa
 import os.path
 
 
@@ -21,7 +22,7 @@ class LightSCPI():
             return None
         else:
             try:
-                self._rm=pyvisa.ResourceManager()
+                self._rm=pyvisa.ResourceManager('c:/windows/system32/visa32.dll')
                 self._Instrument=self._rm.open_resource(InstVisaAddr)
                 # self.IDNString=self.Query('*IDN')
                 return

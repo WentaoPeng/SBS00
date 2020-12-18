@@ -57,7 +57,7 @@ def open_inst(inst_address):
         return None
     else:
         try:
-            rm = pyvisa.highlevel.ResourceManager()
+            rm = pyvisa.highlevel.ResourceManager('c:/windows/system32/visa32.dll')
             inst_handle = rm.open_resource(inst_address)
             return inst_handle
         except:

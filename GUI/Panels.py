@@ -12,6 +12,7 @@ from API import AWGapi as api_awg
 from API import validators as api_val
 from API import PNAapi as api_pna
 from API import LightAPI as api_light
+from API import EDFAAPI as api_edfa
 from pyqtgraph import siEval
 import SBS_DSP
 import matplotlib.pyplot as plt
@@ -560,7 +561,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
                 # 设置波形np.array，并检验，以及下载波形，Running
                 ys=np.array(self.parent.AWGInfo.ys)
-                wfmID=self.parent.AWGHandle.download_wfm(ys,ch=self.parent.AWGInfo.ChannelNum)
+                wfmID=self.parent.AWGHandle.download_wfm(wfmData=ys,ch=self.parent.AWGInfo.ChannelNum)
                 self.parent.AWGHandle.play(wfmID=wfmID,ch=self.parent.AWGInfo.ChannelNum)
                 self.parent.AWGHandle.err_check()
 
@@ -793,7 +794,7 @@ class LightCtrl(QtWidgets.QGroupBox):
         if (self.parent.testModeAction.isChecked() or self.parent.LightHandle):
             self.setChecked(True)
             self.parent.LightCtrl.setCheckable(True)
-            api_light.LightSCPI.setupLight(self,power=float(self.Power.text()),wavelength=float(self.CenterWave.text()))
+            api_light.LightSCPI.setupLight(power=float(self.Power.text()),wavelength=float(self.CenterWave.text()))
 
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No LightWave is connected!')
@@ -844,11 +845,16 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.P1slider.setValue(5)
         # self.P1slider.setSingleStep(0.01)
         self.P1slider.setTickInterval(0.01)
+        self.enterBtu1 = QtWidgets.QPushButton('Enter')
+        self.activeBtu1 = QtWidgets.QPushButton('Active')
+        self.activeBtu1.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:red;}''')
 
         EDFA1Layout.addWidget(QtWidgets.QLabel('Inst_COM:'), 0, 0)
         EDFA1Layout.addWidget(self.addressEDFA1, 0, 1, 1, 3)
         EDFA1Layout.addWidget(self.setPower1, 1, 0, 1, 3)
         EDFA1Layout.addWidget(self.P1slider, 3, 0, 1, 3)
+        EDFA1Layout.addWidget(self.enterBtu1,4,0,1,1)
+        EDFA1Layout.addWidget(self.activeBtu1,4,2,1,1)
         EDFA1.setLayout(EDFA1Layout)
 
         EDFA2 = QtWidgets.QGroupBox()
@@ -879,10 +885,16 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.P2slider.setValue(5)
         self.P2slider.setSingleStep(0.01)
 
+        self.enterBtu2=QtWidgets.QPushButton('Enter')
+        self.activeBtu2=QtWidgets.QPushButton('Active')
+        self.activeBtu2.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:red;}''')
+
         EDFA2Layout.addWidget(QtWidgets.QLabel('Inst_COM:'), 0, 0)
         EDFA2Layout.addWidget(self.addressEDFA2, 0, 1, 1, 3)
         EDFA2Layout.addWidget(self.setPower2, 1, 0, 1, 3)
         EDFA2Layout.addWidget(self.P2slider, 3, 0, 1, 3)
+        EDFA2Layout.addWidget(self.enterBtu2,4,0,1,1)
+        EDFA2Layout.addWidget(self.activeBtu2,4,2,1,1)
         EDFA2.setLayout(EDFA2Layout)
 
         mainLayout = QtWidgets.QVBoxLayout()
@@ -896,6 +908,10 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.setPower2Fill.textChanged.connect(self.EDFAFillChangeFun)
         self.P2slider.valueChanged.connect(self.EDFAChangeFun)
         self.clicked.connect(self.check)
+        self.enterBtu1.clicked.connect(self.enterFun1)
+        self.enterBtu2.clicked.connect(self.enterFun2)
+        self.activeBtu1.clicked.connect(self.activeFun1)
+        self.activeBtu2.clicked.connect(self.activeFun2)
 
     def check(self):
         if (self.parent.testModeAction.isChecked() or self.parent.EDFA1Handle or self.parent.EDFA2Handle):
@@ -929,6 +945,30 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.parent.EDFAInfo.EDFA1power = EDFA1_Power
         self.parent.EDFAInfo.EDFA2power = EDFA2_Power
 
+    def enterFun1(self):
+        api_edfa.EDFA1Set(EDFA1Handle=self.parent.EDFA1Handle,power=self.parent.EDFAInfo.EDFA1power)
+
+    def activeFun1(self):
+        if (self.parent.testModeAction.isChecked or self.parent.EDFA1Handle or self.parent.EDFA2Handle):
+            self.setChecked(True)
+            api_edfa.Active1(self.parent.EDFA1Handle)
+        else:
+            msg = Shared.MsgError(self, 'No Instrument!', 'No EDFA is connected!')
+            msg.exec_()
+            self.setChecked(False)
+            self.parent.EDFACtrl.setChecked(False)
+    def enterFun2(self):
+        api_edfa.EDFA2Set(EDFA2Handle=self.parent.EDFA2Handle,power=self.parent.EDFAInfo.EDFA2power)
+
+    def activeFun2(self):
+        if (self.parent.testModeAction.isChecked or self.parent.EDFA1Handle or self.parent.EDFA2Handle):
+            self.setChecked(True)
+            api_edfa.Active2(self.parent.EDFA2Handle)
+        else:
+            msg = Shared.MsgError(self, 'No Instrument!', 'No EDFA is connected!')
+            msg.exec_()
+            self.setChecked(False)
+            self.parent.EDFACtrl.setChecked(False)
 
 class Feedback(QtWidgets.QGroupBox):
     '''
@@ -949,6 +989,7 @@ class Feedback(QtWidgets.QGroupBox):
         FBWidget=QtWidgets.QGroupBox()
         FBWidget.setFlat(True)
         FBWidget.setAlignment(QtCore.Qt.AlignLeft)
+
 
 
 
