@@ -5,6 +5,8 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from GUI import SharedWidgets as Shared
 from API import general as api_gen
 from API import AWGapi as api_awg
+from API import PNAapi as api_pna
+from API import LightAPI as api_light
 
 from pyqtgraph import siFormat
 import pyqtgraph as pg
@@ -100,8 +102,8 @@ class selectInstDialog(QtWidgets.QDialog):
                            self.parent.EDFA2Handle,)
         # 开启新的设备连接
         self.parent.AWGHandle = api_gen.open_inst(self.selAWG.currentText())
-        self.parent.PNAHandle = api_gen.open_inst(self.selPNA.currentText())
-        self.parent.LightHandle = api_gen.open_inst(self.selLight.currentText())
+        self.parent.PNAHandle = api_pna.PNASCPI(self.selPNA.currentText())
+        self.parent.LightHandle = api_light.LightSCPI(self.selLight.currentText())
         self.parent.EDFA1Handle = api_gen.open_inst(self.selEDFA1.currentText())
         self.parent.EDFA2Handle = api_gen.open_inst(self.selEDFA2.currentText())
 

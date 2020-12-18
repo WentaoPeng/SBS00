@@ -11,6 +11,7 @@ from GUI import SharedWidgets as Shared
 from API import AWGapi as api_awg
 from API import validators as api_val
 from API import PNAapi as api_pna
+from API import LightAPI as api_light
 from pyqtgraph import siEval
 import SBS_DSP
 import matplotlib.pyplot as plt
@@ -266,19 +267,25 @@ class PNACtrl(QtWidgets.QGroupBox):
 
     def display(self):
         '''需要实时获取数据并绘图'''
-        if self.AllMeasBtu1==0:
-            VNAMonitor.plot
-            self.AllMeasBtu=1
-            return
+        if self.parent.testModeAction.isChecked():
+            pass
+        else:
+            if self.AllMeasBtu1==0:
+                VNAMonitor.plot
+                self.AllMeasBtu=1
+                return
 
-        if self.AllMeasBtu1==1:
-            VNAMonitor.close
-            self.AllMeasBtu=0
-            return
+            if self.AllMeasBtu1==1:
+                VNAMonitor.close
+                self.AllMeasBtu=0
+                return
 
 
     def setPNA(self):
-        api_pna.PNA_setup(self.parent.PNAHandle,start=self.parent.PNAInfo.StartFerq,stop=self.parent.PNAInfo.EndFerq,
+        if self.parent.testModeAction.isChecked():
+            pass
+        else:
+            api_pna.PNASCPI.PNA_setup(start=self.parent.PNAInfo.StartFerq,stop=self.parent.PNAInfo.EndFerq,
                           numPoints=self.parent.PNAInfo.SweepPoints,measParam=self.parent.PNAInfo.Scale,avgpoions=self.parent.PNAInfo.AvgPoints)
 
 
@@ -456,108 +463,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
             self.parent.AWGCtrl.setChecked(False)
 
         # self.parent.AWGCtrl.print_info()
-
-    def AWGRFPower(self):
-        if self.parent.testModeAction.isChecked():
-            self.parent.AWGInfo.AWGPower = 500
-        else:
-            self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.api_awg.M9502A.read_power_toggle
-
-        target_Power, okay = QtWidgets.QInputDialog.getInt(self, 'RF POWER',
-                                                           'Manual Input (0mV to 1000mV)', self.parent.AWGInfo.AWGPower,
-                                                           0, 1000, 1)
-        if okay:
-            if self.parent.testModeAction.isChecked():
-                pass
-            else:
-                self.parent.AWGInfo.AWGPower = target_Power
-                # api_awg.set_AWG_power(self.parent.AWGHandle,target_Power,self.parent.AWGInfo.ChannelNum)
-
-            self.AWGPowerSwitchBtu.setChecked(True)
-            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower - target_Power))
-            self.powerSwitchProgBar.setValue(1000)
-            self.ramp_AWGRFPower()
-            self.progDialog.exec_()
-        else:
-            pass
-
-    def AWGRFPowerSwitch_auto(self, btu_pressed):
-        '''自动打开关闭RF输出'''
-        if self.parent.testModeAction.isChecked():
-            self.parent.AWGInfo.AWGPower = 500
-        else:
-            self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.api_awg.M9502A.read_power_toggle
-
-        if btu_pressed:
-            if self.parent.testModeAction():
-                pass
-            else:
-                # 为AWG设置功率
-                self.parent.AWGHandle.api_awg.M9502A.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,channel=self.parent.AWGInfo.ChannelNum)
-
-            self.ramper = api_awg.M9502A.ramp_up(self.parent.AWGInfo.AWGPower, 1000)
-            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower))
-            self.powerSwitchProgBar.setValue(1000)
-            self.ramp_AWGRFPower()
-            self.progDialog.exec_()
-        elif self.parent.AWGInfo.AWGPower > 0:
-            self.ramper = api_awg.M9502A.ramp_down(self.parent.AWGInfo.AWGPower, 0)
-            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower + 0))
-            self.powerSwitchProgBar.setValue(1000)
-            self.ramp_AWGRFPower()
-            result = self.progDialog.exec_()
-            if self.parent.testModeAction.isChecked():
-                self.AWGPowerSwitchBtu.setChecked(False)
-            else:
-                self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.api_awg.M9502A.read_power_toggle
-                if result and (self.parent.AWGInfo.AWGPower <= 0):
-                    self.parent.AWGHandle.api_awg.M9502A.stop(ch=self.parent.AWGInfo.ChannelNum)
-                    self.AWGPowerSwitchBtu.setChecked(False)
-                else:
-                    self.AWGPowerSwitchBtu.setChecked(True)
-        else:
-            if self.parent.testModeAction.isChecked():
-                pass
-            else:
-                self.parent.AWGHandle.api_awg.M9502A.set_amplitude(self.parent.AWGInfo.AWGPower,self.parent.AWGInfo.ChannelNum)
-            self.AWGPowerSwitchBtu.setChecked(False)
-
-        self.parent.AWGStatus.print_info()
-
-    def AWGPowerSwitch_Label(self, toggle_state):
-        '''更换按键文本'''
-        if toggle_state:
-            self.AWGPowerSwitchBtu.setText('ON')
-        else:
-            self.AWGPowerSwitchBtu.setText('OFF')
-
-    def ramp_AWGRFPower(self):
-        '''
-
-        :return: 成功状态
-        '''
-        try:
-            this_power=next(self.ramper)
-            if self.parent.testModeAction.isChecked():
-                vCode=pyvisa.constants.StatusCode.success
-            else:
-                vCode=self.parent.AWGHandle.api_awg.M9502A.set_amplitude(amplitude=this_power,channel=self.parent.AWGInfo.ChannelNum)
-
-            if vCode==pyvisa.constants.StatusCode.success:
-                self.parent.AWGInfo.AWGPower=self.parent.AWGHandle.api_awg.M9502A.read_power_toggle()
-                self.parent.AWGStatus.print_info()
-                self.powerSwitchProgBar.setValue(self.powerSwitchProgBar.value())
-                # 开始timer
-                self.powerSwitchTimer.start()
-            else:
-                self.powerSwitchTimer.stop()
-                msg=Shared.InstStatus(self,vCode)
-                msg.exec_()
-        except StopIteration:
-            self.powerSwitchTimer.stop()
-            self.progDialog.accept()
-
-
     def tune_mod_parameter(self):
         # 状态信息同步
         # 波形状态
@@ -586,6 +491,119 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.parent.AWGInfo.CFFreq = CF_freq
         self.parent.AWGInfo.BWFreq = BW_freq
         self.parent.AWGInfo.DFFreq = DF_freq
+
+    def ramp_AWGRFPower(self):
+        '''
+
+        :return: 成功状态
+        '''
+        try:
+            this_power = next(self.ramper)
+            if self.parent.testModeAction.isChecked():
+                vCode = pyvisa.constants.StatusCode.success
+            else:
+                vCode = self.parent.AWGHandle.set_amplitude(amplitude=this_power,
+                                                            channel=self.parent.AWGInfo.ChannelNum)
+
+            if vCode == pyvisa.constants.StatusCode.success:
+                self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.read_power_toggle()
+                self.parent.AWGStatus.print_info()
+                self.powerSwitchProgBar.setValue(self.powerSwitchProgBar.value()+1)
+                # 开始timer
+                self.powerSwitchTimer.start()
+            else:
+                self.powerSwitchTimer.stop()
+                msg = Shared.InstStatus(self, vCode)
+                msg.exec_()
+        except StopIteration:
+            self.powerSwitchTimer.stop()
+            self.progDialog.accept()
+
+    def AWGRFPower(self):
+        if self.parent.testModeAction.isChecked():
+            self.parent.AWGInfo.AWGPower = 500
+        else:
+            self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.read_power_toggle
+
+        target_Power, okay = QtWidgets.QInputDialog.getInt(self, 'RF POWER',
+                                                           'Manual Input (0mV to 1000mV)', self.parent.AWGInfo.AWGPower,
+                                                           0, 1000, 1)
+        if okay:
+            if self.parent.testModeAction.isChecked():
+                pass
+            else:
+                self.parent.AWGInfo.AWGPower = target_Power
+                # api_awg.set_AWG_power(self.parent.AWGHandle,target_Power,self.parent.AWGInfo.ChannelNum)
+
+            # self.AWGPowerSwitchBtu.setChecked(True)
+            # 不自动开启AWG，通过powerSwitch
+            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower - target_Power))
+            self.powerSwitchProgBar.setValue(1000)
+            self.ramp_AWGRFPower()
+            self.progDialog.exec_()
+        else:
+            pass
+
+    def AWGRFPowerSwitch_auto(self, btu_pressed):
+        '''自动打开关闭RF输出'''
+        if self.parent.testModeAction.isChecked():
+            self.parent.AWGInfo.AWGPower = 500
+        else:
+            self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.read_power_toggle
+
+        if btu_pressed:
+            if self.parent.testModeAction():
+                pass
+            else:
+                # 为AWG设置功率
+                self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,channel=self.parent.AWGInfo.ChannelNum)
+
+                # 设置波形np.array，并检验，以及下载波形，Running
+                ys=np.array(self.parent.AWGInfo.ys)
+                wfmID=self.parent.AWGHandle.download_wfm(ys,ch=self.parent.AWGInfo.ChannelNum)
+                self.parent.AWGHandle.play(wfmID=wfmID,ch=self.parent.AWGInfo.ChannelNum)
+                self.parent.AWGHandle.err_check()
+
+            self.ramper = api_awg.M9502A.ramp_up(self.parent.AWGInfo.AWGPower, 1000)
+            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower))
+            self.powerSwitchProgBar.setValue(1000)
+            self.ramp_AWGRFPower()
+            self.progDialog.exec_()
+        elif self.parent.AWGInfo.AWGPower > 0:
+            self.ramper = api_awg.M9502A.ramp_down(self.parent.AWGInfo.AWGPower, 0)
+            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower + 0))
+            self.powerSwitchProgBar.setValue(1000)
+            self.ramp_AWGRFPower()
+            result = self.progDialog.exec_()
+            if self.parent.testModeAction.isChecked():
+                self.AWGPowerSwitchBtu.setChecked(False)
+            else:
+                self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.read_power_toggle
+                if result and (self.parent.AWGInfo.AWGPower <= 0):
+                    self.parent.AWGHandle.stop(ch=self.parent.AWGInfo.ChannelNum)
+                    self.AWGPowerSwitchBtu.setChecked(False)
+                else:
+                    self.AWGPowerSwitchBtu.setChecked(True)
+        else:
+            if self.parent.testModeAction.isChecked():
+                pass
+            else:
+                self.parent.AWGHandle.stop(ch=self.parent.AWGInfo.ChannelNum)
+                self.AWGPowerSwitchBtu.setChecked(False)
+
+        self.parent.AWGStatus.print_info()
+
+    def AWGPowerSwitch_Label(self, toggle_state):
+        '''更换按键文本'''
+        if toggle_state:
+            self.AWGPowerSwitchBtu.setText('ON')
+        else:
+            self.AWGPowerSwitchBtu.setText('OFF')
+
+
+
+
+
 
     def DesignPump(self):
 
@@ -627,7 +645,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
         # plt.figure()
         # plt.plot(f_measure,total_lorenz,'b')
         # plt.show()
-
 
 class ADisplay(QtWidgets.QGroupBox):
     def __init__(self, parent):
@@ -715,12 +732,28 @@ class LightCtrl(QtWidgets.QGroupBox):
         LightWidget.setFlat(True)
         LightWidget.setAlignment(QtCore.Qt.AlignLeft)
 
-        self.CenterWave=QtWidgets.QLineEdit(self)
-        self.Power=QtWidgets.QLineEdit(self)
+        self.CenterWave=QtWidgets.QLineEdit()
+        self.CenterWave.setPlaceholderText('C Band')
+        CenterCalidator=QtGui.QDoubleValidator(self)
+        CenterCalidator.setRange(1530,1630)
+        CenterCalidator.setNotation(QtGui.QDoubleValidator.StandardNotation)
+        CenterCalidator.setDecimals(4)
+        self.CenterWave.setValidator(CenterCalidator)
+
+        self.Power=QtWidgets.QLineEdit()
+        self.Power.setPlaceholderText('0~20dBm')
+        PowerCalidator=QtGui.QDoubleValidator(self)
+        PowerCalidator.setRange(0,30)
+        PowerCalidator.setNotation(QtGui.QDoubleValidator.StandardNotation)
+        # PowerCalidator.setDecimals(2)
+        self.Power.setValidator(PowerCalidator)
         self.ActiveBtu=QtWidgets.QPushButton('Active')
         self.ActiveBtu.setStyleSheet('''QPushButton{background:rgb(170,200,50);border-radius:15px;}QPushButton:hover{background:yellow;}''')
         self.ActiveBtu.setMaximumSize(200,200)
         self.ActiveBtu.setCheckable(True)
+        self.enterBtu=QtWidgets.QPushButton('Enter')
+        self.enterBtu.setChecked(True)
+
         LightLayout=QtWidgets.QGridLayout()
         # LightLayout.setSpacing(0)
         LightLayout.addWidget(QtWidgets.QLabel('Wavelength：'),0,0)
@@ -729,6 +762,7 @@ class LightCtrl(QtWidgets.QGroupBox):
         LightLayout.addWidget(QtWidgets.QLabel('Power:'),0,3)
         LightLayout.addWidget(self.Power,0,4)
         LightLayout.addWidget(QtWidgets.QLabel('dBm  '),0,5)
+        LightLayout.addWidget(self.enterBtu,0,6)
         LightLayout.addWidget(self.ActiveBtu,1,0,4,2)
         LightWidget.setLayout(LightLayout)
 
@@ -737,8 +771,10 @@ class LightCtrl(QtWidgets.QGroupBox):
         mainLayout.addWidget(LightWidget)
         self.setLayout(mainLayout)
 
-        self.clicked.connect(self.check)
 
+        self.clicked.connect(self.check)
+        self.enterBtu.clicked.connect(self.setupLight)
+        self.ActiveBtu.clicked.connect(self.activeF)
 
 
     def check(self):
@@ -753,7 +789,20 @@ class LightCtrl(QtWidgets.QGroupBox):
             self.setChecked(False)
             self.parent.LightCtrl.setChecked(False)
 
-        # self.parent.LightCtrl.print_info()
+    def setupLight(self):
+        if (self.parent.testModeAction.isChecked() or self.parent.LightHandle):
+            self.setChecked(True)
+            self.parent.LightCtrl.setCheckable(True)
+            api_light.LightSCPI.setupLight(self,power=float(self.Power.text()),wavelength=float(self.CenterWave.text()))
+
+        else:
+            msg = Shared.MsgError(self, 'No Instrument!', 'No LightWave is connected!')
+            msg.exec_()
+            self.setChecked(False)
+            self.parent.LightCtrl.setChecked(False)
+
+    def activeF(self):
+        api_light.LightSCPI.active(self)
 
 
 class EDFACtrl(QtWidgets.QGroupBox):
@@ -926,7 +975,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
 
     def plot(self):
         if self.parent.PNAHandle:
-            freq, result = api_pna.pna_acquire(self.parent.PNAHandle)
+            freq, result = api_pna.PNASCPI.pna_acquire(measName='meas1')
             self.pgPlot.plot().setData(freq,result,pen='g')
         else:
             pass

@@ -302,7 +302,7 @@ def get_awgfile(ys, center_F, bandwidth, df):
     center = str(center_F / (10 ** 9))
     ys = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
     # ys=1.0/(1+np.exp(-ys))
-    mean = np.average(ys)
+    # mean = np.average(ys)
     # sigma=np.std(ys)
     # ys=(ys-mean)/sigma
     txt = 'AWG_cos_Square' + center + 'GHz' + str(bandwidth / (10 ** 6)) + 'MHz' + str(df / (10 ** 6)) + 'MHz' + '.txt'

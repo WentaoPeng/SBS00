@@ -330,11 +330,7 @@ class M9502A(socketscpi.SocketInstrument):
         except:
             return False
 
-    # def instrument_connect(self,ipAddress):
-    #
-    #     try:
-    #         # 连接设备
-    #         self.inst
+
 
 class AWGError(Exception):
     """AWG Exception class"""
