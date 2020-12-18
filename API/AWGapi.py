@@ -39,6 +39,7 @@ class M9502A(socketscpi.SocketInstrument):
     '''
     Keysight M9502A AWG
     通用类：M9502A
+    host位本地链接，localhost，基于控制软件面板发送SCPI指令
     '''
     def __init__(self,host,port=5025,timeout=10,reset=False):
         super().__init__(host,port,timeout)
