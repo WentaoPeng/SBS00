@@ -418,8 +418,8 @@ if __name__ == '__main__':
     plt.show()
 
     # print(len(ys))
-    ys = np.loadtxt(
-        'AWG_cos_Square' + str(center_F / (10 ** 9)) + 'GHz' + str(bandwidth / (10 ** 6) - 50) + 'MHz' + '.txt')
+    # ys=np.ones(len(ys))*ys
+    ys = np.loadtxt('AWG_cos_Square' + str(center_F / (10 ** 9)) + 'GHz' + str(bandwidth / (10 ** 6) - 50) + 'MHz' + '.txt')
     fft_ys = np.abs(np.abs(fft(ys)) / N_AWG)
     fft_ys = scipy.fft.fft(ys)
     fft_ys1 = abs(fft_ys)

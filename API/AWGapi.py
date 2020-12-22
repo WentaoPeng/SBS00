@@ -109,7 +109,7 @@ class M9502A(socketscpi.SocketInstrument):
                 raise KeyError(
                     f'Invalid keyword argument: "{key}"')  # raise KeyError('Invalid keyword argument. Use "dacMode", "memDiv", "fs", "refSrc", "refFreq", "amp1/2/3/4", or "func".')
 
-        self.err_check()
+        # self.err_check()
 
     def set_dacMode(self, dacMode='single'):
         """
@@ -148,7 +148,7 @@ class M9502A(socketscpi.SocketInstrument):
         self.fs = float(self.query('frequency:raster?').strip())
         self.effFs = self.fs / self.memDiv
 
-        def set_func(self, func='arb'):
+    def set_func(self, func='arb'):
             """
             Sets and reads AWG function using SCPI commands.
             Args:
@@ -192,8 +192,19 @@ class M9502A(socketscpi.SocketInstrument):
             raise AWGError('\'amplitudu\'must be a floating point value.')
         if amplitude>1000 or amplitude<0:
             raise AWGError('\'amplitude\'must be between 0 and 1V.')
-        self.write(f'voltage{channel}{amplitude}')
-        exec(f"self.amp{channel}=float(self.query('voltage{channel}?'))")
+        # if channel==1:
+        #     self.write('OUTP1:STATE ON')
+        # elif channel==2:
+        #     self.write('OUTP2:STATE ON')
+        # elif channel==3:
+        #     self.write('OUTP3:STATE ON')
+        # elif channel==4:
+        #     self.write('OUTP4:STATE ON')
+        self.write(f'voltage{channel} {amplitude}')
+
+        self.write(f'OUTP{channel}:STATE ON')
+
+        # exec(f"self.amp{channel}=float(self.query('voltage{channel}?'))")
         return
 
     def sanity_check(self):

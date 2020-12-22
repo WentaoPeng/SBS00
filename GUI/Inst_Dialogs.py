@@ -129,12 +129,12 @@ class manualInstDialog(QtWidgets.QDialog):
         self.AWGIPFill=QtWidgets.QLineEdit()
         self.AWGIPFill.setInputMask("000.000.000.000")
 
-        # self.PNAIP=QtWidgets.QWidget()
-        # self.PNAIPFill=QtWidgets.QLineEdit()
-        # self.PNAIPFill.setInputMask("000.000.000.000")
+        self.PNAIP=QtWidgets.QWidget()
+        self.PNAIPFill=QtWidgets.QLineEdit()
+        self.PNAIPFill.setInputMask("000.000.000.000")
 
         ManualInstLayout.addRow("AWG_IP",self.AWGIPFill)
-        # ManualInstLayout.addRow("PNA_IP",self.PNAIPFill)
+        ManualInstLayout.addRow("PNA_IP",self.PNAIPFill)
 
         ManualInst.setLayout(ManualInstLayout)
 
@@ -149,11 +149,11 @@ class manualInstDialog(QtWidgets.QDialog):
 
         # 更新后台ip
         self.AWGIPFill.textChanged.connect(self.updateIP)
-        # self.PNAIPFill.textChanged.connect(self.updateIP)
+        self.PNAIPFill.textChanged.connect(self.updateIP)
 
     def updateIP(self):
         self.awgip=self.AWGIPFill.text()
-        # self.pnaip=self.PNAIPFill.text()
+        self.pnaip=self.PNAIPFill.text()
 
     def accept(self):
         if self.awgip=='N.A.':
@@ -162,6 +162,8 @@ class manualInstDialog(QtWidgets.QDialog):
             try:
                 self.parent.AWGHandle=api_awg.M9502A(self.awgip,reset=True)
                 print(self.parent.AWGHandle)
+                self.parent.PNAHandle=api_pna.PNASCPI(self.pnaip,reset=True)
+                print(self.parent.PNAHandle)
                 self.done(True)
             except:
                 return None

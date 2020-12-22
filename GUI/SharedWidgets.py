@@ -52,6 +52,7 @@ class AWGInfo():
         # 设计波形参数
         self.ts = 0
         self.ys = 0
+        self.AWGwave=0
         self.FFT_y = 0
         self.Fre = 0
         self.gb = 0

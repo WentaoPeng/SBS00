@@ -175,7 +175,8 @@ class PNACtrl(QtWidgets.QGroupBox):
         self.addressText = QtWidgets.QLabel()
         # self.InstEnable = QtWidgets.QLabel()
         self.AvgPoints = QtWidgets.QSpinBox()
-        self.EnterBtu = QtWidgets.QPushButton('Enter')
+        self.InitialBtu = QtWidgets.QPushButton('Initial')
+        self.EnterBtu=QtWidgets.QPushButton('Enter')
         self.AllMeasBtu = QtWidgets.QPushButton('ALLMeas')
 
         self.ScaleSet = QtWidgets.QWidget()
@@ -189,7 +190,7 @@ class PNACtrl(QtWidgets.QGroupBox):
         responseLayout.addWidget(self.ScaleSetUnitSel, 1, 1, 1, 3)
         responseLayout.addWidget(QtWidgets.QLabel('AvgPoints'), 2, 0)
         responseLayout.addWidget(self.AvgPoints, 2, 1, 1, 3)
-        responseLayout.addWidget(self.EnterBtu, 3, 0, 1, 2)
+        responseLayout.addWidget(self.InitialBtu, 3, 0, 1, 2)
         responseLayout.addWidget(self.AllMeasBtu, 3, 2, 1, 2)
         response.setLayout(responseLayout)
 
@@ -201,7 +202,8 @@ class PNACtrl(QtWidgets.QGroupBox):
         stimulusLayout.setSpacing(0)
 
         self.PointSet = QtWidgets.QWidget()
-        self.SPoints = QtWidgets.QSpinBox()
+        self.SPoints = QtWidgets.QLineEdit()
+        self.SPoints.setPlaceholderText('High sampling')
         SPointsLayout = QtWidgets.QGridLayout()
         SPointsLayout.addWidget(QtWidgets.QLabel('Sweep Points'), 0, 0)
         SPointsLayout.addWidget(self.SPoints, 0, 1, 1, 2)
@@ -240,10 +242,13 @@ class PNACtrl(QtWidgets.QGroupBox):
         powersetLayout.addWidget(self.powersetUnitSel)
         self.powerset.setLayout(powersetLayout)
 
+
+
         stimulusLayout.addWidget(self.StartFset, 2, 1, 1, 2)
         stimulusLayout.addWidget(self.EndFset, 3, 1, 1, 2)
         stimulusLayout.addWidget(self.PointSet, 1, 1, 1, 2)
         stimulusLayout.addWidget(self.powerset, 0, 1, 1, 2)
+        stimulusLayout.addWidget(self.EnterBtu,4,1)
         stimulus.setLayout(stimulusLayout)
 
         mainLayout = QtWidgets.QVBoxLayout()
@@ -256,48 +261,44 @@ class PNACtrl(QtWidgets.QGroupBox):
         self.AvgPoints.valueChanged.connect(self.tune_mod_parameter)
         self.ScaleSetUnitSel.currentIndexChanged.connect(self.tune_mod_parameter)
         self.powersetFill.textChanged.connect(self.tune_mod_parameter)
-        self.SPoints.valueChanged.connect(self.tune_mod_parameter)
+        self.SPoints.textChanged.connect(self.tune_mod_parameter)
         self.StartFsetFill.textChanged.connect(self.tune_mod_parameter)
         self.EndFsetFill.textChanged.connect(self.tune_mod_parameter)
 
+        self.InitialBtu.clicked.connect(self.InitialF)
         self.EnterBtu.clicked.connect(self.setPNA)
-        self.AllMeasBtu1=0
-        self.AllMeasBtu.clicked.connect(self.display)
+        self.AllMeasBtu.clicked.connect(self.AllDisplay)
 
         self.clicked.connect(self.check)
 
-    def display(self):
-        '''需要实时获取数据并绘图'''
-        if self.parent.testModeAction.isChecked():
-            pass
-        else:
-            if self.AllMeasBtu1==0:
-                VNAMonitor.plot
-                self.AllMeasBtu=1
-                return
+    def AllDisplay(self):
+        if self.parent.testModeAction.isChecked() or self.parent.PNAHandle:
+            self.parent.PNAHandle.allmeas()
 
-            if self.AllMeasBtu1==1:
-                VNAMonitor.close
-                self.AllMeasBtu=0
-                return
-
+    def InitialF(self):
+        if self.parent.testModeAction.isChecked() or self.parent.PNAHandle:
+            self.parent.PNAHandle.PNA_setup(measName=self.parent.PNAInfo.Scale)
 
     def setPNA(self):
-        if self.parent.testModeAction.isChecked():
-            pass
-        else:
-            api_pna.PNASCPI.PNA_setup(start=self.parent.PNAInfo.StartFerq,stop=self.parent.PNAInfo.EndFerq,
-                          numPoints=self.parent.PNAInfo.SweepPoints,measParam=self.parent.PNAInfo.Scale,avgpoions=self.parent.PNAInfo.AvgPoints)
+        if self.parent.testModeAction.isChecked() or self.parent.PNAHandle:
+            self.parent.PNAHandle.configure(startFreq=self.parent.PNAInfo.StartFerq,
+                                            endFreq=self.parent.PNAInfo.EndFerq,
+                                            numpoints=self.parent.PNAInfo.SweepPoints,
+                                            avgpoints=self.parent.PNAInfo.AvgPoints,
+                                            power=self.parent.PNAInfo.Power)
+
 
 
     def tune_mod_parameter(self):
         self.parent.PNAInfo.Scale=self.ScaleSetUnitSel.currentText()
-        self.parent.PNAInfo.AvgPoints=self.AvgPoints.value()
-        self.parent.PNAInfo.SweepPoints=self.SPoints.value()
+        self.parent.PNAInfo.AvgPoints=int(self.AvgPoints.text())
+        self.parent.PNAInfo.SweepPoints=int(self.SPoints.text())
+        self.parent.PNAInfo.Power=int(self.powersetFill.text())
         SF_status,SF_value=api_val.val_PNA_F(self.StartFsetFill.text(),
                                              self.StartFsetUnitSel.currentText())
         EF_status,EF_value=api_val.val_PNA_F(self.EndFsetFill.text(),
                                              self.EndFsetUnitSel.currentText())
+
         self.parent.PNAInfo.StartFerq=SF_value
         self.parent.PNAInfo.EndFerq=EF_value
 
@@ -358,15 +359,15 @@ class AWGCtrl(QtWidgets.QGroupBox):
         AWGPowerCtrl = QtWidgets.QWidget()
         AWGPowerCtrl.setLayout(AWGPowerLayout)
 
-        self.powerSwitchTimer = QtCore.QTimer()
-        self.powerSwitchTimer.setInterval(500)
-        self.powerSwitchTimer.setSingleShot(True)
-        self.powerSwitchProgBar = QtWidgets.QProgressBar()
-        self.progDialog = QtWidgets.QDialog()
-        self.progDialog.setWindowTitle('AWG Running')
-        progDialogLayout = QtWidgets.QVBoxLayout()
-        progDialogLayout.addWidget(self.powerSwitchProgBar)
-        self.progDialog.setLayout(progDialogLayout)
+        # self.powerSwitchTimer = QtCore.QTimer()
+        # self.powerSwitchTimer.setInterval(500)
+        # self.powerSwitchTimer.setSingleShot(True)
+        # self.powerSwitchProgBar = QtWidgets.QProgressBar()
+        # self.progDialog = QtWidgets.QDialog()
+        # self.progDialog.setWindowTitle('AWG Running')
+        # progDialogLayout = QtWidgets.QVBoxLayout()
+        # progDialogLayout.addWidget(self.powerSwitchProgBar)
+        # self.progDialog.setLayout(progDialogLayout)
 
         #     pump设计子界面
         PumpDesign = QtWidgets.QGroupBox()
@@ -445,15 +446,13 @@ class AWGCtrl(QtWidgets.QGroupBox):
         AWGPowerInput.clicked.connect(self.AWGRFPower)
         self.AWGPowerSwitchBtu.clicked.connect(self.AWGRFPowerSwitch_auto)
         self.AWGPowerSwitchBtu.toggled.connect(self.AWGPowerSwitch_Label)
-        self.powerSwitchTimer.timeout.connect(self.ramp_AWGRFPower)
+        # self.powerSwitchTimer.timeout.connect(self.ramp_AWGRFPower)
         # 设计泵浦事件
         self.PumpDesignDoneBtu.clicked.connect(self.DesignPump)
 
         self.clicked.connect(self.check)
 
     def check(self):
-        ''' Enable/disable this groupbox '''
-
         if (self.parent.testModeAction.isChecked() or self.parent.AWGHandle):
             self.setChecked(True)
             self.parent.AWGCtrl.setChecked(True)
@@ -463,7 +462,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
             self.setChecked(False)
             self.parent.AWGCtrl.setChecked(False)
 
-        # self.parent.AWGCtrl.print_info()
     def tune_mod_parameter(self):
         # 状态信息同步
         # 波形状态
@@ -476,7 +474,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.parent.AWGInfo.DAC_index = DAC_index
         print(DAC_index)
         # 通道选择
-        Channel_N = self.channelNumset.currentText()
+        Channel_N = api_val.AWGCHANNELSET[self.channelNumset.currentIndex()]
         self.parent.AWGInfo.ChannelNum = Channel_N
         print(Channel_N)
         CF_status, CF_freq = api_val.val_awgCW_mod_freq(self.CenterFreqFill.text(),
@@ -493,105 +491,66 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.parent.AWGInfo.BWFreq = BW_freq
         self.parent.AWGInfo.DFFreq = DF_freq
 
-    def ramp_AWGRFPower(self):
-        '''
-
-        :return: 成功状态
-        '''
-        try:
-            this_power = next(self.ramper)
-            if self.parent.testModeAction.isChecked():
-                vCode = pyvisa.constants.StatusCode.success
-            else:
-                vCode = self.parent.AWGHandle.set_amplitude(amplitude=this_power,
-                                                            channel=self.parent.AWGInfo.ChannelNum)
-
-            if vCode == pyvisa.constants.StatusCode.success:
-                self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.read_power_toggle()
-                self.parent.AWGStatus.print_info()
-                self.powerSwitchProgBar.setValue(self.powerSwitchProgBar.value()+1)
-                # 开始timer
-                self.powerSwitchTimer.start()
-            else:
-                self.powerSwitchTimer.stop()
-                msg = Shared.InstStatus(self, vCode)
-                msg.exec_()
-        except StopIteration:
-            self.powerSwitchTimer.stop()
-            self.progDialog.accept()
+    # def ramp_AWGRFPower(self):
+    #     '''
+    #
+    #     :return: 成功状态
+    #     '''
+    #     try:
+    #         this_power = next(self.ramper)
+    #         if self.parent.testModeAction.isChecked():
+    #             vCode = pyvisa.constants.StatusCode.success
+    #         else:
+    #             vCode = self.parent.AWGHandle.set_amplitude(amplitude=this_power,
+    #                                                         channel=self.parent.AWGInfo.ChannelNum)
+    #
+    #         if vCode == pyvisa.constants.StatusCode.success:
+    #             self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.read_power_toggle()
+    #             self.parent.AWGStatus.print_info()
+    #             self.powerSwitchProgBar.setValue(self.powerSwitchProgBar.value()+1)
+    #             # 开始timer
+    #             self.powerSwitchTimer.start()
+    #         else:
+    #             self.powerSwitchTimer.stop()
+    #             msg = Shared.InstStatus(self, vCode)
+    #             msg.exec_()
+    #     except StopIteration:
+    #         self.powerSwitchTimer.stop()
+    #         self.progDialog.accept()
 
     def AWGRFPower(self):
         if self.parent.testModeAction.isChecked():
-            self.parent.AWGInfo.AWGPower = 500
-        else:
-            self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.read_power_toggle
 
-        target_Power, okay = QtWidgets.QInputDialog.getInt(self, 'RF POWER',
-                                                           'Manual Input (0mV to 1000mV)', self.parent.AWGInfo.AWGPower,
-                                                           0, 1000, 1)
+            target_Power, okay = QtWidgets.QInputDialog.getDouble(self, 'RF POWER',
+                                                               'Manual Input (0mV to 1000mV)',
+                                                               self.parent.AWGInfo.AWGPower, 0, 1000, 0.01)
+            self.parent.AWGInfo.AWGPower = 500
+
+        else:
+            target_Power, okay = QtWidgets.QInputDialog.getDouble(self, 'RF POWER',
+                                                               'Manual Input (0mV to 1000mV)',500,0,1000,0.01)
+            self.parent.AWGInfo.AWGPower =target_Power/1000
+
+
         if okay:
-            if self.parent.testModeAction.isChecked():
+            if self.parent.testModeAction.isChecked() :
                 pass
             else:
-                self.parent.AWGInfo.AWGPower = target_Power
-                # api_awg.set_AWG_power(self.parent.AWGHandle,target_Power,self.parent.AWGInfo.ChannelNum)
-
-            # self.AWGPowerSwitchBtu.setChecked(True)
-            # 不自动开启AWG，通过powerSwitch
-            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower - target_Power))
-            self.powerSwitchProgBar.setValue(1000)
-            self.ramp_AWGRFPower()
-            self.progDialog.exec_()
+                self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                                                    channel=self.parent.AWGInfo.ChannelNum)
         else:
             pass
 
-    def AWGRFPowerSwitch_auto(self, btu_pressed):
+    def AWGRFPowerSwitch_auto(self):
         '''自动打开关闭RF输出'''
         if self.parent.testModeAction.isChecked():
-            self.parent.AWGInfo.AWGPower = 500
+            pass
         else:
-            self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.read_power_toggle
-
-        if btu_pressed:
-            if self.parent.testModeAction():
-                pass
-            else:
-                # 为AWG设置功率
-                self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,channel=self.parent.AWGInfo.ChannelNum)
-
-                # 设置波形np.array，并检验，以及下载波形，Running
-                ys=np.array(self.parent.AWGInfo.ys)
-                wfmID=self.parent.AWGHandle.download_wfm(wfmData=ys,ch=self.parent.AWGInfo.ChannelNum)
-                self.parent.AWGHandle.play(wfmID=wfmID,ch=self.parent.AWGInfo.ChannelNum)
-                self.parent.AWGHandle.err_check()
-
-            self.ramper = api_awg.M9502A.ramp_up(self.parent.AWGInfo.AWGPower, 1000)
-            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower))
-            self.powerSwitchProgBar.setValue(1000)
-            self.ramp_AWGRFPower()
-            self.progDialog.exec_()
-        elif self.parent.AWGInfo.AWGPower > 0:
-            self.ramper = api_awg.M9502A.ramp_down(self.parent.AWGInfo.AWGPower, 0)
-            self.powerSwitchProgBar.setRange(1000, abs(self.parent.AWGInfo.AWGPower + 0))
-            self.powerSwitchProgBar.setValue(1000)
-            self.ramp_AWGRFPower()
-            result = self.progDialog.exec_()
-            if self.parent.testModeAction.isChecked():
-                self.AWGPowerSwitchBtu.setChecked(False)
-            else:
-                self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.read_power_toggle
-                if result and (self.parent.AWGInfo.AWGPower <= 0):
-                    self.parent.AWGHandle.stop(ch=self.parent.AWGInfo.ChannelNum)
-                    self.AWGPowerSwitchBtu.setChecked(False)
-                else:
-                    self.AWGPowerSwitchBtu.setChecked(True)
-        else:
-            if self.parent.testModeAction.isChecked():
-                pass
-            else:
-                self.parent.AWGHandle.stop(ch=self.parent.AWGInfo.ChannelNum)
-                self.AWGPowerSwitchBtu.setChecked(False)
-
+            # 设置波形np.array，并检验，以及下载波形，Running
+            # ys = np.ones(len(self.parent.AWGInfo.ys))*self.parent.AWGInfo.ys
+            wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.ys, ch=self.parent.AWGInfo.ChannelNum)
+            self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
+            self.parent.AWGHandle.err_check()
         self.parent.AWGStatus.print_info()
 
     def AWGPowerSwitch_Label(self, toggle_state):
@@ -631,7 +590,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
         ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
         ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
         self.parent.AWGInfo.ts = ts
-        self.parent.AWGInfo.ys = ys
+        self.parent.AWGInfo.ys=ys
+        wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
+        self.parent.AWGInfo.AWGwave = np.ones(len(wavefile))*wavefile
         FFT_y, Fre = SBS_DSP.get_fft(ys, AWG_framerate)
         self.parent.AWGInfo.FFT_y = FFT_y
         self.parent.AWGInfo.Fre = Fre
@@ -643,6 +604,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
         total_lorenz = SBS_DSP.add_lorenz(f_measure, amp_list * 0.008, f_list, Tb)
 
         self.parent.AWGInfo.gb = total_lorenz
+        # 初始化AWG采样率set_fs
+        self.parent.AWGHandle.configure(fs=AWG_framerate)
         # plt.figure()
         # plt.plot(f_measure,total_lorenz,'b')
         # plt.show()
@@ -883,7 +846,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.P2slider.setMaximum(20)
         self.P2slider.setMinimum(0)
         self.P2slider.setValue(5)
-        self.P2slider.setSingleStep(0.01)
+        self.P2slider.setTickInterval(0.01)
 
         self.enterBtu2=QtWidgets.QPushButton('Enter')
         self.activeBtu2=QtWidgets.QPushButton('Active')
@@ -1009,14 +972,17 @@ class VNAMonitor(QtWidgets.QGroupBox):
 
 
     def timer_start(self):
-        self.timer=QtCore.QTimer(self)
-        self.timer.timeout.connect(self.plot)
-        self.timer.start(1000)
+        if self.parent.PNAHandle:
+            self.timer=QtCore.QTimer(self)
+            self.timer.timeout.connect(self.plot)
+            self.timer.start(1000)
+        else:
+            pass
 
 
     def plot(self):
         if self.parent.PNAHandle:
-            freq, result = api_pna.PNASCPI.pna_acquire(measName='meas1')
+            freq, result =self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
             self.pgPlot.plot().setData(freq,result,pen='g')
         else:
             pass
