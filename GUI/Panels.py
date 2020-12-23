@@ -936,10 +936,11 @@ class EDFACtrl(QtWidgets.QGroupBox):
 class Feedback(QtWidgets.QGroupBox):
     '''
     反馈算法
-    1.带内平整度计算显示（3dB）
-    2.均方误差
-    3.反馈次数
-    4.收敛方式？
+    1.带内平整度计算显示:目标带宽内，最大最小差值
+    2.均方误差：与目标波形均方误差
+    4.收敛方式：
+        反馈次数
+        均方误差
     '''
     def __init__(self,parent):
         QtWidgets.QGroupBox.__init__(self, parent)
@@ -952,6 +953,46 @@ class Feedback(QtWidgets.QGroupBox):
         FBWidget=QtWidgets.QGroupBox()
         FBWidget.setFlat(True)
         FBWidget.setAlignment(QtCore.Qt.AlignLeft)
+
+        # 需要显示收敛方式，均方误差实时显示（颜色标记升降）；反馈次数显示
+        self.MSE=QtWidgets.QLineEdit()
+        self.MSE.setPlaceholderText('MSEDisplay')
+        self.FBnum=QtWidgets.QLineEdit()
+        self.FBnum.setPlaceholderText('FB_Number')
+        self.activeBtu=QtWidgets.QPushButton('Run')
+        self.activeBtu.setStyleSheet('''QPushButton{background:rgb(170,200,50);border-radius:30px;}QPushButton:hover{background:yellow;}''')
+        self.activeBtu.setMaximumSize(400, 400)
+        self.activeBtu.setCheckable(True)
+
+
+        self.modFB=QtWidgets.QComboBox()
+        self.modFB.addItems(api_val.FB_modList)
+        self.modFBDispaly=QtWidgets.QLineEdit()
+
+        FBLayout=QtWidgets.QGridLayout()
+        FBLayout.setAlignment(QtCore.Qt.AlignLeft)
+        FBLayout.addWidget(QtWidgets.QLabel('MSE:'),0,0,1,1)
+        FBLayout.addWidget(self.MSE,0,1,1,1)
+        FBLayout.addWidget(QtWidgets.QLabel('FB_Num:'),1,0,1,1)
+        FBLayout.addWidget(self.FBnum,1,1,1,1)
+        FBLayout.addWidget(self.activeBtu,0,4,0,2)
+        FBLayout.addWidget(QtWidgets.QLabel('Mod_Switch:'),0,2)
+        FBLayout.addWidget(self.modFB,0,3)
+        FBLayout.addWidget(self.modFBDispaly,1,2,1,2)
+        self.setLayout(FBLayout)
+
+        self.modFB.currentIndexChanged[int].connect(self.switch_mod)
+
+    def switch_mod(self):
+        mod_index=self.modFB.currentIndex()
+
+        if mod_index==1:
+            self.modFBDispaly.clear()
+            self.modFBDispaly.setPlaceholderText('MSE')
+
+        elif mod_index==2:
+            self.modFBDispaly.clear()
+            self.modFBDispaly.setPlaceholderText('FB_Num.')
 
 
 
