@@ -712,11 +712,11 @@ class LightCtrl(QtWidgets.QGroupBox):
         # PowerCalidator.setDecimals(2)
         self.Power.setValidator(PowerCalidator)
         self.ActiveBtu=QtWidgets.QPushButton('Active')
-        self.ActiveBtu.setStyleSheet('''QPushButton{background:rgb(170,200,50);border-radius:15px;}QPushButton:hover{background:yellow;}''')
+        self.ActiveBtu.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:yellow;}''')
         self.ActiveBtu.setMaximumSize(200,200)
         self.ActiveBtu.setCheckable(True)
         self.enterBtu=QtWidgets.QPushButton('Enter')
-        self.enterBtu.setChecked(True)
+        self.enterBtu.setChecked(False)
 
         LightLayout=QtWidgets.QGridLayout()
         # LightLayout.setSpacing(0)
@@ -810,6 +810,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.P1slider.setTickInterval(0.01)
         self.enterBtu1 = QtWidgets.QPushButton('Enter')
         self.activeBtu1 = QtWidgets.QPushButton('Active')
+        self.activeBtu1.setCheckable(True)
         self.activeBtu1.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:red;}''')
 
         EDFA1Layout.addWidget(QtWidgets.QLabel('Inst_COM:'), 0, 0)
@@ -850,6 +851,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
 
         self.enterBtu2=QtWidgets.QPushButton('Enter')
         self.activeBtu2=QtWidgets.QPushButton('Active')
+        self.activeBtu2.setCheckable(True)
         self.activeBtu2.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:red;}''')
 
         EDFA2Layout.addWidget(QtWidgets.QLabel('Inst_COM:'), 0, 0)
@@ -960,7 +962,7 @@ class Feedback(QtWidgets.QGroupBox):
         self.FBnum=QtWidgets.QLineEdit()
         self.FBnum.setPlaceholderText('FB_Number')
         self.activeBtu=QtWidgets.QPushButton('Run')
-        self.activeBtu.setStyleSheet('''QPushButton{background:rgb(170,200,50);border-radius:30px;}QPushButton:hover{background:yellow;}''')
+        self.activeBtu.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:red;}''')
         self.activeBtu.setMaximumSize(400, 400)
         self.activeBtu.setCheckable(True)
 
@@ -975,13 +977,28 @@ class Feedback(QtWidgets.QGroupBox):
         FBLayout.addWidget(self.MSE,0,1,1,1)
         FBLayout.addWidget(QtWidgets.QLabel('FB_Num:'),1,0,1,1)
         FBLayout.addWidget(self.FBnum,1,1,1,1)
-        FBLayout.addWidget(self.activeBtu,0,4,0,2)
+        FBLayout.addWidget(self.activeBtu,0,4,2,1)
         FBLayout.addWidget(QtWidgets.QLabel('Mod_Switch:'),0,2)
         FBLayout.addWidget(self.modFB,0,3)
         FBLayout.addWidget(self.modFBDispaly,1,2,1,2)
         self.setLayout(FBLayout)
 
         self.modFB.currentIndexChanged[int].connect(self.switch_mod)
+
+        self.activeBtu.clicked.connect(self.FB_Function)
+
+    def FB_Function(self,status):
+        mod_index=self.modFB.currentIndex()
+        if status:
+            if self.parent.testModeAction.isChecked()：
+    #         出发算法仿真反馈
+                if mod_index==1:
+                    pass
+                elif mod_index==2:
+                    pass
+            else:
+                pass
+        else:
 
     def switch_mod(self):
         mod_index=self.modFB.currentIndex()
