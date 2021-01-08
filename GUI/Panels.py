@@ -548,7 +548,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         else:
             # 设置波形np.array，并检验，以及下载波形，Running
             # ys = np.ones(len(self.parent.AWGInfo.ys))*self.parent.AWGInfo.ys
-            wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.ys, ch=self.parent.AWGInfo.ChannelNum)
+            wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave, ch=self.parent.AWGInfo.ChannelNum)
             self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
             self.parent.AWGHandle.err_check()
         self.parent.AWGStatus.print_info()
