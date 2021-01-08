@@ -8,6 +8,7 @@ AWGCHANNELSET={0:1,
                2:3,
                3:4}
 
+FB_modList=['NONE','MSE','FB_Num.']
 def _compare(num1, op, num2):
     ''' An comparison operator generator '''
 
