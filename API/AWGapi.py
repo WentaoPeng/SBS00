@@ -11,7 +11,7 @@ TODO:
 """
 
 # 滤波器分类列表
-Shape_MODE_LIST = ['Rectangle', 'Triangle', 'Band Stop']
+Shape_MODE_LIST = ['Rectangle', 'Triangle', 'Band Stop','Guass']
 
 def wraparound_calc(length, gran, minLen):
     """

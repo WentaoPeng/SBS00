@@ -111,7 +111,8 @@ class PNASCPI(socketscpi.SocketInstrument):
         # Format data for transfer.
         self.write('format:border swap')
         self.write('format real,64')  # Data type is double/float64, not int64.
-
+        # hold
+        self.write('SENS:SWE:MODE HOLD')
         # Acquire measurement data.
         self.write('calculate1:data? fdata')
         meas = self.binblockread(datatype=np.float64)
@@ -121,6 +122,8 @@ class PNASCPI(socketscpi.SocketInstrument):
         self.write('calculate1:x?')
         freq = self.binblockread(datatype=np.float64)
         self.query('*opc?')
+        # Continuous
+        self.write('SENS:SWE:MODE CONTinous')
 
         return freq, meas
 

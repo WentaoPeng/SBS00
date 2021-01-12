@@ -582,6 +582,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
             f_list, amp_list, phase_list = SBS_DSP.triangle_filter(CF, BW, DF)
         elif self.parent.AWGInfo.mod_index == 2:
             f_list, amp_list, phase_list = SBS_DSP.Band_stop_filter(CF, BW, DF, signal_BW=1 * 10 ** 9)
+        elif self.parent.AWGInfo.mod_index ==3:
+            f_list,amp_list,phase_list=SBS_DSP.Guass_filter(CF, BW, DF)
         else:
             amp_list = []
             f_list = []
@@ -990,15 +992,23 @@ class Feedback(QtWidgets.QGroupBox):
     def FB_Function(self,status):
         mod_index=self.modFB.currentIndex()
         if status:
-            if self.parent.testModeAction.isChecked()：
+            if (self.parent.testModeAction.isChecked()):
+                self.setChecked(True)
     #         出发算法仿真反馈
                 if mod_index==1:
                     pass
                 elif mod_index==2:
                     pass
             else:
-                pass
+                # 正常反馈算法，待补充
+                if mod_index==1:
+                    pass
+                # 遗传算法反馈
+                elif mod_index==2:
+                    freq, result = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
+
         else:
+            pass
 
     def switch_mod(self):
         mod_index=self.modFB.currentIndex()
