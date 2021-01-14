@@ -110,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.PNAInfo = Shared.PNAInfo()
         self.LightInfo = Shared.LightInfo()
         self.EDFAInfo = Shared.EDFAInfo()
-
+        self.Display=0
         # 状态监控栏
         self.AWGStatus = Panels.AWGStatus(self)
         # 设备控制栏
@@ -199,6 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.selInstDialog = Dialogs.selectInstDialog(self)
         self.ManualInstDialog = Dialogs.manualInstDialog(self)
         self.viewInstDialog = Dialogs.viewInstDialog(self)
+        self.closeInstDialog=Dialogs.CloseSelInstDialog(self)
 
     def on_exit(self):
         self.close()
@@ -227,7 +228,9 @@ class MainWindow(QtWidgets.QMainWindow):
         return
 
     def close_sel_inst(self):
-        return
+        d=Dialogs.CloseSelInstDialog(self)
+        d.exec_()
+        self.refresh_inst()
 
     def closeEvent(self, event):
         q = QtGui.QMessageBox.question(self, 'Quit?',

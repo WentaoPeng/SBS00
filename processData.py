@@ -16,24 +16,25 @@ def plot1(dl,dlB,name):
         ax = plt.gca()
         ax.spines['top'].set_visible(False)  # 去掉上边框
         ax.spines['right'].set_visible(False)  # 去掉右边框
-        amp=dl[i]['S21(DB)']-dlB[0]['S21(DB)']
+        amp=dl[i]['S21(DB)']-dlB[i]['S21(DB)']
         plt.plot(dl[i]['Freq(Hz)'] / (10 ** 9), amp,
                     label=name[i])
         # 平滑
         # plt.plot(dl[i]['Freq(Hz)'] / (10 ** 9),
         #          savgol_filter(amp-min(amp), 51, 3, mode='nearest'),
         #          label=name[i])
-        plt.title("Single Frequency Comb Control of SBS_MPF",fontsize=15, fontweight='bold')
+        # plt.title("Single Frequency Comb Control of SBS_MPF",fontsize=15, fontweight='bold')
+        plt.title("Amplitude Response", fontsize=15, fontweight='bold')
         plt.xlabel("Freqence(GHz)", fontsize=13, fontweight='bold')
         plt.ylabel("RF_Power(DB)", fontsize=13, fontweight='bold')
-        plt.legend(loc='best', numpoints=1,ncol=3)
+        plt.legend(loc='best', numpoints=1,ncol=2)
         leg = plt.gca().get_legend()
         ltext = leg.get_texts()
         plt.setp(ltext, fontsize=9, fontweight='bold')  # 设置图例字体的大小和粗细
         i+=1
-    plt.xlim(2, 14)
-    plt.ylim(2, 23)
-    plt.savefig("单频大范围可调证明.svg", format="svg")
+    # plt.xlim(2, 14)
+    # plt.ylim(2, 23)
+    plt.savefig("Amp单频Anti-Stokes.svg", format="svg")
     plt.show()
 
 def plot_phash(dl,dlB,name):
@@ -55,7 +56,7 @@ def plot_phash(dl,dlB,name):
         # 平滑
         plt.plot(dl[j]['Freq(Hz)']/(10**9),savgol_filter(phash,53,10, mode= 'nearest'),
                  label=name[j])
-        plt.title("Phase Response of Triangle", fontsize=15, fontweight='bold')
+        plt.title("Phase Response", fontsize=15, fontweight='bold')
         plt.xlabel("Freqence(GHz)", fontsize=13, fontweight='bold')
         plt.ylabel("RF_Power(DB)", fontsize=13, fontweight='bold')
         plt.legend(loc='best', numpoints=1, ncol=1)
@@ -63,10 +64,10 @@ def plot_phash(dl,dlB,name):
         ltext = leg.get_texts()
         plt.setp(ltext, fontsize=12, fontweight='bold')  # 设置图例字体的大小和粗细
         j+=1
-    plt.xlim(6.98,7.09)
+    # plt.xlim(6.98,7.09)
     # plt.ylim()
     # plt.legend()
-    plt.savefig("三角形相位响应BW30-120.svg", format="svg")
+    plt.savefig("phase单频Anti-Stokes.svg", format="svg")
     plt.show()
 
 def file_name(file_dir):
@@ -142,6 +143,9 @@ if __name__ == '__main__':
     path10:电谱图绘制宽波段
     path11:高精度光谱图
     path12:冲击300MHz三角形
+    
+    path13: 反斯托克斯 用的是14cm长波导（插损16dB）中心波长调控
+    path14：单梳 反斯托克斯
     '''
     # path1=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210107\CW\Signal'
     # path1=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210107\CW\T'
@@ -153,17 +157,20 @@ if __name__ == '__main__':
     # path8=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\S_BW_14GDf=3M'
     # path9=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\signal_solo'
     # pathB=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BJ'
-    pathB=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210107\CW\Signal_BJ'
+    # pathB=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210107\CW\Signal_BJ'
     # path10=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\电谱图'
     # dat11=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109高精度光谱仪dat'
     # path11=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109高精度光谱仪csv'
+    # path13=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\P24.3abs'
+    path14=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\SOLO'
+    pathB=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\SOLO_BJ'
     # 将dat转换为csv
     # dat_csv(dat11,path11)
 
     # path12=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_300MHz'
-    files=glob.glob(os.path.join(path1,"*.csv"))
+    files=glob.glob(os.path.join(path14,"*.csv"))
     filesB = glob.glob(os.path.join(pathB, "*.csv"))
-    name=file_name(path1)
+    name=file_name(path14)
     # nameB=file_name(pathB)
     # print(files)
     # print(name)
@@ -178,5 +185,5 @@ if __name__ == '__main__':
         dlB.append(pd.read_csv(f, skiprows=6, nrows=40000))
     print(dlB)
     plot1(dl,dlB,name)
-    # plot_phash(dl,dlB,name)
+    plot_phash(dl,dlB,name)
     # plot_odd(dl,name)

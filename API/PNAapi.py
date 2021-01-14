@@ -112,18 +112,18 @@ class PNASCPI(socketscpi.SocketInstrument):
         self.write('format:border swap')
         self.write('format real,64')  # Data type is double/float64, not int64.
         # hold
-        self.write('SENS:SWE:MODE HOLD')
+        # self.write('SENS:SWE:MODE HOLD')
         # Acquire measurement data.
-        self.write('calculate1:data? fdata')
-        meas = self.binblockread(datatype=np.float64)
+        # self.write('calculate1:data? fdata')
+        meas = self.binblockread(cmd='calculate1:data? fdata',datatype='d')
         self.query('*opc?')
 
         # Acquire frequency data.
-        self.write('calculate1:x?')
-        freq = self.binblockread(datatype=np.float64)
+        # self.write('calculate1:x?')
+        freq = self.binblockread(cmd='calculate1:x?',datatype='d')
         self.query('*opc?')
         # Continuous
-        self.write('SENS:SWE:MODE CONTinous')
+        # self.write('SENS:SWE:MODE CONTinous')
 
         return freq, meas
 

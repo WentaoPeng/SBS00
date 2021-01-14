@@ -377,9 +377,9 @@ if __name__ == '__main__':
     # 以MHz为单位，频梳间隔为15~20MHz
     # ts = np.linspace(0,t_FPGA,N_FPGA,endpoint=False)
     center_F = 14 * 10 ** 9
-    bandwidth = 50 * 10 ** 6
-    df = 5 * 10 ** 6
-    shape=3
+    bandwidth = 60 * 10 ** 6
+    df = 2 * 10 ** 6
+    shape=0
     CF_gap=0
     BW_gap=30*10**6
     df_gap=0

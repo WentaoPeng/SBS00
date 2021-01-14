@@ -7,6 +7,7 @@ from API import general as api_gen
 from API import AWGapi as api_awg
 from API import PNAapi as api_pna
 from API import LightAPI as api_light
+import re
 
 from pyqtgraph import siFormat
 import pyqtgraph as pg
@@ -101,8 +102,10 @@ class selectInstDialog(QtWidgets.QDialog):
                            self.parent.EDFA1Handle,
                            self.parent.EDFA2Handle,)
         # 开启新的设备连接
-        self.parent.AWGHandle = api_gen.open_inst(self.selAWG.currentText())
-        self.parent.PNAHandle = api_pna.PNASCPI(self.selPNA.currentText())
+        AWGIP=re.findall(r'(?<![\.\d])(?:\d{1,3}\.){3}\d{1,3}(?![\.\d])',str(self.selAWG.currentText()),re.S)
+        PNAIP=re.findall(r'(?<![\.\d])(?:\d{1,3}\.){3}\d{1,3}(?![\.\d])',str(self.selPNA.currentText()),re.S)
+        self.parent.AWGHandle = api_awg.M9502A(AWGIP)
+        self.parent.PNAHandle = api_pna.PNASCPI(PNAIP)
         self.parent.LightHandle = api_light.LightSCPI(self.selLight.currentText())
         self.parent.EDFA1Handle = api_gen.open_inst(self.selEDFA1.currentText())
         self.parent.EDFA2Handle = api_gen.open_inst(self.selEDFA2.currentText())
@@ -118,7 +121,7 @@ class manualInstDialog(QtWidgets.QDialog):
         self.parent=parent
         self.setMinimumSize(200,200)
         self.setWindowTitle('Manual Input Inst_IP')
-        self.awgip='192.168.1.103'
+        self.awgip='192.168.1.102'
 
         acceptButton = QtGui.QPushButton(Shared.btn_label('confirm'))
         cancelButton = QtGui.QPushButton(Shared.btn_label('reject'))
@@ -162,6 +165,14 @@ class manualInstDialog(QtWidgets.QDialog):
             try:
                 self.parent.AWGHandle=api_awg.M9502A(self.awgip,reset=True)
                 print(self.parent.AWGHandle)
+                self.done(True)
+            except:
+                return None
+
+        if self.pnaip=='N.A.':
+            return None
+        else:
+            try:
                 self.parent.PNAHandle=api_pna.PNASCPI(self.pnaip,reset=True)
                 print(self.parent.PNAHandle)
                 self.done(True)
@@ -178,6 +189,89 @@ class viewInstDialog(QtWidgets.QDialog):
 
         self.setMinimumSize(400, 400)
         self.setWindowTitle('View Instrument Status')
+
+class CloseSelInstDialog(QtWidgets.QDialog):
+    '''
+    关闭设备
+    '''
+
+    def __init__(self, parent):
+        QtGui.QDialog.__init__(self, parent)
+        self.parent = parent
+        self.setMinimumSize(400,400)
+        self.setWindowTitle('Close Instrument')
+
+        inst=QtWidgets.QWidget()
+        self.awgToggle=QtWidgets.QCheckBox()
+        self.pnaToggle=QtWidgets.QCheckBox()
+        self.EDFA1Toggle=QtWidgets.QCheckBox()
+        self.EDFA2Toggle=QtWidgets.QCheckBox()
+        self.LightToggle=QtWidgets.QCheckBox()
+
+        instLayout=QtWidgets.QFormLayout()
+        instLayout.addRow(QtWidgets.QLabel('Instrument'),QtWidgets.QLabel('Status'))
+
+        if self.parent.AWGHandle:
+            self.awgToggle.setCheckState(True)
+            instLayout.addRow(QtWidgets.QLabel('AWG'),self.awgToggle)
+        else:
+            self.awgToggle.setCheckState(False)
+
+        if self.parent.PNAHandle:
+            self.pnaToggle.setCheckState(True)
+            instLayout.addRow(QtWidgets.QLabel('PNA'),self.pnaToggle)
+        else:
+            self.pnaToggle.setCheckState(False)
+
+        if self.parent.EDFA1Handle:
+            self.EDFA1Toggle.setCheckState(True)
+            instLayout.addRow(QtWidgets.QLabel('EDFA1'),self.EDFA1Toggle)
+        else:
+            self.EDFA1Toggle.setCheckState(False)
+
+        if self.parent.EDFA2Handle:
+            self.EDFA2Toggle.setCheckState(True)
+            instLayout.addRow(QtWidgets.QLabel('EDFA2'),self.EDFA2Toggle)
+        else:
+            self.EDFA2Toggle.setCheckState(False)
+
+        inst.setLayout(instLayout)
+
+        okButton=QtWidgets.QPushButton(Shared.btn_label('complete'))
+        mainLayout=QtWidgets.QVBoxLayout()
+        mainLayout.addWidget(inst)
+        mainLayout.addWidget(QtWidgets.QLabel('No command will be sent before you hit the accept button'))
+        mainLayout.addWidget(okButton)
+        self.setLayout(mainLayout)
+
+        okButton.clicked.connect(self.accept)
+
+    def close_inst_handle(self,inst_handle,check_state):
+
+        if check_state and inst_handle:
+            api_gen.close_inst(inst_handle)
+            return None
+        else:
+            return inst_handle
+
+    def accept(self):
+        if self.awgToggle.isChecked() and self.parent.AWGHandle:
+            # self.parent.AWGHandle=api_awg.M9502A.stop(ch=self.parent.AWGInfo.ChannelNum)
+            self.parent.AWGHandle=self.close_inst_handle(self.parent.AWGHandle,
+                                                         self.awgToggle.isChecked())
+
+        self.parent.PNAHandle=self.close_inst_handle(self.parent.PNAHandle,
+                                                     self.pnaToggle.isChecked())
+        self.parent.EDFA1Handle=self.close_inst_handle(self.parent.EDFA1Handle,
+                                                       self.EDFA1Toggle.isChecked())
+        self.parent.EDFA2Handle=self.close_inst_handle(self.parent.EDFA2Handle,
+                                                       self.EDFA2Toggle.isChecked())
+        self.parent.LightHandle=self.close_inst_handle(self.parent.LightHandle,
+
+                                                       self.LightToggle.isChecked())
+        self.parent.Display==0
+        self.close()
+
 
 
 class AWGInfoDialog(QtWidgets.QDialog):

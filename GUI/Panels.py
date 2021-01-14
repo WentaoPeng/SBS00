@@ -274,6 +274,7 @@ class PNACtrl(QtWidgets.QGroupBox):
     def AllDisplay(self):
         if self.parent.testModeAction.isChecked() or self.parent.PNAHandle:
             self.parent.PNAHandle.allmeas()
+            self.parent.Display=1
 
     def InitialF(self):
         if self.parent.testModeAction.isChecked() or self.parent.PNAHandle:
@@ -1029,15 +1030,24 @@ class VNAMonitor(QtWidgets.QGroupBox):
     def __init__(self, parent):
         QtWidgets.QWidget.__init__(self, parent)
         self.parent = parent
-        self.pgPlot = pg.PlotWidget(title='PNA Monitor')
+        pg.setConfigOptions(leftButtonPan=False)
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('foreground', 'k')
+        # self.pgPlot = pg.PlotWidget(title='PNA Monitor')
+        self.pgPlot=pg.MultiPlotWidget()
+        self.plot_data=self.pgPlot.addPlot(left='RF_Power(dB)',bottom='Freq(Hz)',title='RF_Spectrum')
+        self.plot_btn = QtWidgets.QPushButton('Replot', self)
+        self.plot_btn.clicked.connect(self.plot)
 
-        mainLayout = QtWidgets.QGridLayout()
-        mainLayout.setAlignment(QtCore.Qt.AlignTop)
-        mainLayout.addWidget(self.pgPlot, 0, 0)
-        self.setLayout(mainLayout)
+        self.v_layout = QtWidgets.QVBoxLayout()
+        self.v_layout.addWidget(self.pgPlot)
+        self.v_layout.addWidget(self.plot_btn)
+        self.setLayout(self.v_layout)
         # self.data=np.empty()
-        self.timer_start()
-
+        # # self.timer_start()
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.plot)
+        self.timer.start(1500)
 
     def timer_start(self):
         if self.parent.PNAHandle:
@@ -1047,14 +1057,14 @@ class VNAMonitor(QtWidgets.QGroupBox):
         else:
             pass
 
-
     def plot(self):
-        if self.parent.PNAHandle:
+        self.plot_data.clear()
+        if self.parent.Display==1:
             freq, result =self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
-            self.pgPlot.plot().setData(freq,result,pen='g')
+            self.plot_data.plot(freq,result,pen='b')
         else:
             pass
 
 
-    def close(self):
+    def off(self):
         self.pgPlot.clearMouse()
