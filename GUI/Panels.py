@@ -992,21 +992,12 @@ class Feedback(QtWidgets.QGroupBox):
 
     def FB_Function(self,status):
         mod_index=self.modFB.currentIndex()
+
         if status:
             if (self.parent.testModeAction.isChecked()):
                 self.setChecked(True)
-    #         出发算法仿真反馈
-                if mod_index==1:
-                    pass
-                elif mod_index==2:
-                    pass
-            else:
-                # 正常反馈算法，待补充
-                if mod_index==1:
-                    pass
-                # 遗传算法反馈
-                elif mod_index==2:
-                    freq, result = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
+            # 仿真反馈触发
+                freq, result = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
 
         else:
             pass

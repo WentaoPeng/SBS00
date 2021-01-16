@@ -11,12 +11,14 @@ def plot1(dl,dlB,name):
     """
     N=len(dl)
     i=0
+    Freq=[]
+    pumpF=np.linspace(10,20,11,endpoint=True)
     for _ in range(N):
         plt.figure(1)
         ax = plt.gca()
         ax.spines['top'].set_visible(False)  # 去掉上边框
         ax.spines['right'].set_visible(False)  # 去掉右边框
-        amp=dl[i]['S21(DB)']-dlB[i]['S21(DB)']
+        amp=dl[i]['S21(DB)']-dlB[0]['S21(DB)']
         plt.plot(dl[i]['Freq(Hz)'] / (10 ** 9), amp,
                     label=name[i])
         # 平滑
@@ -24,18 +26,41 @@ def plot1(dl,dlB,name):
         #          savgol_filter(amp-min(amp), 51, 3, mode='nearest'),
         #          label=name[i])
         # plt.title("Single Frequency Comb Control of SBS_MPF",fontsize=15, fontweight='bold')
+
+        # 斯托克斯
+        # max_indx=np.argmax(amp)
+        # Freq.append(dl[i]['Freq(Hz)'][max_indx]/(10**9))
+        # FSBS=list(map(lambda x: x[0]-x[1],zip(pumpF,Freq)))
+        # meanFSBS=np.mean(FSBS)
+        #反斯托克斯
+        min_indx=np.argmin(amp)
+        Freq.append(dl[i]['Freq(Hz)'][min_indx]/(10**9))
+        Anti_FSBS=list(map(lambda x: x[0]-x[1],zip(pumpF,Freq)))
+        Anti_meanFSBS=np.mean(Anti_FSBS)
+        # 显示最小值最大值点坐标
+        # plt.plot(dl[i]['Freq(Hz)'][min_indx],dl[i]['S21(DB)'][min_indx],'ks')
+        # show_min='['+str(dl[i]['Freq(Hz)'][min_indx])+' '+str(dl[i]['S21(DB)'][min_indx])+']'
+        # plt.annotate(show_min,xytext=(dl[i]['Freq(Hz)'][min_indx],dl[i]['S21(DB)'][min_indx]),
+        #              xy=(dl[i]['Freq(Hz)'][min_indx],dl[i]['S21(DB)'][min_indx]))
+
         plt.title("Amplitude Response", fontsize=15, fontweight='bold')
         plt.xlabel("Freqence(GHz)", fontsize=13, fontweight='bold')
         plt.ylabel("RF_Power(DB)", fontsize=13, fontweight='bold')
-        plt.legend(loc='best', numpoints=1,ncol=2)
+        plt.legend(loc='best', numpoints=1,ncol=3)
         leg = plt.gca().get_legend()
         ltext = leg.get_texts()
         plt.setp(ltext, fontsize=9, fontweight='bold')  # 设置图例字体的大小和粗细
+
         i+=1
     # plt.xlim(2, 14)
     # plt.ylim(2, 23)
-    plt.savefig("Amp单频Anti-Stokes.svg", format="svg")
+    # plt.savefig("Amp单频Anti-Stokes.svg", format="svg")
     plt.show()
+    plt.figure(2)
+    plt.plot(Anti_FSBS)
+    plt.show()
+    print(Freq)
+    print("mean_SBS平移量：",Anti_meanFSBS)
 
 def plot_phash(dl,dlB,name):
     """
@@ -161,16 +186,16 @@ if __name__ == '__main__':
     # path10=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\电谱图'
     # dat11=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109高精度光谱仪dat'
     # path11=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109高精度光谱仪csv'
-    # path13=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\P24.3abs'
-    path14=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\SOLO'
-    pathB=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\SOLO_BJ'
+    path13=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\P24.3abs'
+    # path14=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\SOLO'
+    pathB=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\P24.3absBJ'
     # 将dat转换为csv
     # dat_csv(dat11,path11)
 
     # path12=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_300MHz'
-    files=glob.glob(os.path.join(path14,"*.csv"))
+    files=glob.glob(os.path.join(path13,"*.csv"))
     filesB = glob.glob(os.path.join(pathB, "*.csv"))
-    name=file_name(path14)
+    name=file_name(path13)
     # nameB=file_name(pathB)
     # print(files)
     # print(name)
@@ -185,5 +210,5 @@ if __name__ == '__main__':
         dlB.append(pd.read_csv(f, skiprows=6, nrows=40000))
     print(dlB)
     plot1(dl,dlB,name)
-    plot_phash(dl,dlB,name)
+    # plot_phash(dl,dlB,name)
     # plot_odd(dl,name)
