@@ -592,6 +592,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
         ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
+        self.parent.AWGInfo.f_list=f_list
+        self.parent.AWGInfo.amp_list=amp_list
         self.parent.AWGInfo.ts = ts
         self.parent.AWGInfo.ys=ys
         wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
@@ -990,17 +992,70 @@ class Feedback(QtWidgets.QGroupBox):
 
         self.activeBtu.clicked.connect(self.FB_Function)
 
+    def search_index(self,f_seq, f_measure):
+        f_index = np.zeros(f_seq.size, dtype=int)
+        for i in range(f_measure.size):
+            for j in range(f_seq.size):
+                if abs(f_measure[i] - f_seq[j]) <= .5*(max(f_measure)-min(f_measure))/len(f_measure):
+                    f_index[j] = i
+        return f_index
+
+
+    def expected_gain(self,f_index, measure_brian, type_filter):
+        # 3db带宽范围：fmax - fmin + FWHM（半峰全宽）
+        # 2版：均值取fmax - fmin范围内，最后算泵浦对应位置
+        len_seq = len(f_index)
+        brian_measure_sam = np.array([measure_brian[i] for i in f_index])  # 最接近频梳频率的采样点增益
+
+        if type_filter == 'Rectangle':
+            # expected_gain_sam = np.ones(len_seq) * np.mean(brian_measure_sam)
+            expected_gain_sam = np.ones(len_seq) * np.mean(measure_brian[f_index[0]:f_index[-1]])
+        elif type_filter == 'Triangle':
+            mb_min = np.min(measure_brian)
+            mb_max = np.max(measure_brian)
+            if len_seq % 2 == 0:
+                expected_seq1 = np.linspace(mb_min, mb_max, len_seq // 2)
+                expected_seq2 = np.linspace(mb_max, mb_min, len_seq // 2)
+            else:
+                expected_seq1 = np.linspace(mb_min, mb_max, len_seq // 2 + 1)
+                expected_seq2 = np.linspace(mb_max, mb_min, len_seq // 2 + 1)
+                expected_seq2 = np.delete(expected_seq2, 0)
+            expected_gain_sam = np.hstack((expected_seq1, expected_seq2))
+        else:
+            print('非法字符，请检查type_filter')
+            expected_gain_sam = None
+        return expected_gain_sam
+
+
     def FB_Function(self,status):
         mod_index=self.modFB.currentIndex()
 
+        mod_shape=self.parent.AWGInfo.mod_sel
         if status:
             if (self.parent.testModeAction.isChecked()):
                 self.setChecked(True)
+            else:
             # 仿真反馈触发
-                freq, result = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
+                self.setChecked(True)
+                if mod_index==2:
+                    # bug
+                    FB_num = int(self.modFBDispaly.text())
+                    print(FB_num)
+                    for _ in FB_num:
+                        freq_design_seq=self.parent.AWGInfo.f_list
+                        amp_design_seq=self.parent.AWGInfo.amp_list
+                        freq_measure, amp_measure = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
+                        f_index=self.search_index(freq_design_seq, freq_measure)
+                        expected_amp_sam=self.expected_gain(f_index, amp_measure, mod_shape)
+                        amp_measure_sam = np.array([amp_measure[i] for i in f_index])  # 最接近频梳频率的采样点增益
+                        amp_design_seq_new = np.sqrt(expected_amp_sam / amp_measure_sam) * amp_design_seq  # （3-7）-->边界收敛不一致
 
-        else:
-            pass
+
+                elif mod_index==1:
+                    MES=float(self.modFBDispaly.text())
+
+                else:
+                    pass
 
     def switch_mod(self):
         mod_index=self.modFB.currentIndex()

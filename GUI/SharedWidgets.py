@@ -57,6 +57,9 @@ class AWGInfo():
         self.Fre = 0
         self.gb = 0
         self.f_measure = 0
+        # 频率及幅值列表
+        self.f_list=[]
+        self.amp_list=[]
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''
