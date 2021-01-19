@@ -41,7 +41,7 @@ class AWGInfo():
         self.CFFreq = 10 * 10 ** 9
         self.BWFreq = 200 * 10 ** 6
         self.DFFreq = 10 * 10 ** 6
-        self.AWG_Status = False
+        self.AWG_Status =False
         self.mod_index = 0
         self.mod_sel = ''
         self.DAC_index = 0
@@ -60,6 +60,7 @@ class AWGInfo():
         # 频率及幅值列表
         self.f_list=[]
         self.amp_list=[]
+        self.phase_list=[]
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''

@@ -6,6 +6,7 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import QObject
 import pyqtgraph as pg
 import pyvisa
+import time
 import numpy as np
 from GUI import SharedWidgets as Shared
 from API import AWGapi as api_awg
@@ -542,16 +543,22 @@ class AWGCtrl(QtWidgets.QGroupBox):
         else:
             pass
 
-    def AWGRFPowerSwitch_auto(self):
+    def AWGRFPowerSwitch_auto(self,status):
         '''自动打开关闭RF输出'''
-        if self.parent.testModeAction.isChecked():
-            pass
+        if status:
+            if self.parent.testModeAction.isChecked():
+                pass
+            else:
+                # 设置波形np.array，并检验，以及下载波形，Running
+                # ys = np.ones(len(self.parent.AWGInfo.ys))*self.parent.AWGInfo.ys
+                wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave, ch=self.parent.AWGInfo.ChannelNum)
+                self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
+                self.parent.AWGHandle.err_check()
+                self.parent.AWGInfo.AWG_Status=True
         else:
-            # 设置波形np.array，并检验，以及下载波形，Running
-            # ys = np.ones(len(self.parent.AWGInfo.ys))*self.parent.AWGInfo.ys
-            wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave, ch=self.parent.AWGInfo.ChannelNum)
-            self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
-            self.parent.AWGHandle.err_check()
+            self.parent.AWGHandle.stop(ch=self.parent.AWGInfo.ChannelNum)
+            self.parent.AWGInfo.AWG_Status=False
+
         self.parent.AWGStatus.print_info()
 
     def AWGPowerSwitch_Label(self, toggle_state):
@@ -594,6 +601,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
         self.parent.AWGInfo.f_list=f_list
         self.parent.AWGInfo.amp_list=amp_list
+        self.parent.AWGInfo.phase_list=phase_list
         self.parent.AWGInfo.ts = ts
         self.parent.AWGInfo.ys=ys
         wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
@@ -1037,21 +1045,38 @@ class Feedback(QtWidgets.QGroupBox):
             else:
             # 仿真反馈触发
                 self.setChecked(True)
+                # mod_index=2,以反馈次数作为收敛量
                 if mod_index==2:
-                    # bug
                     FB_num = int(self.modFBDispaly.text())
                     print(FB_num)
+                    i=1
                     for _ in FB_num:
-                        freq_design_seq=self.parent.AWGInfo.f_list
+                        # 设计的频梳需要减去频移量，斯托克斯平均：7.15687GHz
+                        freq_design_seq=self.parent.AWGInfo.f_list-7.15687e9
                         amp_design_seq=self.parent.AWGInfo.amp_list
                         freq_measure, amp_measure = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
                         f_index=self.search_index(freq_design_seq, freq_measure)
                         expected_amp_sam=self.expected_gain(f_index, amp_measure, mod_shape)
                         amp_measure_sam = np.array([amp_measure[i] for i in f_index])  # 最接近频梳频率的采样点增益
                         amp_design_seq_new = np.sqrt(expected_amp_sam / amp_measure_sam) * amp_design_seq  # （3-7）-->边界收敛不一致
-
-
+                        ys=SBS_DSP.synthesize1(amp_design_seq_new,
+                                               self.parent.AWGInfo.f_list,
+                                               self.parent.AWGInfo.ts,
+                                               self.parent.AWGInfo.phase_list)
+                        self.parent.AWGInfo.ys=ys
+                        wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
+                        self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
+                        wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                                                                   ch=self.parent.AWGInfo.ChannelNum)
+                        self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
+                        self.FBnum.setText(str(i))
+                        # 预留设备设置时间10s
+                        time.sleep(10)
+                        i+=1
+                    self.FBnum.setText(str(i-1)+'  Done !!!')
+                    self.setChecked(False)
                 elif mod_index==1:
+                    # 范围在0-1
                     MES=float(self.modFBDispaly.text())
 
                 else:
