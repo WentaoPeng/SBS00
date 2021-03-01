@@ -13,30 +13,35 @@ def plot1(dl,dlB,name):
     i=0
     Freq=[]
     pumpF=np.linspace(10,20,11,endpoint=True)
-    for _ in range(N):
+    for _ in range(1):
         plt.figure(1)
         ax = plt.gca()
         ax.spines['top'].set_visible(False)  # 去掉上边框
         ax.spines['right'].set_visible(False)  # 去掉右边框
-        amp=dl[i]['S21(DB)']-dlB[0]['S21(DB)']
-        plt.plot(dl[i]['Freq(Hz)'] / (10 ** 9), amp,
-                    label=name[i])
+        amp=dl[2]['S21(DB)']-dlB[2]['S21(DB)']
+        amp1=amp/4.34/0.09999999999999998/0.06/max(amp/4.34/0.09999999999999998/0.06)
+        plt.plot(dl[2]['Freq(Hz)'] / (10 ** 9), amp1,
+                    label=name[2])
+
+        # print(amp1,dl[i]['Freq(Hz)'])
         # 平滑
         # plt.plot(dl[i]['Freq(Hz)'] / (10 ** 9),
         #          savgol_filter(amp-min(amp), 51, 3, mode='nearest'),
         #          label=name[i])
         # plt.title("Single Frequency Comb Control of SBS_MPF",fontsize=15, fontweight='bold')
 
+        # BW=np.argwhere(amp1=0.5)
+        # print(BW)
         # 斯托克斯
         # max_indx=np.argmax(amp)
         # Freq.append(dl[i]['Freq(Hz)'][max_indx]/(10**9))
         # FSBS=list(map(lambda x: x[0]-x[1],zip(pumpF,Freq)))
         # meanFSBS=np.mean(FSBS)
         #反斯托克斯
-        min_indx=np.argmin(amp)
-        Freq.append(dl[i]['Freq(Hz)'][min_indx]/(10**9))
-        Anti_FSBS=list(map(lambda x: x[0]-x[1],zip(pumpF,Freq)))
-        Anti_meanFSBS=np.mean(Anti_FSBS)
+        # min_indx=np.argmin(amp)
+        # Freq.append(dl[i]['Freq(Hz)'][min_indx]/(10**9))
+        # Anti_FSBS=list(map(lambda x: x[0]-x[1],zip(pumpF,Freq)))
+        # Anti_meanFSBS=np.mean(Anti_FSBS)
         # 显示最小值最大值点坐标
         # plt.plot(dl[i]['Freq(Hz)'][min_indx],dl[i]['S21(DB)'][min_indx],'ks')
         # show_min='['+str(dl[i]['Freq(Hz)'][min_indx])+' '+str(dl[i]['S21(DB)'][min_indx])+']'
@@ -46,21 +51,21 @@ def plot1(dl,dlB,name):
         plt.title("Amplitude Response", fontsize=15, fontweight='bold')
         plt.xlabel("Freqence(GHz)", fontsize=13, fontweight='bold')
         plt.ylabel("RF_Power(DB)", fontsize=13, fontweight='bold')
-        plt.legend(loc='best', numpoints=1,ncol=3)
+        plt.legend(loc='best', numpoints=1,ncol=1)
         leg = plt.gca().get_legend()
         ltext = leg.get_texts()
         plt.setp(ltext, fontsize=9, fontweight='bold')  # 设置图例字体的大小和粗细
 
         i+=1
-    # plt.xlim(2, 14)
+    # plt.xlim(7.82, 7.87)
     # plt.ylim(2, 23)
     # plt.savefig("Amp单频Anti-Stokes.svg", format="svg")
+    # plt.show()
+    # plt.figure(2)
+    # plt.plot(Anti_FSBS)
     plt.show()
-    plt.figure(2)
-    plt.plot(Anti_FSBS)
-    plt.show()
-    print(Freq)
-    print("mean_SBS平移量：",Anti_meanFSBS)
+    # print(Freq)
+    # print("mean_SBS平移量：",Anti_meanFSBS)
 
 def plot_phash(dl,dlB,name):
     """
@@ -180,22 +185,22 @@ if __name__ == '__main__':
     # path1 = r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210106\S'
     # path7=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BW_14GDf=3M'
     # path8=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\S_BW_14GDf=3M'
-    # path9=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\signal_solo'
+    path9=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BW_14GDf=3M'
     # pathB=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BJ'
     # pathB=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210107\CW\Signal_BJ'
     # path10=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\电谱图'
     # dat11=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109高精度光谱仪dat'
     # path11=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109高精度光谱仪csv'
-    path13=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\P24.3abs'
+    # path13=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\P24.3abs'
     # path14=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\SOLO'
-    pathB=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\P24.3absBJ'
+    pathB=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BJ'
     # 将dat转换为csv
     # dat_csv(dat11,path11)
 
     # path12=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_300MHz'
-    files=glob.glob(os.path.join(path13,"*.csv"))
+    files=glob.glob(os.path.join(path9,"*.csv"))
     filesB = glob.glob(os.path.join(pathB, "*.csv"))
-    name=file_name(path13)
+    name=file_name(path9)
     # nameB=file_name(pathB)
     # print(files)
     # print(name)

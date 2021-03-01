@@ -41,7 +41,7 @@ class AWGInfo():
         self.CFFreq = 10 * 10 ** 9
         self.BWFreq = 200 * 10 ** 6
         self.DFFreq = 10 * 10 ** 6
-        self.AWG_Status =False
+        self.AWG_Status = False
         self.mod_index = 0
         self.mod_sel = ''
         self.DAC_index = 0
@@ -52,15 +52,15 @@ class AWGInfo():
         # 设计波形参数
         self.ts = 0
         self.ys = 0
-        self.AWGwave=0
+        self.AWGwave = 0
         self.FFT_y = 0
         self.Fre = 0
         self.gb = 0
         self.f_measure = 0
         # 频率及幅值列表
-        self.f_list=[]
-        self.amp_list=[]
-        self.phase_list=[]
+        self.f_list = []
+        self.amp_list = []
+        self.phase_list = []
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''
@@ -77,19 +77,19 @@ class PNAInfo():
 
     def __init__(self):
         self.instName = ''
-        self.Scale=''
-        self.AvgPoints=0
-        self.Power=0
-        self.SweepPoints=0
-        self.StartFerq=10**7
-        self.EndFerq=50*10**9
-
+        self.Scale = ''
+        self.AvgPoints = 0
+        self.Power = 0
+        self.SweepPoints = 0
+        self.StartFerq = 10 ** 7
+        self.EndFerq = 50 * 10 ** 9
 
     def full_info_query(self, PNAHandle):
         if PNAHandle:
             self.instName = PNAHandle.resource_name
         else:
-            self.instName='NoInstrument'
+            self.instName = 'NoInstrument'
+
 
 class MsgError(QtGui.QMessageBox):
     ''' Error message box '''
@@ -101,6 +101,7 @@ class MsgError(QtGui.QMessageBox):
         self.addButton(QtGui.QMessageBox.Ok)
         self.setWindowTitle(title_text)
         self.setText(moretext)
+
 
 class InstStatus(QtGui.QMessageBox):
     ''' Message box of instrument communication status. Silent if communication
@@ -138,8 +139,8 @@ class EDFAInfo():
         self.instName = ''
         self.instInterface = ''
         self.instInterfaceNum = 0
-        self.EDFA1power=0
-        self.EDFA2power=0
+        self.EDFA1power = 0
+        self.EDFA2power = 0
 
     def full_info_query(self, EDFA1Handle):
         if EDFA1Handle:

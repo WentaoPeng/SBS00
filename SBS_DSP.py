@@ -61,6 +61,8 @@ def square_filter(center_F, bandwidth, df):
     # start_F = center_F - bandwidth / 2
     # # end_F=center_F+bandwidth/2
     dots = int(round(bandwidth / df))
+    if (dots % 2) == 0:
+        dots += 1
     # # a = np.random.randint(0, df / (10 ** 6) + 1)
     # f_list = []
     # amp_list = np.empty(dots)
@@ -109,13 +111,15 @@ def triangle_filter(center_F, bandwidth, df):
 
     return f_list, amp_list, phase_list
 
-def Guass_filter(center_F, bandwidth, df):
-    dots=int(round(bandwidth / df))
-    phase_list = np.random.randint(low=0, high=8, size=2*dots) * (np.pi / 4)
-    f_list=np.linspace(center_F-2*bandwidth,center_F+2*bandwidth,2*dots)
-    amp_list=np.exp(-1*((f_list-center_F)**2)/(2*(bandwidth**2)))/(np.sqrt(2*np.pi)*bandwidth)
 
-    return f_list,amp_list,phase_list
+def Guass_filter(center_F, bandwidth, df):
+    dots = int(round(bandwidth / df))
+    phase_list = np.random.randint(low=0, high=8, size=2 * dots) * (np.pi / 4)
+    f_list = np.linspace(center_F - 2 * bandwidth, center_F + 2 * bandwidth, 2 * dots)
+    amp_list = np.exp(-1 * ((f_list - center_F) ** 2) / (2 * (bandwidth ** 2))) / (np.sqrt(2 * np.pi) * bandwidth)
+
+    return f_list, amp_list, phase_list
+
 
 def Band_stop_filter(center_F, bandwidth, df, signal_BW):
     start_F = float(center_F) - signal_BW / 2
@@ -305,15 +309,16 @@ CONTENT BEGIN
     return mif
 
 
-def get_awgfile(ys, center_F, bandwidth, df,shape):
-    shape_list=['Square','Triangle','Band_stop','Guass']
+def get_awgfile(ys, center_F, bandwidth, df, shape):
+    shape_list = ['Square', 'Triangle', 'Band_stop', 'Guass']
     center = str(center_F / (10 ** 9))
     ys = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
     # ys=1.0/(1+np.exp(-ys))
     # mean = np.average(ys)
     # sigma=np.std(ys)
     # ys=(ys-mean)/sigma
-    txt = 'AWG_'+shape_list[shape] + 'CW='+center + 'GHz' +'BW='+ str(bandwidth / (10 ** 6)) + 'MHz' + 'Df='+str(df / (10 ** 6)) + 'MHz' + '.txt'
+    txt = 'AWG_' + shape_list[shape] + 'CW=' + center + 'GHz' + 'BW=' + str(
+        bandwidth / (10 ** 6)) + 'MHz' + 'Df=' + str(df / (10 ** 6)) + 'MHz' + '.txt'
     # txt='AWG_cos_square.txt'
     with open(txt, 'w') as f:
         for item in ys:
@@ -376,21 +381,21 @@ if __name__ == '__main__':
     # f_list, amp_list, phase_list=Band_stop_filter(center_F=10*10**9, bandwidth=3*10**9, signal_BW=5*10**9, df=10**7)
     # 以MHz为单位，频梳间隔为15~20MHz
     # ts = np.linspace(0,t_FPGA,N_FPGA,endpoint=False)
-    center_F = 14 * 10 ** 9
-    bandwidth = 600 * 10 ** 6
-    df = 2 * 10 ** 6
-    shape=3
-    CF_gap=0
-    BW_gap=30*10**6
-    df_gap=0
+    center_F = 15 * 10 ** 9
+    bandwidth = 30 * 10 ** 6
+    df = 3 * 10 ** 6
+    shape = 0
+    CF_gap = 0
+    BW_gap = 30 * 10 ** 6
+    df_gap = 0
     for i in range(0, 1):
-        if shape==0:
+        if shape == 0:
             f_list, amp_list, phase_list = square_filter(center_F, bandwidth, df)
-        elif shape==1:
+        elif shape == 1:
             f_list, amp_list, phase_list = triangle_filter(center_F, bandwidth, df)
-        elif shape==2:
+        elif shape == 2:
             f_list, amp_list, phase_list = Band_stop_filter(center_F, bandwidth, df, signal_BW=1 * 10 ** 9)
-        elif shape==3:
+        elif shape == 3:
             f_list, amp_list, phase_list = Guass_filter(center_F, bandwidth, df)
         else:
             amp_list = []
@@ -400,11 +405,11 @@ if __name__ == '__main__':
         ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
         ys = synthesize1(amp_list, f_list, ts, phase_list)
         print(f_list)
-        txt = get_awgfile(ys, center_F, bandwidth, df,shape)
+        txt = get_awgfile(ys, center_F, bandwidth, df, shape)
         center_F = center_F + CF_gap
-        bandwidth=bandwidth+BW_gap
+        bandwidth = bandwidth + BW_gap
         df = df + df_gap
-# 验证设计波形AWG.np.array格式
+    # 验证设计波形AWG.np.array格式
 
     # f_list,amp_list,phase_list=square_filter(center_F,bandwidth,df)
     # ts=np.linspace(0,t_AWG,N_AWG,endpoint=False)
@@ -412,7 +417,6 @@ if __name__ == '__main__':
     # wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
     # ys = np.ones(len(wavefile)) * wavefile
     # print(ys)
-
 
     # amp_list()
 
@@ -453,15 +457,16 @@ if __name__ == '__main__':
     # print(len(ys))
     # ys=np.ones(len(ys))*ys
     shape_list = ['Square', 'Triangle', 'Band_stop', 'Guass']
-    ys = np.loadtxt('AWG_'+shape_list[shape] + 'CW='+str((center_F-CF_gap)/10**9) + 'GHz' +'BW='+ str((bandwidth-BW_gap) / (10 ** 6)) + 'MHz' + 'Df='+str((df-df_gap) / (10 ** 6)) + 'MHz' + '.txt'
-    )
+    ys = np.loadtxt('AWG_' + shape_list[shape] + 'CW=' + str((center_F - CF_gap) / 10 ** 9) + 'GHz' + 'BW=' + str(
+        (bandwidth - BW_gap) / (10 ** 6)) + 'MHz' + 'Df=' + str((df - df_gap) / (10 ** 6)) + 'MHz' + '.txt'
+                    )
     # fft_ys = np.abs(np.abs(fft(ys)) / N_AWG)
     # fft_ys = scipy.fft.fft(ys)
     # fft_ys1 = abs(fft_ys)
     # fft_ys2 = abs(fft_ys1 / N_AWG)
     # fft_ys3 = fft_ys2[range(int(N_AWG / 2))]
     # Fs = np.arange(len(ys))
-    FFT_y, Fre=get_fft(ys,AWG_framerate)
+    FFT_y, Fre = get_fft(ys, AWG_framerate)
     #
     #
     # angle_ys = np.angle(fft_ys)
@@ -472,8 +477,8 @@ if __name__ == '__main__':
     # plt.subplot(312)
     # plt.xlim(14500, 15500)
     # plt.plot(Fs, fft_ys2)
-    plt.plot(Fre,FFT_y)
+    plt.plot(Fre, FFT_y)
     # plt.subplot(313)
     # plt.plot(Fs, angle_ys)
-    plt.xlim(1.3e10,1.52e10)
+    plt.xlim(1.3e10, 1.52e10)
     plt.show()

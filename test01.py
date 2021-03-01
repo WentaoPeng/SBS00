@@ -6,29 +6,34 @@ import scipy
 from scipy.fftpack import fft, ifft
 
 import matplotlib.pyplot as plt
+
 PI2 = math.pi * 2
 
+
 def FBFunction(amp_list):
-    N=len(amp_list)
+    N = len(amp_list)
     # amp_list[N-1]=3
-    amp_list[7]=1.9
-    amp_list[6]=1.6
-    amp_list[8]=1.4
-    amp_list[4]=0.9
-    amp_list[3]=0.7
-    amp_list[10]=0.8
+    amp_list[0] = 0.21549
+    amp_list[1] = 0.14002
+    amp_list[2] = 0.08018
+    amp_list[3] = 0.14040
+    amp_list[4] = 0.21536
+    # amp_list[5]=0.8
     # amp_list[5:8]=0
     # amp_list[2]=2.3
     return amp_list
-def FList(f_list):
-    N=len(f_list)
+
+
+def FList(f_list, bandwith):
+    # N=len(f_list)
     # for i in range(4,8):
     #     f_list[i]=
-    f_list[11]=14070*10**6
-    f_list[12]=14090*10**6
-    return f_list
+    # f_list[11]=14070*10**6
+    # f_list[12]=14090*10**6
+    f_list[-1] = f_list[-2] + bandwidth / 2
+    f_list[0] = f_list[1] - bandwidth / 2
 
-
+    return f_list - 0.2e9
 
 
 if __name__ == '__main__':
@@ -41,20 +46,20 @@ if __name__ == '__main__':
     # N_FPGA=2**14
     t_AWG = N_AWG * (1 / AWG_framerate)
     # t_FPGA = N_FPGA * (1 / FPGA_framerate)
-    center_F = 14 * 10 ** 9
-    bandwidth = 200 * 10 ** 6
-    df = 15 * 10 ** 6
+    center_F = 15 * 10 ** 9
+    bandwidth = 30 * 10 ** 6
+    df = 6 * 10 ** 6
     # f_list, amp_list, phase_list = SBS_DSP.square_filter(center_F, bandwidth, df)
     f_list, amp_list, phase_list = SBS_DSP.triangle_filter(center_F, bandwidth, df)
-
-    amp_list=FBFunction(amp_list)
+    f_list = FList(f_list, bandwidth)
+    amp_list = FBFunction(amp_list)
     # f_list=FList(f_list)
 
     ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
 
     ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
     print(f_list)
-    txt = SBS_DSP.get_awgfile(ys, center_F, bandwidth, df)
+    txt = SBS_DSP.get_awgfile(ys, center_F, bandwidth, df, shape=0)
     plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
     plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示符号
 

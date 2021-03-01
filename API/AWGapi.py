@@ -4,6 +4,7 @@ import visa
 import os.path
 import socketscpi
 import numpy as np
+
 """
 TODO:
 1.针对M9502A创建SCPI类
@@ -11,7 +12,8 @@ TODO:
 """
 
 # 滤波器分类列表
-Shape_MODE_LIST = ['Rectangle', 'Triangle', 'Band Stop','Guass']
+Shape_MODE_LIST = ['Rectangle', 'Triangle', 'Band Stop', 'Guass']
+
 
 def wraparound_calc(length, gran, minLen):
     """
@@ -34,15 +36,16 @@ def wraparound_calc(length, gran, minLen):
         repeats += 1
     return repeats
 
-class M9502A(socketscpi.SocketInstrument):
 
+class M9502A(socketscpi.SocketInstrument):
     '''
     Keysight M9502A AWG
     通用类：M9502A
     host位本地链接，localhost，基于控制软件面板发送SCPI指令
     '''
-    def __init__(self,host,port=5025,timeout=10,reset=False):
-        super().__init__(host,port,timeout)
+
+    def __init__(self, host, port=5025, timeout=10, reset=False):
+        super().__init__(host, port, timeout)
         if reset:
             self.write('*rst')
             self.query('*opc?')
@@ -125,15 +128,15 @@ class M9502A(socketscpi.SocketInstrument):
         self.dacMode = self.query('inst:dacm?').strip().lower()
 
     def set_memDiv(self, memDiv=1):
-            """
-            Sets and reads memory divider rate using SCPI commands.
-            Args:
-                memDiv (int): Clock/memory divider rate. (1, 2, 4)
-            """
-            if memDiv not in [1, 2, 4]:
-                raise ValueError('Memory divider must be 1, 2, or 4.')
-            self.write(f'instrument:memory:extended:rdivider div{memDiv}')
-            self.memDiv = int(self.query('instrument:memory:extended:rdivider?').strip().split('DIV')[-1])
+        """
+        Sets and reads memory divider rate using SCPI commands.
+        Args:
+            memDiv (int): Clock/memory divider rate. (1, 2, 4)
+        """
+        if memDiv not in [1, 2, 4]:
+            raise ValueError('Memory divider must be 1, 2, or 4.')
+        self.write(f'instrument:memory:extended:rdivider div{memDiv}')
+        self.memDiv = int(self.query('instrument:memory:extended:rdivider?').strip().split('DIV')[-1])
 
     def set_fs(self, fs=65e9):
         """
@@ -149,16 +152,16 @@ class M9502A(socketscpi.SocketInstrument):
         self.effFs = self.fs / self.memDiv
 
     def set_func(self, func='arb'):
-            """
-            Sets and reads AWG function using SCPI commands.
-            Args:
-                func (str): AWG mode, either arb or sequencing. ('arb', 'sts', 'stsc')
-            """
+        """
+        Sets and reads AWG function using SCPI commands.
+        Args:
+            func (str): AWG mode, either arb or sequencing. ('arb', 'sts', 'stsc')
+        """
 
-            if func.lower() not in ['arb', 'sts', 'stsc']:
-                raise ValueError("'func' argument must be 'arb', 'sts', 'stsc'")
-            self.write(f'func:mode {func}')
-            self.func = self.query('func:mode?').strip()
+        if func.lower() not in ['arb', 'sts', 'stsc']:
+            raise ValueError("'func' argument must be 'arb', 'sts', 'stsc'")
+        self.write(f'func:mode {func}')
+        self.func = self.query('func:mode?').strip()
 
     def set_refSrc(self, refSrc='axi'):
         """
@@ -184,13 +187,13 @@ class M9502A(socketscpi.SocketInstrument):
         self.write(f'roscillator:frequency {refFreq}')
         self.refFreq = float(self.query('roscillator:frequency?').strip())
 
-    def set_amplitude(self,amplitude=500,channel=1):
+    def set_amplitude(self, amplitude=500, channel=1):
 
-        if channel not in  [1,2,3,4]:
+        if channel not in [1, 2, 3, 4]:
             raise AWGError('\'channel\'must be 1,2,3,or4.')
-        if not isinstance(amplitude,float)and not isinstance(amplitude,int):
+        if not isinstance(amplitude, float) and not isinstance(amplitude, int):
             raise AWGError('\'amplitudu\'must be a floating point value.')
-        if amplitude>1000 or amplitude<0:
+        if amplitude > 1000 or amplitude < 0:
             raise AWGError('\'amplitude\'must be between 0 and 1V.')
         # if channel==1:
         #     self.write('OUTP1:STATE ON')
@@ -322,31 +325,32 @@ class M9502A(socketscpi.SocketInstrument):
         self.write(f'output{ch} off')
         self.write('abort')
 
-    def ramp_down(start,stop):
-        n=start
-        while n>stop:
-            n=n-1
+    def ramp_down(start, stop):
+        n = start
+        while n > stop:
+            n = n - 1
             yield n
 
-    def ramp_up(start,stop):
-        n=start
-        while n<stop:
-            n=n+1
+    def ramp_up(start, stop):
+        n = start
+        while n < stop:
+            n = n + 1
             yield n
+
     def read_power_toggle(self):
         # 获取设备状态
         try:
-            text=self.query(':OUTP?')
-            status=bool(int(text.strip()))
+            text = self.query(':OUTP?')
+            status = bool(int(text.strip()))
             return status
         except:
             return False
 
 
-
 class AWGError(Exception):
     """AWG Exception class"""
     pass
+
 
 class GranularityError(Exception):
     """Waveform Granularity Exception class"""

@@ -1,7 +1,8 @@
 __author__ = """Wentao Peng"""
 __email__ = 'wentaopeng@stu2019.jnu.edu.cn'
 __version__ = '2020'
-#! encoding = utf-8
+
+# ! encoding = utf-8
 
 import sys
 from PyQt5 import QtWidgets

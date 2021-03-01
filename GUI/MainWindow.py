@@ -110,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.PNAInfo = Shared.PNAInfo()
         self.LightInfo = Shared.LightInfo()
         self.EDFAInfo = Shared.EDFAInfo()
-        self.Display=0
+        self.Display = 0
         # 状态监控栏
         self.AWGStatus = Panels.AWGStatus(self)
         # 设备控制栏
@@ -125,7 +125,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.VNAMonitor = Panels.VNAMonitor(self)
 
         # 反馈模块
-        self.Feedback=Panels.Feedback(self)
+        self.Feedback = Panels.Feedback(self)
 
         # 设置主要模块显示位置
         self.mainLayout = QtWidgets.QGridLayout()
@@ -142,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.mainLayout.addWidget(self.AWGDisplay, 0, 5, 2, 2)  # 画两幅，时域与频域2*2
         self.mainLayout.addWidget(self.FcombDisplay, 0, 7, 2, 2)
-        self.mainLayout.addWidget(self.Feedback,2,5,1,4)
+        self.mainLayout.addWidget(self.Feedback, 2, 5, 1, 4)
         self.mainLayout.addWidget(self.VNAMonitor, 3, 5, 4, 4)
 
         self.mainWidget = QtWidgets.QWidget()
@@ -186,7 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.testModeSignLabel.hide()
             self.AWGCtrl.setChecked(not (self.AWGHandle is None))
             self.PNACtrl.setChecked(not (self.PNAHandle is None))
-            self.LightCtrl.setChecked(not(self.LightHandle is None))
+            self.LightCtrl.setChecked(not (self.LightHandle is None))
             # self.OSACtrl.setChecked(not (self.OSAHandle is None))
             # self.EDFA2Ctrl.setChecked(not (self.EDFA2Handle is None))
             self.EDFACtrl.setChecked(not (self.EDFA1Handle or self.EDFA2Handle is None))
@@ -199,7 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.selInstDialog = Dialogs.selectInstDialog(self)
         self.ManualInstDialog = Dialogs.manualInstDialog(self)
         self.viewInstDialog = Dialogs.viewInstDialog(self)
-        self.closeInstDialog=Dialogs.CloseSelInstDialog(self)
+        self.closeInstDialog = Dialogs.CloseSelInstDialog(self)
 
     def on_exit(self):
         self.close()
@@ -228,24 +228,24 @@ class MainWindow(QtWidgets.QMainWindow):
         return
 
     def close_sel_inst(self):
-        d=Dialogs.CloseSelInstDialog(self)
+        d = Dialogs.CloseSelInstDialog(self)
         d.exec_()
         self.refresh_inst()
 
     def closeEvent(self, event):
         q = QtGui.QMessageBox.question(self, 'Quit?',
-                       'Are you sure to quit?', QtGui.QMessageBox.Yes |
-                       QtGui.QMessageBox.No, QtGui.QMessageBox.Yes)
+                                       'Are you sure to quit?', QtGui.QMessageBox.Yes |
+                                       QtGui.QMessageBox.No, QtGui.QMessageBox.Yes)
         if q == QtGui.QMessageBox.Yes:
             status = api_gen.close_inst(self.AWGHandle, self.PNAHandle,
-                                       self.LightHandle, self.EDFA1Handle,self.EDFA2Handle)
-            if not status:    # safe to close
+                                        self.LightHandle, self.EDFA1Handle, self.EDFA2Handle)
+            if not status:  # safe to close
                 self.close()
             else:
                 qq = QtGui.QMessageBox.question(self, 'Error',
-                        '''Error in disconnecting instruments.
-                        Are you sure to force quit?''', QtGui.QMessageBox.Yes |
-                        QtGui.QMessageBox.No, QtGui.QMessageBox.No)
+                                                '''Error in disconnecting instruments.
+                                                Are you sure to force quit?''', QtGui.QMessageBox.Yes |
+                                                QtGui.QMessageBox.No, QtGui.QMessageBox.No)
                 if qq == QtGui.QMessageBox.Yes:
                     self.close()
                 else:
