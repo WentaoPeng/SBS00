@@ -1153,7 +1153,7 @@ class Feedback(QtWidgets.QGroupBox):
                                                                    ch=self.parent.AWGInfo.ChannelNum)
                         self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
                         self.FBnum.setText(str(i))
-                        # 预留设备设置时间10s
+                        # 预留设备设置时间10ms
                         time.sleep(10)
                         i += 1
                     self.FBnum.setText(str(i - 1) + '  Done !!!')

@@ -2,11 +2,20 @@
 import pyvisa
 import visa
 import os.path
+import socketscpi
+"""
+TODO:
+1.针对LightWave扫频控制，改变pump载波中心频率
+2.实现控制LightWave基本功能
+"""
 
+class LightSCPI(socketscpi.SocketInstrument):
+    '''
+    Keysight LightWave Ctrl
 
-class LightSCPI():
-    def __init__(self,visaAddress):
-        self.OpenConnection(visaAddress)
+    '''
+    def __init__(self,host,port=5025):
+        self.OpenConnection()
         return
 
     def write(self, CommandString):
