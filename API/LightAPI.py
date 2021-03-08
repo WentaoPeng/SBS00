@@ -14,29 +14,21 @@ class LightSCPI(socketscpi.SocketInstrument):
     Keysight LightWave Ctrl
 
     '''
-    def __init__(self,host,port=5025):
-        self.OpenConnection()
-        return
+    def __init__(self,host,port=5025,timeout=10,reset=False):
+        super(LightSCPI, self).__init__(hsot,port,timeout)
+        if reset:
+            self.write('*rst')
+            self.write('*opc?')
 
-    def write(self, CommandString):
-        self._Instrument.write(CommandString)
-        return
 
-    def query(self, QueryString):
-        ret = self._Instrument.query(QueryString)
-        return ret
+    def sweepLight(self,powerList,waveStart,waveEnd,speed):
+        '''针对于大带宽调控，进行PUMP路载波扫频方法；频率精确到0.0001nm
+        1.单音扫频
+        2.多音扫频
+        如何配合AWG反馈振幅？
+        '''
 
-    def OpenConnection(self,InstVisaAddr):
-        if InstVisaAddr == 'N.A.':
-            return None
-        else:
-            try:
-                self._rm=pyvisa.ResourceManager('c:/windows/system32/visa32.dll')
-                self._Instrument=self._rm.open_resource(InstVisaAddr)
-                # self.IDNString=self.Query('*IDN')
-                return
-            except:
-                return None
+
 
     def setupLight(self,power,wavelength):
         Wave=wavelength*1e9
