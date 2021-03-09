@@ -733,6 +733,15 @@ class LightCtrl(QtWidgets.QGroupBox):
         EFCalidator.setDecimals(3)
         self.EndFreq.setValidator(EFCalidator)
 
+        self.BWFreq=QtWidgets.QLineEdit()
+        self.BWFreq.setPlaceholderText('Freq_BW')
+        BWCalidator=QtGui.QDoubleValidator(self)
+        BWCalidator.setRange(0.3,8) #GHz
+        BWCalidator.setNotation(QtGui.QDoubleValidator.StandardNotation)
+        BWCalidator.setDecimals(3)
+        self.BWFreq.setValidator(BWCalidator)
+
+
         self.Power = QtWidgets.QLineEdit()
         self.Power.setPlaceholderText('0~20dBm')
         PowerCalidator = QtGui.QDoubleValidator(self)
@@ -753,7 +762,7 @@ class LightCtrl(QtWidgets.QGroupBox):
         LightLayout.addWidget(QtWidgets.QLabel('StartWave：'), 0, 0)
         LightLayout.addWidget(self.StartWave, 0, 1)
         LightLayout.addWidget(QtWidgets.QLabel('nm  '), 0, 2)
-        LightLayout.addWidget(QtWidgets.QLabel('EndWave:'),0,3)
+        LightLayout.addWidget(QtWidgets.QLabel('EndWave: '),0,3)
         LightLayout.addWidget(self.EndWave,0,4)
         LightLayout.addWidget(QtWidgets.QLabel('nm '),0,5)
         LightLayout.addWidget(QtWidgets.QLabel('StartFreq: '),1,0)
@@ -762,12 +771,15 @@ class LightCtrl(QtWidgets.QGroupBox):
         LightLayout.addWidget(QtWidgets.QLabel('EndFreq: '),1,3)
         LightLayout.addWidget(self.EndFreq,1,4)
         LightLayout.addWidget(QtWidgets.QLabel('GHz '),1,5)
-        LightLayout.addWidget(QtWidgets.QLabel('Power:'), 2, 0)
-        LightLayout.addWidget(self.Power, 2, 1)
-        LightLayout.addWidget(QtWidgets.QLabel('dBm  '), 2, 2)
+        LightLayout.addWidget(QtWidgets.QLabel('Freq_BW: '),2,0)
+        LightLayout.addWidget(self.BWFreq,2,1)
+        LightLayout.addWidget(QtWidgets.QLabel('GHz '),2,2)
+        LightLayout.addWidget(QtWidgets.QLabel('Power:'), 2, 3)
+        LightLayout.addWidget(self.Power, 2, 4)
+        LightLayout.addWidget(QtWidgets.QLabel('dBm  '), 2, 5)
 
         LightLayout.addWidget(self.enterBtu, 3, 0,1,2)
-        LightLayout.addWidget(self.ActiveBtu, 2, 4,3,5)
+        LightLayout.addWidget(self.ActiveBtu, 3, 3,1,2)
         LightWidget.setLayout(LightLayout)
 
         mainLayout = QtWidgets.QVBoxLayout()
@@ -783,6 +795,8 @@ class LightCtrl(QtWidgets.QGroupBox):
         # self.StartFreq.textChanged.connect(self.setupFreqFill)
         self.EndWave.textChanged.connect(self.setupEF)
         # self.EndFreq.textChanged.connect(self.setupEW)
+        self.BWFreq.textChanged.connect(self.setupAll)
+
 
     def check(self):
         ''' Enable/disable this groupbox '''
@@ -796,14 +810,19 @@ class LightCtrl(QtWidgets.QGroupBox):
             self.setChecked(False)
             self.parent.LightCtrl.setChecked(False)
 
+    def setupAll(self):
+        C_speed = 299792458  # m/s
+        BW=siEval(self.BWFreq.text())
+        self.StartWave.setText(str(1550))
+        self.EndWave.setText(str(round(C_speed/(BW+C_speed/1550),4)))
+
     def setupEF(self):
         C_speed=299792458  # m/s
         EndW=siEval(self.EndWave.text())
-        self.EndFreq.setText(str(C_speed/EndW))
-    # def setupEW(self):
-    #     C_speed=299792458  # m/s
-    #     EndF=siEval(self.EndFreq.text())
-    #     self.EndWave.setText(str(C_speed/EndF))
+        SFreq=siEval(self.StartFreq.text())
+        EFreq=siEval(self.EndFreq.text())
+        self.EndFreq.setText(str(round(C_speed/EndW,3)))
+
 
     def setupWaveFill(self):
         C_speed=299792458  # m/s
@@ -811,26 +830,20 @@ class LightCtrl(QtWidgets.QGroupBox):
         # freq='GHz'
         SWave=siEval(self.StartWave.text())
         self.EndWave.setText(str(SWave))
-        self.StartFreq.setText(str(C_speed/SWave))
-        self.EndFreq.setText(str(C_speed/SWave))
-
-    # def setupFreqFill(self):
-    #     C_speed=299792458  # m/s
-    #     # wave='nm'
-    #     # freq='GHz'
-    #     SFreq=siEval(self.StartFreq.text())
-    #     self.EndFreq.setText(str(SFreq))
-    #     self.StartWave.setText(str(C_speed/SFreq))
-    #     self.EndWave.setText(str(C_speed/SFreq))
-
-
+        self.StartFreq.setText(str(round(C_speed/SWave,3)))
+        self.EndFreq.setText(str(round(C_speed/SWave,3)))
 
 
     def setupLight(self):
         if (self.parent.testModeAction.isChecked() or self.parent.LightHandle):
             self.setChecked(True)
             self.parent.LightCtrl.setCheckable(True)
-            api_light.LightSCPI.setupLight(power=float(self.Power.text()), wavelength=float(self.StartWave.text()))
+            if siEval(self.BWFreq.text())==0:
+                self.parent.LightHandle.setupLight(power=float(self.Power.text()), wavelength=float(self.StartWave.text()))
+            else:
+                self.parent.LightHandle.sweepLight(waveStart=float(self.StartWave.text()),
+                                                   waveEnd=float(self.EndWave.text()),
+                                                   speed=200)
 
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No LightWave is connected!')
@@ -1229,7 +1242,21 @@ class Feedback(QtWidgets.QGroupBox):
                     # self.activeBtu.setCheckable(False)
                 elif mod_index == 1:
                     # 范围在0-1
+                    '''
+                    1.PNA抽取数据与目标波形（自身均值作为等长度数列）
+                    2.离线对50组数据进行GA或TS迭代
+                    3.与最开始的目标波形做均方误差
+                    4.直到收敛
+                    '''
                     MES = float(self.modFBDispaly.text())
+                    print(MES)
+                    ant_Num=50
+                    freq_measure=[]
+                    amp_measure=[]
+                    for a in range(ant_Num):
+                        freq_measure[a], amp_measure[a]=self.parent.PNAHandle.pna_acquire()
+
+
 
                 else:
                     pass

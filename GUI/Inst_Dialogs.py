@@ -104,9 +104,11 @@ class selectInstDialog(QtWidgets.QDialog):
         # 开启新的设备连接
         AWGIP=re.findall(r'(?<![\.\d])(?:\d{1,3}\.){3}\d{1,3}(?![\.\d])',str(self.selAWG.currentText()),re.S)
         PNAIP=re.findall(r'(?<![\.\d])(?:\d{1,3}\.){3}\d{1,3}(?![\.\d])',str(self.selPNA.currentText()),re.S)
+        LightIP = re.findall(r'(?<![\.\d])(?:\d{1,3}\.){3}\d{1,3}(?![\.\d])', str(self.selLight.currentText()), re.S)
+
         self.parent.AWGHandle = api_awg.M9502A(AWGIP)
         self.parent.PNAHandle = api_pna.PNASCPI(PNAIP)
-        self.parent.LightHandle = api_light.LightSCPI(self.selLight.currentText())
+        self.parent.LightHandle = api_light.LightSCPI(LightIP)
         self.parent.EDFA1Handle = api_gen.open_inst(self.selEDFA1.currentText())
         self.parent.EDFA2Handle = api_gen.open_inst(self.selEDFA2.currentText())
 
@@ -136,8 +138,13 @@ class manualInstDialog(QtWidgets.QDialog):
         self.PNAIPFill=QtWidgets.QLineEdit()
         self.PNAIPFill.setInputMask("000.000.000.000")
 
+        self.LightIP=QtWidgets.QWidget()
+        self.LightIPFill=QtWidgets.QLineEdit()
+        self.LightIPFill.setInputMask("000.000.000.000")
+
         ManualInstLayout.addRow("AWG_IP",self.AWGIPFill)
         ManualInstLayout.addRow("PNA_IP",self.PNAIPFill)
+        ManualInstLayout.addRow("LightIP",self.LightIPFill)
 
         ManualInst.setLayout(ManualInstLayout)
 
@@ -153,14 +160,17 @@ class manualInstDialog(QtWidgets.QDialog):
         # 更新后台ip
         self.AWGIPFill.textChanged.connect(self.updateIP)
         self.PNAIPFill.textChanged.connect(self.updateIP)
+        self.LightIPFill.textChanged.connect(self.updateIP)
 
     def updateIP(self):
         self.awgip=self.AWGIPFill.text()
         self.pnaip=self.PNAIPFill.text()
+        self.lightip=self.LightIPFill.text()
 
     def accept(self):
         if self.awgip=='N.A.':
             return None
+            self.done(True)
         else:
             try:
                 self.parent.AWGHandle=api_awg.M9502A(self.awgip,reset=True)
@@ -171,10 +181,22 @@ class manualInstDialog(QtWidgets.QDialog):
 
         if self.pnaip=='N.A.':
             return None
+            self.done(True)
         else:
             try:
                 self.parent.PNAHandle=api_pna.PNASCPI(self.pnaip,reset=True)
                 print(self.parent.PNAHandle)
+                self.done(True)
+            except:
+                return None
+
+        if self.lightip=='N.A.':
+            return None
+            self.done(True)
+        else:
+            try:
+                self.parent.LightHandle=api_light.LightSCPI(self.lightip,reset=True)
+                print(self.parent.LightHandle)
                 self.done(True)
             except:
                 return None

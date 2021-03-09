@@ -129,21 +129,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # 设置主要模块显示位置
         self.mainLayout = QtWidgets.QGridLayout()
-        self.mainLayout.setSpacing(11)
-        self.mainLayout.addWidget(self.AWGStatus, 0, 2, 2, 2)
+        self.mainLayout.setSpacing(12)
+        self.mainLayout.addWidget(self.AWGStatus, 0, 2, 4, 2)
 
-        self.mainLayout.addWidget(self.AWGCtrl, 0, 0, 2, 2)
-        self.mainLayout.addWidget(self.PNACtrl, 2, 0, 3, 2)
-        self.mainLayout.addWidget(self.LightCtrl, 5, 0, 2, 4)
-        self.mainLayout.addWidget(self.EDFACtrl, 2, 2, 3, 2)
+        self.mainLayout.addWidget(self.AWGCtrl, 0, 0, 4, 2)
+        self.mainLayout.addWidget(self.PNACtrl, 4, 0, 6, 2)
+        self.mainLayout.addWidget(self.LightCtrl, 10, 0, 2, 4)
+        self.mainLayout.addWidget(self.EDFACtrl, 4, 2, 6, 2)
 
-        self.mainLayout.addWidget(self.testModeSignLabel, 10, 0, 1, 2)
-        self.mainLayout.addWidget(self.errorSignLabel, 10, 2, 1, 2)
+        self.mainLayout.addWidget(self.testModeSignLabel, 12, 5, 1, 2)
+        self.mainLayout.addWidget(self.errorSignLabel, 12, 7, 1, 2)
 
-        self.mainLayout.addWidget(self.AWGDisplay, 0, 5, 2, 2)  # 画两幅，时域与频域2*2
-        self.mainLayout.addWidget(self.FcombDisplay, 0, 7, 2, 2)
-        self.mainLayout.addWidget(self.Feedback, 2, 5, 1, 4)
-        self.mainLayout.addWidget(self.VNAMonitor, 3, 5, 4, 4)
+        self.mainLayout.addWidget(self.AWGDisplay, 0, 5, 4, 2)  # 画两幅，时域与频域2*2
+        self.mainLayout.addWidget(self.FcombDisplay, 0, 7, 4, 2)
+        self.mainLayout.addWidget(self.Feedback, 4, 5, 2, 4)
+        self.mainLayout.addWidget(self.VNAMonitor, 6, 5, 6, 4)
 
         self.mainWidget = QtWidgets.QWidget()
         self.mainWidget.setLayout(self.mainLayout)

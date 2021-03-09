@@ -15,18 +15,19 @@ class LightSCPI(socketscpi.SocketInstrument):
 
     '''
     def __init__(self,host,port=5025,timeout=10,reset=False):
-        super(LightSCPI, self).__init__(hsot,port,timeout)
+        super(LightSCPI, self).__init__(host,port,timeout)
         if reset:
             self.write('*rst')
             self.write('*opc?')
 
 
-    def sweepLight(self,powerList,waveStart,waveEnd,speed):
+    def sweepLight(self,waveStart,waveEnd,speed):
         '''针对于大带宽调控，进行PUMP路载波扫频方法；频率精确到0.0001nm
         1.单音扫频
         2.多音扫频
         如何配合AWG反馈振幅？
         '''
+
 
 
 
