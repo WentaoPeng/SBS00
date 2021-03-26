@@ -16,6 +16,7 @@ from API import LightAPI as api_light
 from API import EDFAAPI as api_edfa
 from pyqtgraph import siEval
 import SBS_DSP
+import numba as nb
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 
@@ -1191,6 +1192,7 @@ class Feedback(QtWidgets.QGroupBox):
                 self.bfs.clear()
                 self.bfs.setPlaceholderText('Check PNA!')
 
+    @nb.jit()
     def FB_Function(self, status):
         mod_index = self.modFB.currentIndex()
 
