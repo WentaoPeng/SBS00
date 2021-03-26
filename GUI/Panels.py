@@ -17,6 +17,7 @@ from API import EDFAAPI as api_edfa
 from pyqtgraph import siEval
 import SBS_DSP
 import numba as nb
+import multi_Lorenz_2_triangle as mlt
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 
@@ -565,6 +566,65 @@ class AWGCtrl(QtWidgets.QGroupBox):
         else:
             self.AWGPowerSwitchBtu.setText('OFF')
 
+
+    def pre_amp_seq(self, BW, DF,gamma_b=9e6):
+        # 产生AWG波形前，自动迭代出最佳泵浦幅值
+        # auto mode (automatically stop loop when meets need)
+        ''' [1] input initial settings (set requirements of filter) '''
+        bandwidth = BW/1e6  # MHz
+        comb_df = DF/1e6  # MHz
+        iteration_type = 1  # 迭代方式，[1]-2+3，[2]-线性，[3]-根号,[4]-边界参考旁边 (默认选[1])
+        gamma_B = gamma_b/1e6  # MHz，布里渊线宽(通过单梳测量得到，可以只存一次）
+        type_filter = 'square'  # type_filter='square','triangle'
+
+        ''' [2] check and preprocess '''
+        assert bandwidth % comb_df == 0
+        N_pump = int(bandwidth / comb_df)
+        central_freq = 0  # 因为只要确定形状，故此处中心频率采用相对值，设置为0
+        BFS = 0  # 因为只要确定形状，故不考虑布里渊频移，设置为0
+
+        ''' [2-1] 初始化频梳幅值，频率与相位'''
+        amp_seq = mlt.initial_amp_seq(N_pump, type_filter)
+        f_seq = mlt.initial_f_seq(N_pump, central_freq, comb_df)
+        phase_list = np.zeros(N_pump)  # 先不考虑随机相位问题
+        # phase_list = [sd.randen_phase() for i in range(N_pump)]  # 随机相位
+        nml_amp_seq = mlt.normalize_amp_seq(amp_seq, f_seq, phase_list)  # 归一化后泵浦
+
+        ''' [2-2] 计算增益谱 '''
+        f_measure = np.linspace(central_freq - bandwidth, central_freq + bandwidth, 20000)  # 设置扫频范围与点数，单位MHz
+        measure_brian = mlt.conv_lorenz(f_measure, nml_amp_seq, f_seq, gamma_B, BFS)
+
+        ''' [3] 迭代反馈,当平整度增加时停止迭代 '''
+        N_iteration = 0  # 迭代次数统计
+        f_index = mlt.search_index(f_seq - BFS, f_measure)  # 找到梳齿对应单布里渊增益中心位置索引
+        f_measure_sam = [f_measure[i] for i in f_index]  # 最接近频梳对应的单布里渊增益中心的采样点频率
+        brian_measure_sam = np.array([measure_brian.real[i] for i in f_index])  # 最接近频梳频率的采样点增益
+        expected_gain_sam = mlt.expected_gain2(f_index, measure_brian.real, type_filter)
+        bias = abs(measure_brian[f_index[0]:f_index[-1]] - np.mean(expected_gain_sam))
+        flatness = (max(bias) - min(bias))
+        while N_iteration < 60:  # 设置迭代上限
+            # 更新amp_seq，目前有4种方式
+            new_amp_seq = mlt.change_amp_seq(amp_seq, expected_gain_sam, brian_measure_sam, iteration_type)
+            nml_amp_seq = mlt.normalize_amp_seq(amp_seq, f_seq, phase_list)
+            new_measure_brian = mlt.conv_lorenz(f_measure, nml_amp_seq, f_seq, gamma_B, BFS)  # 单位MHz
+
+            # 更新后采样计算平均偏差值
+            brian_measure_sam = np.array([new_measure_brian.real[i] for i in f_index])  # 最接近频梳频率的采样点增益
+            expected_gain_sam = mlt.expected_gain2(f_index, new_measure_brian.real, type_filter)
+
+            bias = abs(new_measure_brian[f_index[0]:f_index[-1]] - np.mean(expected_gain_sam))
+            new_flatness = (max(bias) - min(bias))
+            if new_flatness >= flatness:
+                break
+            # if N_iteration % 10 == 0:
+            #     plt.plot(f_measure, measure_brian.real, label='迭代' + str(N_iteration) + '次幅值')
+
+            amp_seq = new_amp_seq
+            flatness = new_flatness
+            measure_brian = new_measure_brian
+            N_iteration += 1
+        return amp_seq
+
     def DesignPump(self):
 
         AWG_framerate = 64e9  # AWG采样率
@@ -588,6 +648,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
             amp_list = []
             f_list = []
             phase_list = []
+
+        amp_list = self.pre_amp_seq(self, BW, DF)
 
         ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
         ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
