@@ -322,23 +322,24 @@ class AWGCtrl(QtWidgets.QGroupBox):
     '''
 
     def __init__(self, parent):
-        # QtWidgets.QGroupBox.__init__(self, parent)
-        # self.parent = parent
-        super(AWGCtrl,self).__init__(parent)
+        QtWidgets.QGroupBox.__init__(self, parent)
+        self.parent = parent
+        # super(AWGCtrl,self).__init__(parent)
 
         self.setTitle('AWG Control')
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
 
+        self.AWGTab=QtWidgets.QTabWidget()
         self.tab1=QtWidgets.QWidget()
         self.tab2=QtWidgets.QWidget()
-
-        self.addTab(self.tab1,'IQM1')
-        self.addTab(self.tab2,'IQM2')
+        self.AWGTab.addTab(self.tab1,'IQM1')
+        self.AWGTab.addTab(self.tab2,'IQM2')
 
         self.tab1UI()
         self.tab2UI()
+        self.setLayout(self.AWGTab)
 
     def tab1UI(self):
         #     AWG设置面板设置参量
@@ -367,16 +368,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
         AWGPowerLayout.addWidget(self.AWGPowerSwitchBtu)
         AWGPowerCtrl = QtWidgets.QWidget()
         AWGPowerCtrl.setLayout(AWGPowerLayout)
-
-        # self.powerSwitchTimer = QtCore.QTimer()
-        # self.powerSwitchTimer.setInterval(500)
-        # self.powerSwitchTimer.setSingleShot(True)
-        # self.powerSwitchProgBar = QtWidgets.QProgressBar()
-        # self.progDialog = QtWidgets.QDialog()
-        # self.progDialog.setWindowTitle('AWG Running')
-        # progDialogLayout = QtWidgets.QVBoxLayout()
-        # progDialogLayout.addWidget(self.powerSwitchProgBar)
-        # self.progDialog.setLayout(progDialogLayout)
 
         #     pump设计子界面
         PumpDesign = QtWidgets.QGroupBox()
@@ -439,7 +430,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         mainLayout.addWidget(AWGPowerCtrl)
         mainLayout.addWidget(AWGWidget)
         mainLayout.addWidget(PumpDesign)
-        self.setLayout(mainLayout)
+        self.tab1.setLayout(mainLayout)
 
         # 设计窗口若有改变，更改后台参数，滤波类型编号，中心波长，带宽，间隔等参数同步改变
         self.DACset.valueChanged.connect(self.tune_mod_parameter)
@@ -466,10 +457,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
         layout = QtWidgets.QFormLayout()
         layout.addRow("姓名", QtWidgets.QLineEdit())
         layout.addRow("地址", QtWidgets.QLineEdit())
-        # 为这个tab命名显示出来，第一个参数是哪个标签，第二个参数是标签的名字
-        self.setTabText(0, "联系方式")
-        # 在标签1中添加这个帧布局
-        self.tab1.setLayout(layout)
+
+        self.tab2.setLayout(layout)
 
     def check(self):
         if (self.parent.testModeAction.isChecked() or self.parent.AWGHandle):
