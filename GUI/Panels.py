@@ -318,17 +318,29 @@ class PNACtrl(QtWidgets.QGroupBox):
 class AWGCtrl(QtWidgets.QGroupBox):
     '''
     AWG控制界面
+    调制器级联方案。多通道选择，同时发送信号。
     '''
 
     def __init__(self, parent):
-        QtWidgets.QGroupBox.__init__(self, parent)
-        self.parent = parent
+        # QtWidgets.QGroupBox.__init__(self, parent)
+        # self.parent = parent
+        super(AWGCtrl,self).__init__(parent)
 
         self.setTitle('AWG Control')
         self.setAlignment(QtCore.Qt.AlignLeft)
         self.setCheckable(True)
         self.setChecked(False)
 
+        self.tab1=QtWidgets.QWidget()
+        self.tab2=QtWidgets.QWidget()
+
+        self.addTab(self.tab1,'IQM1')
+        self.addTab(self.tab2,'IQM2')
+
+        self.tab1UI()
+        self.tab2UI()
+
+    def tab1UI(self):
         #     AWG设置面板设置参量
         AWGWidget = QtWidgets.QWidget()
         self.DACset = QtWidgets.QSpinBox()
@@ -448,6 +460,16 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.PumpDesignDoneBtu.clicked.connect(self.DesignPump)
 
         self.clicked.connect(self.check)
+
+    def tab2UI(self):
+        # 帧布局
+        layout = QtWidgets.QFormLayout()
+        layout.addRow("姓名", QtWidgets.QLineEdit())
+        layout.addRow("地址", QtWidgets.QLineEdit())
+        # 为这个tab命名显示出来，第一个参数是哪个标签，第二个参数是标签的名字
+        self.setTabText(0, "联系方式")
+        # 在标签1中添加这个帧布局
+        self.tab1.setLayout(layout)
 
     def check(self):
         if (self.parent.testModeAction.isChecked() or self.parent.AWGHandle):
@@ -1311,7 +1333,7 @@ class Feedback(QtWidgets.QGroupBox):
                     '''
                     1.PNA抽取数据与目标波形（自身均值作为等长度数列）
                     2.离线对50组数据进行GA或TS迭代
-                    3.与最开始的目标波形做均方误差
+                    3.与最开始的目标波形做均方误差(目前还是用带内平整度（）)
                     4.直到收敛
                     '''
                     MES = float(self.modFBDispaly.text())
@@ -1321,6 +1343,7 @@ class Feedback(QtWidgets.QGroupBox):
                     amp_measure=[]
                     for a in range(ant_Num):
                         freq_measure[a], amp_measure[a]=self.parent.PNAHandle.pna_acquire()
+
 
 
 
