@@ -16,7 +16,6 @@ from API import LightAPI as api_light
 from API import EDFAAPI as api_edfa
 from pyqtgraph import siEval
 import SBS_DSP
-import numba as nb
 import multi_Lorenz_2_triangle as mlt
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
@@ -567,19 +566,19 @@ class AWGCtrl(QtWidgets.QGroupBox):
             self.AWGPowerSwitchBtu.setText('OFF')
 
 
-    def pre_amp_seq(self, BW, DF,gamma_b=9e6):
+    def pre_amp_seq(self, BW, DF):
         # 产生AWG波形前，自动迭代出最佳泵浦幅值
         # auto mode (automatically stop loop when meets need)
         ''' [1] input initial settings (set requirements of filter) '''
         bandwidth = BW/1e6  # MHz
         comb_df = DF/1e6  # MHz
         iteration_type = 1  # 迭代方式，[1]-2+3，[2]-线性，[3]-根号,[4]-边界参考旁边 (默认选[1])
-        gamma_B = gamma_b/1e6  # MHz，布里渊线宽(通过单梳测量得到，可以只存一次）
+        gamma_B = self.parent.AWGInfo.gamma_b  # MHz，布里渊线宽(通过单梳测量得到，可以只存一次）
         type_filter = 'square'  # type_filter='square','triangle'
 
         ''' [2] check and preprocess '''
         assert bandwidth % comb_df == 0
-        N_pump = int(bandwidth / comb_df)
+        N_pump = int(bandwidth / comb_df)+1
         central_freq = 0  # 因为只要确定形状，故此处中心频率采用相对值，设置为0
         BFS = 0  # 因为只要确定形状，故不考虑布里渊频移，设置为0
 
@@ -648,8 +647,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
             amp_list = []
             f_list = []
             phase_list = []
-
-        amp_list = self.pre_amp_seq(self, BW, DF)
+        if len(f_list)>1:
+            amp_list = self.pre_amp_seq(BW, DF)
 
         ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
         ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
@@ -1248,13 +1247,16 @@ class Feedback(QtWidgets.QGroupBox):
                 amp_single_comb = self.corre_filter(amp_single_comb, gamma_B=30 / f_resolution)
                 self.bfs_value = self.bfs_correct(freq_design_seq / 1e6, freq_single_comb / 1e6, amp_single_comb,
                                                   30)  # 单位MHz(前提：观察窗口内有SBS增益且只有一个最大值)
+                self.gamma_b = mlt.gmmb_correct(freq_single_comb / 1e6, amp_single_comb)
+                # self.gamma_b=9
+                self.parent.AWGInfo.gamma_b=self.gamma_b
                 self.bfs.clear()
-                self.bfs.setPlaceholderText(str(self.bfs_value / 1e3) + 'GHz')
+                self.bfs.setPlaceholderText('bfs='+str(round(self.bfs_value / 1e3,1)) + 'GHz'+'线宽='+str(round(self.gamma_b,1))+'MHz')
             else:
                 self.bfs.clear()
                 self.bfs.setPlaceholderText('Check PNA!')
 
-    @nb.jit()
+
     def FB_Function(self, status):
         mod_index = self.modFB.currentIndex()
 

@@ -15,11 +15,11 @@ import matplotlib.pyplot as plt
 PI2 = math.pi * 2
 
 
-def randen_phase():
-    # list = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4]
-    list = [0, np.pi / 2, np.pi, 3 * np.pi / 2]
-    a = random.choice(list)
-    return a
+# def randen_phase():
+#     # list = [0, np.pi / 4, np.pi / 2, 3 * np.pi / 4]
+#     list = [0, np.pi / 2, np.pi, 3 * np.pi / 2]
+#     a = random.choice(list)
+#     return a
 
 
 def triangle_wave(start, zhouqi, midu, xdecimals, ydecimals):
@@ -77,7 +77,7 @@ def square_filter(center_F, bandwidth, df):
     amp_list = np.ones(dots)
     f_list = np.arange(-dots // 2 + 1, dots // 2 + 1) * df + center_F
     phase_list = np.random.randint(low=0, high=8, size=dots) * (np.pi / 4)
-
+    # phase_list = [np.pi*(n %2==0) for n in range(dots)]
     return f_list, amp_list, phase_list
 
 
@@ -133,13 +133,12 @@ def Band_stop_filter(center_F, bandwidth, df, signal_BW):
     i = 0
     while i < dots:
         f_list.append(start_F + i * df)
-        phase_list.append(randen_phase())
         if mindot <= i < maxdot:
             amp_list[i] = 0.003
         else:
             amp_list[i] = 0.1
         i = i + 1
-
+    phase_list=np.random.randint(low=0, high=8, size=dots) * (np.pi / 4)
     return f_list, amp_list, phase_list
 
 

@@ -124,6 +124,8 @@ class manualInstDialog(QtWidgets.QDialog):
         self.setMinimumSize(200,200)
         self.setWindowTitle('Manual Input Inst_IP')
         self.awgip='192.168.1.102'
+        self.pnaip='192.168.1.100'
+        self.lightip='192.168.1.101'
 
         acceptButton = QtGui.QPushButton(Shared.btn_label('confirm'))
         cancelButton = QtGui.QPushButton(Shared.btn_label('reject'))
@@ -133,14 +135,17 @@ class manualInstDialog(QtWidgets.QDialog):
         self.AWGIP=QtWidgets.QWidget()
         self.AWGIPFill=QtWidgets.QLineEdit()
         self.AWGIPFill.setInputMask("000.000.000.000")
+        self.AWGIPFill.setText("192.168.1.102")
 
         self.PNAIP=QtWidgets.QWidget()
         self.PNAIPFill=QtWidgets.QLineEdit()
         self.PNAIPFill.setInputMask("000.000.000.000")
+        self.PNAIPFill.setText("192.168.1.100")
 
         self.LightIP=QtWidgets.QWidget()
         self.LightIPFill=QtWidgets.QLineEdit()
         self.LightIPFill.setInputMask("000.000.000.000")
+        self.LightIPFill.setText("192.168.1.101")
 
         ManualInstLayout.addRow("AWG_IP",self.AWGIPFill)
         ManualInstLayout.addRow("PNA_IP",self.PNAIPFill)
@@ -169,8 +174,8 @@ class manualInstDialog(QtWidgets.QDialog):
 
     def accept(self):
         if self.awgip=='N.A.':
-            return None
             self.done(True)
+            return None
         else:
             try:
                 self.parent.AWGHandle=api_awg.M9502A(self.awgip,reset=True)
@@ -180,8 +185,9 @@ class manualInstDialog(QtWidgets.QDialog):
                 return None
 
         if self.pnaip=='N.A.':
-            return None
             self.done(True)
+            return None
+
         else:
             try:
                 self.parent.PNAHandle=api_pna.PNASCPI(self.pnaip,reset=True)
@@ -191,8 +197,8 @@ class manualInstDialog(QtWidgets.QDialog):
                 return None
 
         if self.lightip=='N.A.':
-            return None
             self.done(True)
+            return None
         else:
             try:
                 self.parent.LightHandle=api_light.LightSCPI(self.lightip,reset=True)
@@ -278,19 +284,20 @@ class CloseSelInstDialog(QtWidgets.QDialog):
 
     def accept(self):
         if self.awgToggle.isChecked() and self.parent.AWGHandle:
-            # self.parent.AWGHandle=api_awg.M9502A.stop(ch=self.parent.AWGInfo.ChannelNum)
             self.parent.AWGHandle=self.close_inst_handle(self.parent.AWGHandle,
                                                          self.awgToggle.isChecked())
+        if self.pnaToggle.isChecked() and self.parent.PNAHandle:
+            self.parent.PNAHandle=self.close_inst_handle(self.parent.PNAHandle,
+                                                        self.pnaToggle.isChecked())
 
-        self.parent.PNAHandle=self.close_inst_handle(self.parent.PNAHandle,
-                                                     self.pnaToggle.isChecked())
         self.parent.EDFA1Handle=self.close_inst_handle(self.parent.EDFA1Handle,
                                                        self.EDFA1Toggle.isChecked())
         self.parent.EDFA2Handle=self.close_inst_handle(self.parent.EDFA2Handle,
                                                        self.EDFA2Toggle.isChecked())
-        self.parent.LightHandle=self.close_inst_handle(self.parent.LightHandle,
+        if self.LightToggle.isChecked() and self.parent.LightHandle:
+            self.parent.LightHandle=self.close_inst_handle(self.parent.LightHandle,
+                                                        self.LightToggle.isChecked())
 
-                                                       self.LightToggle.isChecked())
         self.parent.Display==0
         self.close()
 

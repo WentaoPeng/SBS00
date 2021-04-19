@@ -13,15 +13,16 @@ def plot1(dl,dlB,name):
     i=0
     Freq=[]
     pumpF=np.linspace(10,20,11,endpoint=True)
-    for _ in range(1):
+    for _ in range(N):
         plt.figure(1)
         ax = plt.gca()
         ax.spines['top'].set_visible(False)  # 去掉上边框
         ax.spines['right'].set_visible(False)  # 去掉右边框
-        amp=dl[2]['S21(DB)']-dlB[2]['S21(DB)']
-        amp1=amp/4.34/0.09999999999999998/0.06/max(amp/4.34/0.09999999999999998/0.06)
-        plt.plot(dl[2]['Freq(Hz)'] / (10 ** 9), amp1,
-                    label=name[2])
+        amp=dl[i]['S12(DB)']-dlB[0]['S12(DB)']
+        # amp=amp-min(amp)
+        # amp1=amp/4.34/0.09999999999999998/0.06/max(amp/4.34/0.09999999999999998/0.06)
+        plt.plot(dl[i]['Freq(Hz)'] / (10 ** 9), amp,
+                    label=name[i])
 
         # print(amp1,dl[i]['Freq(Hz)'])
         # 平滑
@@ -55,15 +56,16 @@ def plot1(dl,dlB,name):
         leg = plt.gca().get_legend()
         ltext = leg.get_texts()
         plt.setp(ltext, fontsize=9, fontweight='bold')  # 设置图例字体的大小和粗细
-
+        # plt.savefig(name[i] + ".svg", format="svg")
         i+=1
-    # plt.xlim(7.82, 7.87)
-    # plt.ylim(2, 23)
-    # plt.savefig("Amp单频Anti-Stokes.svg", format="svg")
-    # plt.show()
+        # plt.show()
+    # plt.xlim(3.88, 4.5)
+    # plt.ylim(0, 15)
+    plt.savefig(name[0]+".svg", format="svg")
+    plt.show()
     # plt.figure(2)
     # plt.plot(Anti_FSBS)
-    plt.show()
+    # plt.show()
     # print(Freq)
     # print("mean_SBS平移量：",Anti_meanFSBS)
 
@@ -79,7 +81,7 @@ def plot_phash(dl,dlB,name):
         ax.spines['top'].set_visible(False)  # 去掉上边框
         ax.spines['right'].set_visible(False)  # 去掉右边框
 
-        phash=np.mod(dl[j]['S21(DEG)']-dlB[j]['S21(DEG)']+180,360)-180
+        phash=np.mod(dl[j]['S12(DEG)']-dlB[0]['S12(DEG)']+180,360)-180
 
         # plt.plot(dl[-1]['Freq(Hz)']/(10**9),phash,
         #          label=name[j])
@@ -93,11 +95,14 @@ def plot_phash(dl,dlB,name):
         leg = plt.gca().get_legend()
         ltext = leg.get_texts()
         plt.setp(ltext, fontsize=12, fontweight='bold')  # 设置图例字体的大小和粗细
+        # plt.savefig(name[j] + "phase.svg", format="svg")
         j+=1
+        # plt.show()
+
     # plt.xlim(6.98,7.09)
     # plt.ylim()
     # plt.legend()
-    plt.savefig("phase单频Anti-Stokes.svg", format="svg")
+    plt.savefig(name[0]+"phase.svg", format="svg")
     plt.show()
 
 def file_name(file_dir):
@@ -185,7 +190,7 @@ if __name__ == '__main__':
     # path1 = r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210106\S'
     # path7=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BW_14GDf=3M'
     # path8=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\S_BW_14GDf=3M'
-    path9=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BW_14GDf=3M'
+    # path9=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BW_14GDf=3M'
     # pathB=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BJ'
     # pathB=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210107\CW\Signal_BJ'
     # path10=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\电谱图'
@@ -193,27 +198,29 @@ if __name__ == '__main__':
     # path11=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109高精度光谱仪csv'
     # path13=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\P24.3abs'
     # path14=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210113\SOLO'
-    pathB=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BJ'
+    # pathB=r'C:\Users\Wentao Peng\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_BJ'
     # 将dat转换为csv
     # dat_csv(dat11,path11)
-
+    #  2021-3-26
+    path1=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\协同工作\数据分析\DATA\2021-3-26\20210326\一级=120MHz，BW=250MHz'
+    pathB=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\协同工作\数据分析\DATA\2021-3-26\20210326\DBBJ'
     # path12=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_300MHz'
-    files=glob.glob(os.path.join(path9,"*.csv"))
+    files=glob.glob(os.path.join(path1,"*.csv"))
     filesB = glob.glob(os.path.join(pathB, "*.csv"))
-    name=file_name(path9)
+    name=file_name(path1)
     # nameB=file_name(pathB)
     # print(files)
     # print(name)
     # print(nameB)
     dl=[]
     for f in files:
-        dl.append(pd.read_csv(f,skiprows=6,nrows=40000))
+        dl.append(pd.read_csv(f,skiprows=6,nrows=80000))
     print(dl)
 
     dlB=[]
     for f in filesB:
-        dlB.append(pd.read_csv(f, skiprows=6, nrows=40000))
+        dlB.append(pd.read_csv(f, skiprows=6, nrows=80000))
     print(dlB)
     plot1(dl,dlB,name)
-    # plot_phash(dl,dlB,name)
+    plot_phash(dl,dlB,name)
     # plot_odd(dl,name)

@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import pi
 import SBS_DSP as sd
-import numba as nb
+# import numba as nb
 import time
 
 # # 解决字体显示问题
@@ -144,10 +144,10 @@ def bfs_correct(f_seq, f_measure, measure_brian, bfs):
 def gmmb_correct(f_measure, measure_m):
     # 功能：根据测量数据计算线宽
     m_resolution = abs(measure_m[1] - measure_m[0])
-    print(m_resolution+1)
+    # print(m_resolution+1)
     max_m = np.max(measure_m)
     max_m_index = np.argmax(measure_m)
-    print(max_m)
+    # print(max_m)
     m_3db = max_m - 3  # 3db 幅值
     left_indexes = []
     right_indexes = []
