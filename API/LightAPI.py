@@ -27,15 +27,25 @@ class LightSCPI(socketscpi.SocketInstrument):
         2.多音扫频
         如何配合AWG反馈振幅？
         '''
+        self.write(f'wav:swe:star {waveStart}nm')
+        self.write(f'wav:swe:stop {waveEnd}nm')
+        self.write('wav:swe:mode CONT')
+        #可选择三种模式 STEP步进   MAN手动   CONT连续
+        self.write('wav:swe:cycl 1000')  #循环次数
+        #步进速度
+        self.write(f'wav:swe:spe {speed}nm/s') #max200nm/s min 5--【m/s
+        self.write('wav:swe:step 5nm')  #min0.0001nm
 
-
+        self.write('wav:swe STAR')  #STOP STAR PAUS CONT状态
+        self.query('*opc?')
 
 
     def setupLight(self,power,wavelength):
-        Wave=wavelength*1e9
-        self.write(f'sour0:wav:freq {Wave}')
-        self.write(f'sour0:pow:att {power}')
+        # Wave=wavelength*1e9
+        self.write(f'sour0:wav {wavelength}nm')
+        self.write('sour0:pow:unit 0')
+        self.write(f'sour0:pow {power}')
         self.query('*opc?')
 
     def active(self):
-        self.write('trig1:optp dis')
+        self.write('trig0:optp dis')

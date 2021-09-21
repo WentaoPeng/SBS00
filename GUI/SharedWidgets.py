@@ -62,6 +62,7 @@ class AWGInfo():
         self.amp_list = []
         self.phase_list = []
         self.gamma_b=9
+        self.rand_seed=0
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''

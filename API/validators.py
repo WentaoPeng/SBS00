@@ -75,8 +75,8 @@ def val_awgCW_mod_freq(freq_text, freq_unit_text):
     else:
         return 0, 0
 
-    code, freq = val_float(freq_num, safe=[('>=', 0), ('<=', 20e9)],
-                           warning=[('>', 20e9), ('<=', 25e9)])
+    code, freq = val_float(freq_num, safe=[('>=', 0), ('<=', 25e9)],
+                           warning=[('>', 25e9), ('<=', 26e9)])
     return code, freq
 
 def val_awgBW_mod_freq(freq_text,freq_unit_text):
@@ -107,8 +107,8 @@ def val_awgDF_mod_freq(freq_text,freq_unit_text):
     else:
         return 0, 0
 
-    code, freq = val_float(freq_num, safe=[('>=', 0), ('<=', 50e6)],
-                           warning=[('>', 50e6), ('<=', 100e6)])
+    code, freq = val_float(freq_num, safe=[('>=', 0), ('<=', 50e7)],
+                           warning=[('>', 50e7), ('<=', 100e7)])
     return code, freq
 
 def val_PNA_F(freq_text,freq_unit_text):

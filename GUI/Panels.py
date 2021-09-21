@@ -331,17 +331,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.setCheckable(True)
         self.setChecked(False)
 
-        self.AWGTab=QtWidgets.QTabWidget()
-        self.tab1=QtWidgets.QWidget()
-        self.tab2=QtWidgets.QWidget()
-        self.AWGTab.addTab(self.tab1,'IQM1')
-        self.AWGTab.addTab(self.tab2,'IQM2')
-
-        self.tab1UI()
-        self.tab2UI()
-        self.setLayout(self.AWGTab)
-
-    def tab1UI(self):
         #     AWG设置面板设置参量
         AWGWidget = QtWidgets.QWidget()
         self.DACset = QtWidgets.QSpinBox()
@@ -413,6 +402,14 @@ class AWGCtrl(QtWidgets.QGroupBox):
         CombFreqLayout.addWidget(self.CombFreqUnitSel)
         self.CombFreq.setLayout(CombFreqLayout)
 
+        self.rand_seed=QtWidgets.QWidget()
+        self.rand_SFill = QtWidgets.QLineEdit('0')
+        rand_seedLayout=QtWidgets.QHBoxLayout()
+        rand_seedLayout.addWidget(QtWidgets.QLabel('Rand_S'))
+        rand_seedLayout.addWidget(self.rand_SFill)
+        self.rand_seed.setLayout(rand_seedLayout)
+
+
         self.PumpDesignDoneBtu = QtWidgets.QPushButton('Done')
         self.PumpDesignDoneBtu.setCheckable(True)
 
@@ -422,6 +419,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         PumpLayout.addWidget(self.CenterFreq, 1, 1, 2, 3)
         PumpLayout.addWidget(self.BandWidth, 2, 1, 2, 3)
         PumpLayout.addWidget(self.CombFreq, 3, 1, 2, 3)
+        PumpLayout.addWidget(self.rand_seed,4, 1, 2, 3)
         PumpDesign.setLayout(PumpLayout)
 
         #     设置主界面
@@ -430,7 +428,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         mainLayout.addWidget(AWGPowerCtrl)
         mainLayout.addWidget(AWGWidget)
         mainLayout.addWidget(PumpDesign)
-        self.tab1.setLayout(mainLayout)
+        self.setLayout(mainLayout)
 
         # 设计窗口若有改变，更改后台参数，滤波类型编号，中心波长，带宽，间隔等参数同步改变
         self.DACset.valueChanged.connect(self.tune_mod_parameter)
@@ -442,6 +440,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.BandWidthUnitSel.currentIndexChanged.connect(self.tune_mod_parameter)
         self.CombFreqFill.textChanged.connect(self.tune_mod_parameter)
         self.CombFreqUnitSel.currentIndexChanged.connect(self.tune_mod_parameter)
+        self.rand_SFill.textChanged.connect(self.tune_mod_parameter)
 
         AWGPowerInput.clicked.connect(self.AWGRFPower)
         self.AWGPowerSwitchBtu.clicked.connect(self.AWGRFPowerSwitch_auto)
@@ -451,14 +450,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.PumpDesignDoneBtu.clicked.connect(self.DesignPump)
 
         self.clicked.connect(self.check)
-
-    def tab2UI(self):
-        # 帧布局
-        layout = QtWidgets.QFormLayout()
-        layout.addRow("姓名", QtWidgets.QLineEdit())
-        layout.addRow("地址", QtWidgets.QLineEdit())
-
-        self.tab2.setLayout(layout)
 
     def check(self):
         if (self.parent.testModeAction.isChecked() or self.parent.AWGHandle):
@@ -498,33 +489,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.parent.AWGInfo.CFFreq = CF_freq
         self.parent.AWGInfo.BWFreq = BW_freq
         self.parent.AWGInfo.DFFreq = DF_freq
-
-    # def ramp_AWGRFPower(self):
-    #     '''
-    #
-    #     :return: 成功状态
-    #     '''
-    #     try:
-    #         this_power = next(self.ramper)
-    #         if self.parent.testModeAction.isChecked():
-    #             vCode = pyvisa.constants.StatusCode.success
-    #         else:
-    #             vCode = self.parent.AWGHandle.set_amplitude(amplitude=this_power,
-    #                                                         channel=self.parent.AWGInfo.ChannelNum)
-    #
-    #         if vCode == pyvisa.constants.StatusCode.success:
-    #             self.parent.AWGInfo.AWGPower = self.parent.AWGHandle.read_power_toggle()
-    #             self.parent.AWGStatus.print_info()
-    #             self.powerSwitchProgBar.setValue(self.powerSwitchProgBar.value()+1)
-    #             # 开始timer
-    #             self.powerSwitchTimer.start()
-    #         else:
-    #             self.powerSwitchTimer.stop()
-    #             msg = Shared.InstStatus(self, vCode)
-    #             msg.exec_()
-    #     except StopIteration:
-    #         self.powerSwitchTimer.stop()
-    #         self.progDialog.accept()
+        self.parent.AWGInfo.rand_seed=int(self.rand_SFill.text())
 
     def AWGRFPower(self):
         if self.parent.testModeAction.isChecked():
@@ -556,10 +521,11 @@ class AWGCtrl(QtWidgets.QGroupBox):
             else:
                 # 设置波形np.array，并检验，以及下载波形，Running
                 # ys = np.ones(len(self.parent.AWGInfo.ys))*self.parent.AWGInfo.ys
-                self.parent.AWGHandle.clear_all_wfm()
-                wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
-                                                           ch=self.parent.AWGInfo.ChannelNum)
-                self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
+                # self.parent.AWGHandle.clear_all_wfm()
+                # wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                #                                            ch=self.parent.AWGInfo.ChannelNum)
+                # self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
+                self.parent.AWGHandle.play()
                 self.parent.AWGHandle.err_check()
                 self.parent.AWGInfo.AWG_Status = True
         else:
@@ -588,7 +554,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         type_filter = 'square'  # type_filter='square','triangle'
 
         ''' [2] check and preprocess '''
-        assert bandwidth % comb_df == 0
+        # assert bandwidth % comb_df == 0
         N_pump = int(bandwidth / comb_df)+1
         central_freq = 0  # 因为只要确定形状，故此处中心频率采用相对值，设置为0
         BFS = 0  # 因为只要确定形状，故不考虑布里渊频移，设置为0
@@ -647,7 +613,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         DF = self.parent.AWGInfo.DFFreq
 
         if self.parent.AWGInfo.mod_index == 0:
-            f_list, amp_list, phase_list = SBS_DSP.square_filter(CF, BW, DF)
+            f_list, amp_list, phase_list = SBS_DSP.square_filter(CF, BW, DF,self.parent.AWGInfo.rand_seed)
         elif self.parent.AWGInfo.mod_index == 1:
             f_list, amp_list, phase_list = SBS_DSP.triangle_filter(CF, BW, DF)
         elif self.parent.AWGInfo.mod_index == 2:
@@ -658,6 +624,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
             amp_list = []
             f_list = []
             phase_list = []
+
         if len(f_list)>1:
             amp_list = self.pre_amp_seq(BW, DF)
 
@@ -670,6 +637,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.parent.AWGInfo.ys = ys
         wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
         self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
+        self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                                            ch=self.parent.AWGInfo.ChannelNum)
+
         FFT_y, Fre = SBS_DSP.get_fft(ys, AWG_framerate)
         self.parent.AWGInfo.FFT_y = FFT_y
         self.parent.AWGInfo.Fre = Fre
@@ -1159,9 +1129,14 @@ class Feedback(QtWidgets.QGroupBox):
         self.activeBtu.clicked.connect(self.FB_Function)
         self.bfsBtu.clicked.connect(self.getBFS)
 
+        self.bfs.textChanged.connect(self.setbfs)
+
         self.BGS_freq = []
         self.BGS_amp = []
         self.bfs_value = 7.15e3
+
+    def setbfs(self):
+        self.parent.AWGInfo.gamma_b=float(self.bfs.text())      #手动设置线宽
 
     def search_index(self, f_seq, f_measure):
         f_index = np.zeros(f_seq.size, dtype=int)

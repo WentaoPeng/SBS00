@@ -223,7 +223,7 @@ class M9502A(socketscpi.SocketInstrument):
         print('Amplitude CH 3:', self.amp3)
         print('Amplitude CH 4:', self.amp4)
 
-    def download_wfm(self, wfmData, ch=1, name='wfm', *args, **kwargs):
+    def download_wfm(self, wfmData, ch, name='wfm', *args, **kwargs):
         """
         Defines and downloads a waveform into the segment memory.
         Assigns a waveform name to the segment. Returns segment number.
@@ -237,7 +237,6 @@ class M9502A(socketscpi.SocketInstrument):
         Returns:
             (int): Segment number of the downloaded waveform. Use this as the waveform identifier for the .play() method.
         """
-
         # Stop output before doing anything else
         self.write('abort')
         wfm = self.check_wfm(wfmData)
@@ -249,8 +248,12 @@ class M9502A(socketscpi.SocketInstrument):
         self.binblockwrite(f'trace{ch}:data {segment}, 0, ', wfm)
         self.write(f'trace{ch}:name {segment},"{name}_{segment}"')
 
+
+        # open Channel
+        self.write(f'output{ch} on')
         # Use 'segment' as the waveform identifier for the .play() method.
-        return segment
+        # return segment
+        self.write(f'trace:select {segment}')
 
     def check_wfm(self, wfmData):
         """
@@ -302,7 +305,8 @@ class M9502A(socketscpi.SocketInstrument):
         for ch in range(1, 5):
             self.write(f'trace{ch}:del:all')
 
-    def play(self, wfmID=1, ch=1):
+    # def play(self, wfmID=1, ch=1):
+    def play(self):
         """
         Selects waveform, turns on analog output, and begins continuous playback.
         Args:
@@ -310,8 +314,8 @@ class M9502A(socketscpi.SocketInstrument):
             ch (int): AWG channel out of which the waveform will be played.
         """
 
-        self.write(f'trace:select {wfmID}')
-        self.write(f'output{ch} on')
+        # self.write(f'trace:select {wfmID}')
+        # self.write(f'output{ch} on')
         self.write('init:cont on')
         self.write('init:imm')
 

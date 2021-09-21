@@ -18,12 +18,14 @@ def plot1(dl,dlB,name):
         ax = plt.gca()
         ax.spines['top'].set_visible(False)  # 去掉上边框
         ax.spines['right'].set_visible(False)  # 去掉右边框
-        amp=dl[i]['S12(DB)']-dlB[0]['S12(DB)']
+        amp=dl[i]['S21(DB)']-dlB[i]['S21(DB)']
         # amp=amp-min(amp)
         # amp1=amp/4.34/0.09999999999999998/0.06/max(amp/4.34/0.09999999999999998/0.06)
-        plt.plot(dl[i]['Freq(Hz)'] / (10 ** 9), amp,
+        plt.plot(dl[i]['Freq(Hz)'] / (10 ** 9), savgol_filter(amp, 53, 10, mode='nearest'),
                     label=name[i])
 
+        am=pd.DataFrame(savgol_filter(amp, 53, 10, mode='nearest'))
+        am.to_csv('D:/OneDrive-stuJnu/OneDrive - stu2019.jnu.edu.cn/协同工作/数据分析/DATA/20210729/amp.csv')
         # print(amp1,dl[i]['Freq(Hz)'])
         # 平滑
         # plt.plot(dl[i]['Freq(Hz)'] / (10 ** 9),
@@ -57,6 +59,23 @@ def plot1(dl,dlB,name):
         ltext = leg.get_texts()
         plt.setp(ltext, fontsize=9, fontweight='bold')  # 设置图例字体的大小和粗细
         # plt.savefig(name[i] + ".svg", format="svg")
+        phash = np.mod(dl[i]['S21(DEG)'] - dlB[i]['S21(DEG)'] + 180, 360) - 180
+
+        # plt.plot(dl[-1]['Freq(Hz)']/(10**9),phash,
+        #          label=name[j])
+        # 平滑
+        df=pd.DataFrame(savgol_filter(phash, 53, 10, mode='nearest'))
+        df.to_csv('D:/OneDrive-stuJnu/OneDrive - stu2019.jnu.edu.cn/协同工作/数据分析/DATA/20210729/phash.csv')
+        plt.plot(dl[i]['Freq(Hz)'] / (10 ** 9), savgol_filter(phash, 53, 10, mode='nearest'),
+                 label=name[i])
+        plt.title("Phase Response", fontsize=15, fontweight='bold')
+        plt.xlabel("Freqence(GHz)", fontsize=13, fontweight='bold')
+        plt.ylabel("RF_Power(DB)", fontsize=13, fontweight='bold')
+        plt.legend(loc='best', numpoints=1, ncol=1)
+        leg = plt.gca().get_legend()
+        ltext = leg.get_texts()
+        plt.setp(ltext, fontsize=12, fontweight='bold')  # 设置图例字体的大小和粗细
+
         i+=1
         # plt.show()
     # plt.xlim(3.88, 4.5)
@@ -81,7 +100,7 @@ def plot_phash(dl,dlB,name):
         ax.spines['top'].set_visible(False)  # 去掉上边框
         ax.spines['right'].set_visible(False)  # 去掉右边框
 
-        phash=np.mod(dl[j]['S12(DEG)']-dlB[0]['S12(DEG)']+180,360)-180
+        phash=np.mod(dl[j]['S21(DEG)']-dlB[0]['S21(DEG)']+180,360)-180
 
         # plt.plot(dl[-1]['Freq(Hz)']/(10**9),phash,
         #          label=name[j])
@@ -202,9 +221,11 @@ if __name__ == '__main__':
     # 将dat转换为csv
     # dat_csv(dat11,path11)
     #  2021-3-26
-    path1=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\协同工作\数据分析\DATA\2021-3-26\20210326\一级=120MHz，BW=250MHz'
-    pathB=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\协同工作\数据分析\DATA\2021-3-26\20210326\DBBJ'
+    # path1=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\协同工作\数据分析\DATA\2021-3-26\20210326\一级=120MHz，BW=250MHz'
+    # pathB=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\协同工作\数据分析\DATA\2021-3-26\20210326\DBBJ'
     # path12=r'C:\Users\DELL\OneDrive - stu2019.jnu.edu.cn\组会报告\实验数据\Experimental data\20210109\T_300MHz'
+    path1=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\协同工作\数据分析\DATA\20210729\ZBD'
+    pathB=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\协同工作\数据分析\DATA\20210729\ZBDBJ'
     files=glob.glob(os.path.join(path1,"*.csv"))
     filesB = glob.glob(os.path.join(pathB, "*.csv"))
     name=file_name(path1)
@@ -214,13 +235,13 @@ if __name__ == '__main__':
     # print(nameB)
     dl=[]
     for f in files:
-        dl.append(pd.read_csv(f,skiprows=6,nrows=80000))
+        dl.append(pd.read_csv(f,skiprows=6,nrows=40000))
     print(dl)
 
     dlB=[]
     for f in filesB:
-        dlB.append(pd.read_csv(f, skiprows=6, nrows=80000))
+        dlB.append(pd.read_csv(f, skiprows=6, nrows=40000))
     print(dlB)
     plot1(dl,dlB,name)
-    plot_phash(dl,dlB,name)
+    # plot_phash(dl,dlB,name)
     # plot_odd(dl,name)

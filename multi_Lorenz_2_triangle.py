@@ -148,7 +148,7 @@ def gmmb_correct(f_measure, measure_m):
     max_m = np.max(measure_m)
     max_m_index = np.argmax(measure_m)
     # print(max_m)
-    m_3db = max_m - 3  # 3db 幅值
+    m_3db = max_m/2  # 半高全宽 幅值
     left_indexes = []
     right_indexes = []
     for j in range(measure_m.size):

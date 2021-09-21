@@ -1,6 +1,5 @@
 import math
 import numpy as np
-import random
 import scipy
 # import numpy.fft as fft
 import os
@@ -57,10 +56,10 @@ def square_wave(start, zhouqi, midu, xdecimals, ydecimals):
     return x, y
 
 
-def square_filter(center_F, bandwidth, df):
+def square_filter(center_F, bandwidth, df,rand_seed):
     # start_F = center_F - bandwidth / 2
     # # end_F=center_F+bandwidth/2
-    dots = int(round(bandwidth / df))
+    dots = int(round(bandwidth / df))+1
     if (dots % 2) == 0:
         dots += 1
     # # a = np.random.randint(0, df / (10 ** 6) + 1)
@@ -76,13 +75,17 @@ def square_filter(center_F, bandwidth, df):
     #     i = i + 1
     amp_list = np.ones(dots)
     f_list = np.arange(-dots // 2 + 1, dots // 2 + 1) * df + center_F
+    rand_seed = 0  # 改为操作界面输入，默认值为0
+    np.random.seed(rand_seed)
     phase_list = np.random.randint(low=0, high=8, size=dots) * (np.pi / 4)
-    # phase_list = [np.pi*(n %2==0) for n in range(dots)]
+    # phase_list = [np.pi*(n %2==0) for n in range(dots)]  # 奇数pi。偶数0
+    # phase_list=np.zeros(dots)
+    print(phase_list)
     return f_list, amp_list, phase_list
 
 
 def triangle_filter(center_F, bandwidth, df):
-    dots = int(round(bandwidth / df))
+    dots = int(round(bandwidth / df))+1
     # start_F = center_F - bandwidth / 2
     # end_F = center_F + (center_F - start_F)
     # # a = np.random.randint(0, df / (10 ** 6) + 1)
@@ -113,7 +116,7 @@ def triangle_filter(center_F, bandwidth, df):
 
 
 def Guass_filter(center_F, bandwidth, df):
-    dots = int(round(bandwidth / df))
+    dots = int(round(bandwidth / df))+1
     phase_list = np.random.randint(low=0, high=8, size=2 * dots) * (np.pi / 4)
     f_list = np.linspace(center_F - 2 * bandwidth, center_F + 2 * bandwidth, 2 * dots)
     amp_list = np.exp(-1 * ((f_list - center_F) ** 2) / (2 * (bandwidth ** 2))) / (np.sqrt(2 * np.pi) * bandwidth)
@@ -123,7 +126,7 @@ def Guass_filter(center_F, bandwidth, df):
 
 def Band_stop_filter(center_F, bandwidth, df, signal_BW):
     start_F = float(center_F) - signal_BW / 2
-    dots = int(signal_BW / df + 1)
+    dots = int(signal_BW / df + 1)+1
     dot = int(bandwidth / df + 1)
     mindot = int((dots - dot) / 2 + 1)
     maxdot = mindot + dot
