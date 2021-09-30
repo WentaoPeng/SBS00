@@ -195,18 +195,17 @@ class M9502A(socketscpi.SocketInstrument):
             raise AWGError('\'amplitudu\'must be a floating point value.')
         if amplitude > 1000 or amplitude < 0:
             raise AWGError('\'amplitude\'must be between 0 and 1V.')
-        # if channel==1:
-        #     self.write('OUTP1:STATE ON')
-        # elif channel==2:
-        #     self.write('OUTP2:STATE ON')
-        # elif channel==3:
-        #     self.write('OUTP3:STATE ON')
-        # elif channel==4:
-        #     self.write('OUTP4:STATE ON')
+
         self.write(f'voltage{channel} {amplitude}')
-
-        self.write(f'OUTP{channel}:STATE ON')
-
+        if channel==1:
+            self.write('OUTP1:STATE ON')
+        elif channel==2:
+            self.write('OUTP2:STATE ON')
+        elif channel==3:
+            self.write('OUTP3:STATE ON')
+        elif channel==4:
+            self.write('OUTP4:STATE ON')
+        # self.write(f'OUTP{channel}:STATE ON')
         # exec(f"self.amp{channel}=float(self.query('voltage{channel}?'))")
         return
 
@@ -238,7 +237,10 @@ class M9502A(socketscpi.SocketInstrument):
             (int): Segment number of the downloaded waveform. Use this as the waveform identifier for the .play() method.
         """
         # Stop output before doing anything else
-        self.write('abort')
+        # self.write('abort')
+        wfmID=1
+        self.delete_segment(wfmID,ch=ch)
+        # self.clear_all_wfm()
         wfm = self.check_wfm(wfmData)
         length = len(wfmData)
 
@@ -246,11 +248,11 @@ class M9502A(socketscpi.SocketInstrument):
         segment = int(self.query(f'trace{ch}:catalog?').strip().split(',')[-2]) + 1
         self.write(f'trace{ch}:def {segment}, {length}')
         self.binblockwrite(f'trace{ch}:data {segment}, 0, ', wfm)
-        self.write(f'trace{ch}:name {segment},"{name}_{segment}"')
+        self.write(f'trace{ch}:name {wfmID},"{name}_{segment}"')
 
 
         # open Channel
-        self.write(f'output{ch} on')
+        # self.write(f'output{ch} on')
         # Use 'segment' as the waveform identifier for the .play() method.
         # return segment
         self.write(f'trace:select {segment}')
@@ -313,7 +315,6 @@ class M9502A(socketscpi.SocketInstrument):
             wfmID (int): Waveform identifier, used to select waveform to be played.
             ch (int): AWG channel out of which the waveform will be played.
         """
-
         # self.write(f'trace:select {wfmID}')
         # self.write(f'output{ch} on')
         self.write('init:cont on')

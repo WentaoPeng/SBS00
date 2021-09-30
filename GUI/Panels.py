@@ -19,6 +19,7 @@ import SBS_DSP
 import multi_Lorenz_2_triangle as mlt
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
+from threading import Timer
 
 
 class AWGStatus(QtWidgets.QGroupBox):
@@ -321,7 +322,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
     调制器级联方案。多通道选择，同时发送信号。
     '''
 
-    def __init__(self, parent):
+    def __init__(self, parent, pumpLayout=None):
         QtWidgets.QGroupBox.__init__(self, parent)
         self.parent = parent
         # super(AWGCtrl,self).__init__(parent)
@@ -364,7 +365,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         PumpDesign.setFlat(True)
         PumpDesign.setAlignment(QtCore.Qt.AlignLeft)
         PumpLayout = QtWidgets.QGridLayout()
-        PumpLayout.setSpacing(0)
+        # PumpLayout.setSpacing(1)
 
         self.PumpModeSel = QtWidgets.QComboBox()
         self.PumpModeSel.addItems(api_awg.Shape_MODE_LIST)
@@ -411,15 +412,30 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
 
         self.PumpDesignDoneBtu = QtWidgets.QPushButton('Done')
-        self.PumpDesignDoneBtu.setCheckable(True)
+        # self.PumpDesignDoneBtu.setCheckable(True)
+        self.PumpDesignDoneBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
+        self.PumpDesignDoneBtu.setMaximumSize(200,200)
+
+        self.pumpdesignsetBtu=QtWidgets.QPushButton('Set')
+        self.pumpdesignsetBtu.setCheckable(True)
+        self.pumpdesignsetBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
+        self.pumpdesignsetBtu.setMaximumSize(200,200)
+
+        self.sweepFreq=QtWidgets.QCheckBox('Sweep_Freq')
+        # self.sweepFreq.setCheckState(True)
+        self.sweepFreq.setChecked(False)
+
 
         PumpLayout.addWidget(QtWidgets.QLabel('Pump Shape :'), 0, 0)
-        PumpLayout.addWidget(self.PumpDesignDoneBtu, 1, 0, 4, 1)
+        PumpLayout.addWidget(self.pumpdesignsetBtu,1,0,2,1)
+        PumpLayout.addWidget(self.PumpDesignDoneBtu,3, 0, 2, 1)
         PumpLayout.addWidget(self.PumpModeSel, 0, 1)
         PumpLayout.addWidget(self.CenterFreq, 1, 1, 2, 3)
         PumpLayout.addWidget(self.BandWidth, 2, 1, 2, 3)
         PumpLayout.addWidget(self.CombFreq, 3, 1, 2, 3)
         PumpLayout.addWidget(self.rand_seed,4, 1, 2, 3)
+        PumpLayout.addWidget(self.sweepFreq,5,0)
+        # PumpLayout.addWidget(QtWidgets.QLabel('Sweep_Freq'),5,1)
         PumpDesign.setLayout(PumpLayout)
 
         #     设置主界面
@@ -447,7 +463,12 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.AWGPowerSwitchBtu.toggled.connect(self.AWGPowerSwitch_Label)
         # self.powerSwitchTimer.timeout.connect(self.ramp_AWGRFPower)
         # 设计泵浦事件
-        self.PumpDesignDoneBtu.clicked.connect(self.DesignPump)
+        self.PumpDesignDoneBtu.clicked.connect(self.DonePump)
+        self.pumpdesignsetBtu.clicked.connect(self.designset)
+        # self.pumpdesignsetBtu.setChecked(False)
+        self.timer=QtCore.QTimer(self)
+        self.timer.timeout.connect(self.DonePump)
+        # self.timer.start(10)
 
         self.clicked.connect(self.check)
 
@@ -497,19 +518,20 @@ class AWGCtrl(QtWidgets.QGroupBox):
             target_Power, okay = QtWidgets.QInputDialog.getDouble(self, 'RF POWER',
                                                                   'Manual Input (0mV to 1000mV)',
                                                                   self.parent.AWGInfo.AWGPower, 0, 1000, 0.01)
-            self.parent.AWGInfo.AWGPower = 500
+            self.parent.AWGInfo.AWGPower = target_Power
 
         else:
             target_Power, okay = QtWidgets.QInputDialog.getDouble(self, 'RF POWER',
-                                                                  'Manual Input (0mV to 1000mV)', 500, 0, 1000, 0.01)
-            self.parent.AWGInfo.AWGPower = target_Power / 1000
+                                                                  'Manual Input (0mV to 1000mV)',
+                                                                  self.parent.AWGInfo.AWGPower, 0, 1000, 0.01)
+            self.parent.AWGInfo.AWGPower = target_Power
 
         if okay:
             if self.parent.testModeAction.isChecked():
                 pass
-            else:
-                self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
-                                                    channel=self.parent.AWGInfo.ChannelNum)
+            # else:
+            #     self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+            #                                         channel=self.parent.AWGInfo.ChannelNum)
         else:
             pass
 
@@ -525,8 +547,10 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 # wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
                 #                                            ch=self.parent.AWGInfo.ChannelNum)
                 # self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
+                self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                                                    channel=self.parent.AWGInfo.ChannelNum)
                 self.parent.AWGHandle.play()
-                self.parent.AWGHandle.err_check()
+                # self.parent.AWGHandle.err_check()
                 self.parent.AWGInfo.AWG_Status = True
         else:
             self.parent.AWGHandle.stop(ch=self.parent.AWGInfo.ChannelNum)
@@ -601,9 +625,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
             N_iteration += 1
         return amp_seq
 
-    def DesignPump(self):
-
+    def designset(self):
         AWG_framerate = 64e9  # AWG采样率
+        self.parent.AWGHandle.set_fs(fs=AWG_framerate)
         Df = 1 * 10 ** 6
         # FM_AWG = AWG_framerate / 2.56   # AWG最高分析频率
         N_AWG = int(AWG_framerate / Df)
@@ -611,9 +635,10 @@ class AWGCtrl(QtWidgets.QGroupBox):
         CF = self.parent.AWGInfo.CFFreq
         BW = self.parent.AWGInfo.BWFreq
         DF = self.parent.AWGInfo.DFFreq
-
+        ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
+        self.parent.AWGInfo.ts=ts
         if self.parent.AWGInfo.mod_index == 0:
-            f_list, amp_list, phase_list = SBS_DSP.square_filter(CF, BW, DF,self.parent.AWGInfo.rand_seed)
+            f_list, amp_list, phase_list = SBS_DSP.square_filter(CF, BW, DF, self.parent.AWGInfo.rand_seed)
         elif self.parent.AWGInfo.mod_index == 1:
             f_list, amp_list, phase_list = SBS_DSP.triangle_filter(CF, BW, DF)
         elif self.parent.AWGInfo.mod_index == 2:
@@ -624,38 +649,117 @@ class AWGCtrl(QtWidgets.QGroupBox):
             amp_list = []
             f_list = []
             phase_list = []
-
-        if len(f_list)>1:
-            amp_list = self.pre_amp_seq(BW, DF)
-
-        ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
-        ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
         self.parent.AWGInfo.f_list = f_list
         self.parent.AWGInfo.amp_list = amp_list
         self.parent.AWGInfo.phase_list = phase_list
-        self.parent.AWGInfo.ts = ts
+
+    def sweep_Pump(self,i,amp_list,f_list,phase_list):
+        j=10  # 多音扫频梳齿数
+        new_ampl = amp_list[i*j : i*(j+1)]
+        new_fl = f_list[i*j : i*(j+1)]
+        new_phasel = phase_list[i*j : i*(j+1)]
+        # new_ampl.append(amp_list[-i*j-6:i*j-1])
+        # new_fl.append(f_list[-i*j-6:i*j-1])
+        # new_phasel.append(phase_list[-i*j-6:i*j-1])
+        # print(new_fl)
+        ys = SBS_DSP.synthesize1(new_ampl, new_fl,
+                                 self.parent.AWGInfo.ts, new_phasel)
         self.parent.AWGInfo.ys = ys
         wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
         self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
-        self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
-                                            ch=self.parent.AWGInfo.ChannelNum)
+        self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave, ch=self.parent.AWGInfo.ChannelNum)
+        if self.parent.AWGInfo.AWG_Status:
+            # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+            #                                     channel=self.parent.AWGInfo.ChannelNum)
+            self.parent.AWGHandle.play()
 
-        FFT_y, Fre = SBS_DSP.get_fft(ys, AWG_framerate)
-        self.parent.AWGInfo.FFT_y = FFT_y
-        self.parent.AWGInfo.Fre = Fre
-        # Lorenz拟合
-        Tb = 20 * 10 ** 6  # 10~30Mhz布里渊线宽
-        omega_sbs = 9.7e9  # 布里渊平移量
-        f_measure = np.arange(CF - 2 * BW - omega_sbs, CF + 2 * BW - omega_sbs, 10 ** 6)
-        self.parent.AWGInfo.f_measure = f_measure
-        total_lorenz = SBS_DSP.add_lorenz(f_measure, amp_list * 0.008, f_list, Tb)
+    def DonePump(self):
+        '''
+        两种方式，扫频与正常
+        :return:
+        '''
+        if self.pumpdesignsetBtu.isChecked():
+            AWG_framerate = 64e9  # AWG采样率
+            f_list = self.parent.AWGInfo.f_list
+            amp_list = self.parent.AWGInfo.amp_list
+            phase_list = self.parent.AWGInfo.phase_list
+            ts=self.parent.AWGInfo.ts
+            CF = self.parent.AWGInfo.CFFreq
+            BW = self.parent.AWGInfo.BWFreq
+            DF = self.parent.AWGInfo.DFFreq
+            if self.sweepFreq.isChecked():
+                '''
+                扫描方式：
+                1.正常生成频梳，利用矩形滤波器决定AWG发送数据
+                '''
+                self.timer.stop()
+                start = time.time()
+                for i in range(int(len(f_list)/5)):
 
-        self.parent.AWGInfo.gb = total_lorenz
-        # 初始化AWG采样率set_fs
-        self.parent.AWGHandle.set_fs(fs=AWG_framerate)
-        # plt.figure()
-        # plt.plot(f_measure,total_lorenz,'b')
-        # plt.show()
+                #     t = Timer(1.0, self.sweep_Pump(i,amp_list,f_list,phase_list))
+                #     t.start()
+
+                #     M=10            #总共10根梳齿扫频，根据每次经验值推算
+                #     j=int(M/2)
+                    j=5
+                    new_ampl=amp_list[i*j:i*j+10]
+                    new_fl=f_list[i*j:i*j+10]
+                    new_phasel=phase_list[i*j:i*j+10]
+                    # new_ampl.append(amp_list[-i*j-6:i*j-1])
+                    # new_fl.append(f_list[-i*j-6:i*j-1])
+                    # new_phasel.append(phase_list[-i*j-6:i*j-1])
+                    print(new_fl)
+                    ys = SBS_DSP.synthesize1(new_ampl,new_fl,
+                                             self.parent.AWGInfo.ts, new_phasel)
+                    self.parent.AWGInfo.ys = ys
+                    wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
+                    self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
+                    self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,ch=self.parent.AWGInfo.ChannelNum)
+                    if self.parent.AWGInfo.AWG_Status:
+                        # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                        #                                     channel=self.parent.AWGInfo.ChannelNum)
+                        self.parent.AWGHandle.play()
+                    time.sleep(0.3)
+
+                end = time.time()
+                print("循环运行时间:%.2f秒" % (end - start))
+                self.timer.start(0)
+            else:
+                self.timer.stop()
+
+                # 预反馈部分
+                if len(f_list)>1:
+                    amp_list = self.pre_amp_seq(BW, DF)
+
+                # ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
+                ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
+                self.parent.AWGInfo.f_list = f_list
+                self.parent.AWGInfo.amp_list = amp_list
+                self.parent.AWGInfo.phase_list = phase_list
+                self.parent.AWGInfo.ts = ts
+                self.parent.AWGInfo.ys = ys
+                wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
+                self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
+                self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                                                    ch=self.parent.AWGInfo.ChannelNum)
+                if self.parent.AWGInfo.AWG_Status:
+                    # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                    #                                     channel=self.parent.AWGInfo.ChannelNum)
+                    self.parent.AWGHandle.play()
+
+                FFT_y, Fre = SBS_DSP.get_fft(ys, AWG_framerate)
+                self.parent.AWGInfo.FFT_y = FFT_y
+                self.parent.AWGInfo.Fre = Fre
+                # Lorenz拟合
+                Tb = 20 * 10 ** 6  # 10~30Mhz布里渊线宽
+                omega_sbs = 9.7e9  # 布里渊平移量
+                f_measure = np.arange(CF - 2 * BW - omega_sbs, CF + 2 * BW - omega_sbs, 10 ** 6)
+                self.parent.AWGInfo.f_measure = f_measure
+                total_lorenz = SBS_DSP.add_lorenz(f_measure, amp_list * 0.008, f_list, Tb)
+
+                self.parent.AWGInfo.gb = total_lorenz
+
+
 
 
 class ADisplay(QtWidgets.QGroupBox):
@@ -1345,13 +1449,16 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.v_layout.addWidget(self.plot_btn)
         self.setLayout(self.v_layout)
         # self.data=np.empty()
-        # # self.timer_start()
+        # self.timer_start()
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.plot)
         self.timer.start(1500)
+        # 设置计时间隔并启动(1000ms == 1s)
 
     def timer_start(self):
         if self.parent.PNAHandle:
+            # PNACtrl.setChecked(True)
+            PNACtrl.InitialF
             self.timer = QtCore.QTimer(self)
             self.timer.timeout.connect(self.plot)
             self.timer.start(1000)
