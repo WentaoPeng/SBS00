@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import pi
 import SBS_DSP as sd
-# import numba as nb
+import numba as nb
 import time
 
 # # 解决字体显示问题
@@ -32,13 +32,13 @@ mpl.rcParams['axes.unicode_minus'] = False  # 解决保存图像是负号'-'显�
 def lorenz(omega, omega_B, gamma_B):
     # 输入：频率-omega；omega_B-布里渊增益最大点（BFS）；gamma_B-布里渊线宽
     # 输出：Lorenz型的增益因子g_B * g_0 * L_eff/A_eff
-    g_0 = 5 * 10 ** (-11)  # 代入石英光纤典型参量值，单位m/W
-    alpha = 0.19  # 光纤损耗，单位db/km
-    L_eff = 10.2 ** 3 * (1 - np.exp(-alpha * 10)) / alpha  # 代入光纤长度10.2km
-    MFD = 10.3 * 10 ** (-6)  # G652D模场直径：10.4+-0.8 um of 1550nm
-    A_eff = pi * MFD ** 2 / 4  # 此处近似修正因子k=1
-    gain_max = g_0 * L_eff / A_eff / 2  # lorenz峰值
-    # gain_max = 10000
+    # g_0 = 5 * 10 ** (-11)  # 代入石英光纤典型参量值，单位m/W
+    # alpha = 0.19  # 光纤损耗，单位db/km
+    # L_eff = 10.2 ** 3 * (1 - np.exp(-alpha * 10)) / alpha  # 代入光纤长度10.2km
+    # MFD = 10.3 * 10 ** (-6)  # G652D模场直径：10.4+-0.8 um of 1550nm
+    # A_eff = pi * MFD ** 2 / 4  # 此处近似修正因子k=1
+    # gain_max = g_0 * L_eff / A_eff / 2  # lorenz峰值
+    gain_max = 1
     gamma_b22 = (gamma_B / 2) ** 2
     gain_lorenz = gain_max * gamma_b22 / ((omega - omega_B) ** 2 + gamma_b22)
 
@@ -82,6 +82,8 @@ def initial_amp_seq(len_seq, type_filter):
 
 def initial_f_seq(len_seq, central_freq, df):
     f_seq = np.arange(-len_seq // 2 + 1, len_seq // 2 + 1) * df + central_freq
+    if len_seq % 2 == 0:
+        f_seq = f_seq - df/2
     return f_seq
 
 
@@ -144,10 +146,8 @@ def bfs_correct(f_seq, f_measure, measure_brian, bfs):
 def gmmb_correct(f_measure, measure_m):
     # 功能：根据测量数据计算线宽
     m_resolution = abs(measure_m[1] - measure_m[0])
-    # print(m_resolution+1)
     max_m = np.max(measure_m)
     max_m_index = np.argmax(measure_m)
-    # print(max_m)
     m_3db = max_m/2  # 半高全宽 幅值
     left_indexes = []
     right_indexes = []
@@ -194,7 +194,7 @@ def expected_gain2(f_index, measure_brian, type_filter):
     if len_seq >1:
         if type_filter == 'square':
             # expected_gain_sam = np.ones(len_seq) * mean_measure_brian
-            expected_gain_sam = np.ones(len_seq) * np.mean(measure_brian[f_index[0]:f_index[-1]])
+            expected_gain_sam = np.ones(len_seq) * np.mean(measure_brian[f_index[1]:f_index[-2]])
         elif type_filter == 'triangle':
             mb_min = max(np.min(measure_brian), 0)
             mb_max = np.max(measure_brian)
@@ -212,6 +212,13 @@ def expected_gain2(f_index, measure_brian, type_filter):
     else:
         expected_gain_sam = np.max(measure_brian)
     return expected_gain_sam
+
+
+def multi_change(data_list, index_list, change_data_list):
+    # 修改指定多个位置的列表值(data_list)
+    for i in range(len(index_list)):
+        data_list[index_list[i]] = change_data_list[i]
+    return data_list
 
 
 def change_amp_seq(amp_seq, expected_gain_sam, brian_measure_sam, iteration_type=1):

@@ -579,7 +579,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         ''' [2] check and preprocess '''
         # assert bandwidth % comb_df == 0
-        N_pump = int(bandwidth / comb_df)+1
+        N_pump = int(bandwidth / comb_df)+1  # todo：检查数量是否对应
         central_freq = 0  # 因为只要确定形状，故此处中心频率采用相对值，设置为0
         BFS = 0  # 因为只要确定形状，故不考虑布里渊频移，设置为0
 
@@ -1244,7 +1244,7 @@ class Feedback(QtWidgets.QGroupBox):
 
     def search_index(self, f_seq, f_measure):
         f_index = np.zeros(f_seq.size, dtype=int)
-        f_resolution = (f_measure[-1] - f_measure[0]) / f_measure.size
+        f_resolution = (f_measure[1] - f_measure[0])
         index_bef = 0
         for i in range(f_seq.size):
             for j in range(index_bef, f_measure.size):
@@ -1363,19 +1363,22 @@ class Feedback(QtWidgets.QGroupBox):
                     print(FB_num)
                     i = 1
                     for _ in range(FB_num):
+                        """当前反馈为实时反馈FB_num次结束，等待时间长且容易卡死
+                        todo：
+                        方案1：改为手动单次反馈
+                        方案2：修改时延函数"""
                         freq_design_seq = self.parent.AWGInfo.f_list
                         amp_design_seq = self.parent.AWGInfo.amp_list
                         freq_measure, amp_measure = self.parent.PNAHandle.pna_acquire(
                             measName=self.parent.PNAInfo.Scale)
-                        amp_measure = amp_measure - self.BGS_amp
+                        amp_measure = amp_measure - self.BGS_amp  # 计算开关增益 todo：改为读取已保存的开关增益
                         f_index = self.search_index(freq_design_seq - self.bfs_value * 1e6, freq_measure)  # 搜索时减去BFS
-                        f_resolution = (freq_measure[1] - freq_measure[0]) / 1e6  # 单位MHz
-                        amp_measure = self.corre_filter(amp_measure, gamma_B=30 / f_resolution)  # 单位MHz；互相关平滑去噪
+                        amp_measure = savgol_filter(amp_measure, 301, 3)  # 单位MHz；300点3阶SG平滑去噪
 
                         expected_amp_sam = self.expected_gain(f_index, amp_measure, mod_shape)
                         amp_measure_sam = np.array([amp_measure[i] for i in f_index])  # 最接近频梳频率的采样点增益
-                        amp_design_seq_new = np.sqrt(
-                            expected_amp_sam / amp_measure_sam) * amp_design_seq  # （3-7）-->边界收敛不一致
+                        amp_design_seq_new = mlt.change_amp_seq(amp_design_seq, expected_amp_sam, amp_measure_sam, 1)
+
                         self.parent.AWGInfo.amp_list = amp_design_seq_new
                         print(amp_design_seq_new)
 
