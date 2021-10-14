@@ -11,9 +11,12 @@ import numpy as np
 def manual_lists():
     # 功能：手动调节复制比例或梳齿间隔
     if unset:  # todo: 如果用户未设置序列参数
-        freq_seq, amp_seq = None  # todo:改成预反馈的输出
+        freq_seq = None
+        amp_seq = self.pre_amp_seq(BW, DF)  # todo:改成预反馈的输出
         amp_seq_list = amp_seq.tolist()  # numpy转list
         str_amp_seq = str(amp_seq_list)  # list转string  todo:str_amp_seq显示在界面输入输出框中
+        freq_seq_list = amp_seq.tolist()  # numpy转list
+        str_freq_seq = str(freq_seq_list)  # list转string  todo:str_freq_seq显示在界面输入输出框中
     #     todo：为防止输出过长无法显示，增加复制文本功能，以便在界面外修改
     else:  # 如果用户手动更新了参数
         amp_seq = json.loads(str_amp_seq)  # string转list todo:str_amp_seq在界面输入输出框中读取

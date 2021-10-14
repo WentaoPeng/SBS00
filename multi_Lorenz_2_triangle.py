@@ -18,7 +18,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import pi
 import SBS_DSP as sd
-import numba as nb
 import time
 
 # # 解决字体显示问题

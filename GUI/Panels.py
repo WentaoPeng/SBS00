@@ -18,7 +18,7 @@ from pyqtgraph import siEval
 import SBS_DSP
 import multi_Lorenz_2_triangle as mlt
 import matplotlib.pyplot as plt
-from scipy.signal import savgol_filter
+from scipy.signal import savgol_filter, find_peaks, peak_widths, peak_prominences
 from threading import Timer
 
 
@@ -1323,22 +1323,42 @@ class Feedback(QtWidgets.QGroupBox):
                 self.back.clear()
                 self.back.setPlaceholderText('Check PNA!')
 
+    def peak_analysis(self,freq, gain_on_off):
+        # 函数功能：峰值分析，具体包括通过开关增益计算主峰频率、增益、半高全宽FWHM,基线
+        # 输入：测量频率(单位GHz)，开关增益
+        # 输出：主峰BFS(默认中心频率15GHz),峰值，FWHM,基线(常数)
+        f_resolution = float(freq[1] - freq[0])  # 频率分辨率(GHz)
+        peaks, _ = find_peaks(gain_on_off, width=500, rel_height=0.1)  # 寻峰
+
+        prominences = peak_prominences(gain_on_off, peaks)[0]  # 计算峰高
+        idx_main_peak = prominences.argmax()  # 找主峰
+        BFS = 15 - freq[peaks[idx_main_peak]]  # 求BFS(单位GHz)，默认中心频率15GHz todo:可将15GHz换为输入变量
+        main_peak_gain = prominences[idx_main_peak]  # 主峰峰值
+        baseline = max(gain_on_off[peaks]) - main_peak_gain  # 求基线
+
+        results_half = peak_widths(gain_on_off, peaks, rel_height=0.5)  # tuple{0：宽度;1：高度;2:xmin;3:xmax}
+        FWHM_main_peak = results_half[0][idx_main_peak] * 1e3 * f_resolution  # 主峰半高全宽(单位MHz)
+
+        return BFS, main_peak_gain, FWHM_main_peak, baseline
+
     def getBFS(self):
+        # 功能：按下"BFS",计算单频泵浦的BFS和半高全宽
         if (self.parent.testModeAction.isChecked()):
             self.back.clear()
             self.back.setPlaceholderText('Test!!! NONE')
         else:
             if (self.parent.PNAHandle):
                 freq_single_comb, amp_single_comb = self.parent.PNAHandle.pna_acquire(
-                    measName=self.parent.PNAInfo.Scale)
+                    measName=self.parent.PNAInfo.Scale)  # todo:改为本地已存单频泵浦增益数据
                 freq_design_seq = self.parent.AWGInfo.f_list
                 amp_single_comb = amp_single_comb - self.BGS_amp
-                f_resolution = (freq_single_comb[1] - freq_single_comb[0]) / 1e6
-                amp_single_comb = self.corre_filter(amp_single_comb, gamma_B=30 / f_resolution)
-                self.bfs_value = self.bfs_correct(freq_design_seq / 1e6, freq_single_comb / 1e6, amp_single_comb,
-                                                  30)  # 单位MHz(前提：观察窗口内有SBS增益且只有一个最大值)
-                self.gamma_b = mlt.gmmb_correct(freq_single_comb / 1e6, amp_single_comb)
+
+                amp_single_comb = savgol_filter(amp_single_comb, 301, 3)  # 3阶SG平滑
+                BFS, main_peak_gain, FWHM_main_peak, baseline = self.peak_analysis(freq_single_comb, amp_single_comb)  # 获取峰值分析参数
+                self.bfs_value = BFS*1e3  # 单位MHz
+                self.gamma_b = FWHM_main_peak  # 单位MHz
                 # self.gamma_b=9
+
                 self.parent.AWGInfo.gamma_b=self.gamma_b
                 self.bfs.clear()
                 self.bfs.setPlaceholderText('bfs='+str(round(self.bfs_value / 1e3,1)) + 'GHz'+'线宽='+str(round(self.gamma_b,1))+'MHz')
