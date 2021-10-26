@@ -1,6 +1,5 @@
 #! encoding = utf-8
-
-
+import numpy as np
 from PyQt5 import QtCore, QtWidgets, QtGui
 from GUI import SharedWidgets as Shared
 from API import general as api_gen
@@ -8,7 +7,9 @@ from API import AWGapi as api_awg
 from API import PNAapi as api_pna
 from API import LightAPI as api_light
 import re
-
+from GUI import Panels as panels_fun
+from scipy.signal import savgol_filter, find_peaks, peak_widths, peak_prominences
+import SBS_DSP
 from pyqtgraph import siFormat
 import pyqtgraph as pg
 
@@ -209,6 +210,148 @@ class manualInstDialog(QtWidgets.QDialog):
 
         self.done(True)
 
+class manualFB_list(QtWidgets.QDialog):
+        '''
+        显示反馈后的amp-list以及freq-list
+        并且可以修改
+        '''
+        def __init__(self,parent):
+            QtWidgets.QDialog.__init__(self,parent)
+            self.parent=parent
+
+            self.setupUI()
+
+            self.freq_data=[]
+            self.gain_on_off_offset=[]
+            self.btu_display.clicked.connect(self.data_setup)
+            self.btu_save.clicked.connect(self.data_save)
+            self.btu_accept.clicked.connect(self.manual_Fun)
+            self.btu_map.clicked.connect(self.mapping_Fun)
+            self.btu_cancel.clicked.connect(self.reject)
+            self.btu_save_data.clicked.connect(self.save_data)
+
+        def save_data(self):
+            pass
+
+        def mapping_Fun(self):
+            if self.btu_map.isChecked():
+                if self.parent.PNAHandle:
+                    self.parent.AWGInfo.map=1
+                else:
+                    msg = Shared.MsgError(self, 'No Instrument!', 'No PNAN5225A is connected!')
+                    msg.exec_()
+                    self.btu_map.setCheckable(True)
+            else:
+                self.parent.AWGInfo.map=0
+            # # 功能：减去底噪，得到校准基线后的开关增益
+            # if self.parent.PNAHandle:
+            #     BJ=self.parent.AWGInfo.BJ_amp
+            #
+            #     self.freq_data,gain_data=self.parent.PNAHandle.pna_acquire(
+            #             measName=self.parent.PNAInfo.Scale)
+            #     # freq为PNA测量频率，单位Hz
+            #     freq = self.freq_data / 1e9  # 转单位为GHz
+            #
+            #     gain_on_off = gain_data - BJ  # 减底噪
+            #
+            #     gain_on_off = savgol_filter(gain_on_off, 301, 3)  # 3阶SG平滑
+            #     BFS, main_peak_gain, FWHM_main_peak, baseline = self.peak_analysis(freq, gain_on_off)
+            #     self.gain_on_off_offset = gain_on_off - baseline
+            #     #显示
+            #     panels_fun.FcombDisplay.plot3(self.gain_on_off_offset,self.freq_data)
+            #
+            # else:
+            #     msg = Shared.MsgError(self, 'No Instrument!', 'No PNAN5225A is connected!')
+            #     msg.exec_()
+
+        def manual_Fun(self):
+            if self.parent.AWGHandle:
+                ys = SBS_DSP.synthesize1(self.parent.AWGInfo.amp_list, self.parent.AWGInfo.f_list
+                                         , self.parent.AWGInfo.ts, self.parent.AWGInfo.phase_list)
+                wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
+                self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
+                self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                                                   ch=self.parent.AWGInfo.ChannelNum)
+                if self.parent.AWGInfo.AWG_Status:
+                    # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                    #                                     channel=self.parent.AWGInfo.ChannelNum)
+                    self.parent.AWGHandle.play()
+            else:
+                msg = Shared.MsgError(self, 'No Instrument!', 'No AWG is connected!')
+                msg.exec_()
+
+        def data_save(self):
+            col_num=self.list_table.columnCount()
+            row_num=self.list_table.rowCount()
+            new_arry=np.empty(shape=(col_num,row_num))
+            for col in range(col_num):
+                for row in range(row_num):
+                        new_arry[col][row]=float(self.list_table.item(row,col).text())
+
+            self.parent.AWGInfo.amp_list=new_arry[0]
+            self.parent.AWGInfo.f_list=new_arry[1]*1e9
+            self.parent.AWGInfo.phase_list=new_arry[2]
+            # print(self.parent.AWGInfo.f_list)
+
+        def data_setup(self):
+            '''
+            更新页面数据
+            :return:
+            '''
+            self.list_table.blockSignals(True)
+            amp_list= self.parent.AWGInfo.amp_list
+            f_list=self.parent.AWGInfo.f_list/1e9    #GHz显示
+            phase_list=self.parent.AWGInfo.phase_list
+            arry=np.array([amp_list,f_list,phase_list])
+            # print(arry,arry[1],arry[2],arry[1][2])
+            self.list_table.setRowCount(len(amp_list))
+            for column in range(3):
+                for row in range(len(amp_list)):
+                    self.list_table.setItem(row,column,QtWidgets.QTableWidgetItem(format(arry[column][row],'.3f')))
+                    # self.list_table.item(row, column).setTextAlignment(QtCore.AlignHCenter | QtCore.AlignVCenter)
+            self.list_table.update()
+            self.list_table.blockSignals(False)
+
+
+        def setupUI(self):
+            self.setMinimumSize(1200,1200)
+            self.setWindowTitle('MaunalFB Amp/Freq List')
+#             显示，BFS，FWHM，amp_list,freq_list,phase_list
+            self.list_table=QtWidgets.QTableWidget(self)
+            self.btu_display=QtWidgets.QPushButton('Display')
+            self.btu_save=QtWidgets.QPushButton('Save')
+            self.btu_accept=QtWidgets.QPushButton('Accept')
+            self.btu_cancel=QtWidgets.QPushButton('Cancel')
+            self.btu_map=QtWidgets.QPushButton('Mapping')
+            self.btu_map.setCheckable(True)
+            self.btu_map.setStyleSheet('''QPushButton:hover{background:yellow;}''')
+            self.btu_save_data=QtWidgets.QPushButton('Save_MD')
+            self.spaceItem=QtWidgets.QSpacerItem(20,20,QtWidgets.QSizePolicy.Minimum,QtWidgets.QSizePolicy.Expanding)
+            self.vbox=QtWidgets.QVBoxLayout()
+            self.vbox.addWidget(self.btu_display)
+            self.vbox.addWidget(self.btu_save)
+            self.vbox.addWidget(self.btu_accept)
+            self.vbox.addWidget(self.btu_map)
+            self.vbox.addWidget(self.btu_save_data)
+            self.vbox.addWidget(self.btu_cancel)
+            self.vbox.addSpacerItem(self.spaceItem)
+            self.txt=QtWidgets.QLabel()
+            self.txt.setMinimumHeight(50)
+            self.vbox2=QtWidgets.QVBoxLayout()
+            self.vbox2.addWidget(self.list_table)
+            self.vbox2.addWidget(self.txt)
+            self.hbox=QtWidgets.QHBoxLayout()
+            self.hbox.addLayout(self.vbox2)
+            self.hbox.addLayout(self.vbox)
+            self.setLayout(self.hbox)
+            # self.list_table.horizontalHeader().setFixedHeight(50)
+            # self.list_table.setVerticalScrollBar(QtCore.Qt.ScrollBarAlwaysOn)
+            self.list_table.setColumnCount(3)
+            # self.list_table.setShowGrid(False)
+            self.list_table.setHorizontalHeaderLabels(['Amp_list','Freq_list(GHz)','Phase_list'])
+            self.list_table.horizontalHeader().setSectionsClickable(False)
+            # self.list_table.horizontalHeader().setStyleSheet('QHeaderView::section{background:}')
+            # self.show()
 
 class viewInstDialog(QtWidgets.QDialog):
 
@@ -300,8 +443,6 @@ class CloseSelInstDialog(QtWidgets.QDialog):
 
         self.parent.Display==0
         self.close()
-
-
 
 class AWGInfoDialog(QtWidgets.QDialog):
     '''AWG设置窗口'''

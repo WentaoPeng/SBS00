@@ -24,7 +24,6 @@ def manual_lists():
     return
 
 
-
 def df_feedback(freq_design_seq, freq, gain_offset):
     # 功能：通过左右区间积分，在自然线宽范围内微调梳齿频率间隔（待验证）
     # 输入：梳齿频率f_seq, 开关增益的频率freq(Hz)和响应gain_offset
