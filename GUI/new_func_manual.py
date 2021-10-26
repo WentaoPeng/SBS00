@@ -24,21 +24,30 @@ def manual_lists():
     return
 
 
-def df_feedback(freq_design_seq, freq, gain_offset):
+
+def df_feedback(freq_design_seq, freq, gain_offset, BFS, FWHM):
     # 功能：通过左右区间积分，在自然线宽范围内微调梳齿频率间隔（待验证）
-    # 输入：梳齿频率f_seq, 开关增益的频率freq(Hz)和响应gain_offset
-    BFS = None  # todo:读取单频测量所得BFS，单位GHz
-    FWHM = None  # todo:读取单频测量所得FWHM，单位MHz
+    # 输入：梳齿频率freq_design_seq(Hz), 开关增益的频率freq(Hz)和校准基线后的开关响应gain_offset(dB)
+    # BFS  # 读取单频测量所得BFS，单位GHz
+    # FWHM  # 读取单频测量所得FWHM，单位MHz
 
-    f_index = mlt.search_index(freq_design_seq - BFS*1e9, freq)  # 搜索时减去BFS
+    # 边缘梳齿频率不变，只改中间
+    freq_design_seq_sam = freq_design_seq[1:-1]
+    new_freq_design = freq_design_seq
 
-    ratio = 0.5  # 加窗点数/FWHM对应点数
+    # print('freq_design_seq_sam =', freq_design_seq_sam + BFS*1e9)
+    f_index = mlt.search_index(freq_design_seq_sam + BFS*1e9, freq)  # 搜索时减去BFS,freq_design_seq和freq单位相同(Hz)
+    # print('find freq =', freq[f_index])
+
+    ratio = 0.4  # 加窗点数/FWHM对应点数
     n_dots = int(ratio * (f_index[1] - f_index[0]))  # 半区间取点个数
     sample_array = np.array([gain_offset[i - n_dots:i + n_dots+1] for i in f_index])
     left_list = np.hstack((np.ones(n_dots) / n_dots, np.zeros(n_dots+1)))
     left_measure_sam = np.dot(sample_array, left_list)
     right_list = np.hstack((np.zeros(n_dots + 1), np.ones(n_dots) / n_dots))
     right_measure_sam = np.dot(sample_array, right_list)
-    offset_f = (0.5-left_measure_sam/(left_measure_sam+right_measure_sam))*FWHM
-    new_freq_design_seq = freq_design_seq - offset_f/1e3
-    return new_freq_design_seq
+    temp = (0.5-left_measure_sam/(left_measure_sam+right_measure_sam))
+    offset_f = temp*FWHM
+    new_freq_design[1:-1] = freq_design_seq_sam - offset_f*1e3
+    return new_freq_design
+
