@@ -307,7 +307,7 @@ class manualFB_list(QtWidgets.QDialog):
             self.list_table.setRowCount(len(amp_list))
             for column in range(3):
                 for row in range(len(amp_list)):
-                    self.list_table.setItem(row,column,QtWidgets.QTableWidgetItem(format(arry[column][row],'.3f')))
+                    self.list_table.setItem(row,column,QtWidgets.QTableWidgetItem(format(arry[column][row],'.6f')))
                     # self.list_table.item(row, column).setTextAlignment(QtCore.AlignHCenter | QtCore.AlignVCenter)
             self.list_table.update()
             self.list_table.blockSignals(False)

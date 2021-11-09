@@ -529,6 +529,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
             target_Power, okay = QtWidgets.QInputDialog.getDouble(self, 'RF POWER',
                                                                   'Manual Input (0mV to 1000mV)',
                                                                   self.parent.AWGInfo.AWGPower, 0, 1000, 0.01)
+            self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                                                channel=self.parent.AWGInfo.ChannelNum)
+
             self.parent.AWGInfo.AWGPower = target_Power
 
         if okay:
@@ -552,8 +555,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 # wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
                 #                                            ch=self.parent.AWGInfo.ChannelNum)
                 # self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
-                self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
-                                                    channel=self.parent.AWGInfo.ChannelNum)
+                # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                #                                     channel=self.parent.AWGInfo.ChannelNum)
                 self.parent.AWGHandle.play()
                 # self.parent.AWGHandle.err_check()
                 self.parent.AWGInfo.AWG_Status = True
