@@ -61,8 +61,19 @@ class AWGInfo():
         self.f_list = []
         self.amp_list = []
         self.phase_list = []
-        self.gamma_b=9
+        self.gamma_b=9      #线宽MHz
         self.rand_seed=0
+        self.BJ_freq=[]     #背景
+        self.BJ_amp=[]
+        self.bfs=0          #GHz
+        self.map=0
+        self.baseline=[]
+        self.freq_FB=[]
+        self.gain_on_off_FB=[]
+        self.smooth=301
+        self.width_peak=500
+        self.rel_height_peak=0.1
+        self.min_base_indx=0
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''

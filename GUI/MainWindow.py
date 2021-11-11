@@ -200,6 +200,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ManualInstDialog = Dialogs.manualInstDialog(self)
         self.viewInstDialog = Dialogs.viewInstDialog(self)
         self.closeInstDialog = Dialogs.CloseSelInstDialog(self)
+        self.ManualFB_Fun=Dialogs.manualFB_list(self)
 
     def on_exit(self):
         self.close()
@@ -208,7 +209,7 @@ class MainWindow(QtWidgets.QMainWindow):
     # def savedata(self):
 
     def Manual_inst(self):
-        result = self.ManualInstDialog.exec_()
+        self.ManualInstDialog.exec_()
 
     def select_inst(self):
         result = self.selInstDialog.exec_()

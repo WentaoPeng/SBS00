@@ -424,6 +424,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.sweepFreq=QtWidgets.QCheckBox('Sweep_Freq')
         # self.sweepFreq.setCheckState(True)
         self.sweepFreq.setChecked(False)
+        self.plusFreq=QtWidgets.QCheckBox('Plus')
+        self.plusFreq.setChecked(False)
+        self.minusFreq=QtWidgets.QCheckBox('Minus')
 
 
         PumpLayout.addWidget(QtWidgets.QLabel('Pump Shape :'), 0, 0)
@@ -434,7 +437,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
         PumpLayout.addWidget(self.BandWidth, 2, 1, 2, 3)
         PumpLayout.addWidget(self.CombFreq, 3, 1, 2, 3)
         PumpLayout.addWidget(self.rand_seed,4, 1, 2, 3)
-        PumpLayout.addWidget(self.sweepFreq,5,0)
+        PumpLayout.addWidget(self.sweepFreq,6,0)
+        PumpLayout.addWidget(self.plusFreq,6,1)
+        PumpLayout.addWidget(self.minusFreq,6,2)
         # PumpLayout.addWidget(QtWidgets.QLabel('Sweep_Freq'),5,1)
         PumpDesign.setLayout(PumpLayout)
 
@@ -524,6 +529,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
             target_Power, okay = QtWidgets.QInputDialog.getDouble(self, 'RF POWER',
                                                                   'Manual Input (0mV to 1000mV)',
                                                                   self.parent.AWGInfo.AWGPower, 0, 1000, 0.01)
+            self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                                                channel=self.parent.AWGInfo.ChannelNum)
+
             self.parent.AWGInfo.AWGPower = target_Power
 
         if okay:
@@ -547,8 +555,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 # wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
                 #                                            ch=self.parent.AWGInfo.ChannelNum)
                 # self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
-                self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
-                                                    channel=self.parent.AWGInfo.ChannelNum)
+                # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                #                                     channel=self.parent.AWGInfo.ChannelNum)
                 self.parent.AWGHandle.play()
                 # self.parent.AWGHandle.err_check()
                 self.parent.AWGInfo.AWG_Status = True
@@ -579,7 +587,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         ''' [2] check and preprocess '''
         # assert bandwidth % comb_df == 0
-        N_pump = int(bandwidth / comb_df)+1  # todo：检查数量是否对应
+        N_pump = int(bandwidth / comb_df)+1
         central_freq = 0  # 因为只要确定形状，故此处中心频率采用相对值，设置为0
         BFS = 0  # 因为只要确定形状，故不考虑布里渊频移，设置为0
 
@@ -591,7 +599,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         nml_amp_seq = mlt.normalize_amp_seq(amp_seq, f_seq, phase_list)  # 归一化后泵浦
 
         ''' [2-2] 计算增益谱 '''
-        f_measure = np.linspace(central_freq - bandwidth, central_freq + bandwidth, 20000)  # 设置扫频范围与点数，单位MHz
+        f_measure = np.linspace(central_freq - bandwidth, central_freq + bandwidth, 40000)  # 设置扫频范围与点数，单位MHz
         measure_brian = mlt.conv_lorenz(f_measure, nml_amp_seq, f_seq, gamma_B, BFS)
 
         ''' [3] 迭代反馈,当平整度增加时停止迭代 '''
@@ -602,7 +610,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         expected_gain_sam = mlt.expected_gain2(f_index, measure_brian.real, type_filter)
         bias = abs(measure_brian[f_index[0]:f_index[-1]] - np.mean(expected_gain_sam))
         flatness = (max(bias) - min(bias))
-        while N_iteration < 60:  # 设置迭代上限
+        while N_iteration < 30:  # 设置迭代上限
             # 更新amp_seq，目前有4种方式
             new_amp_seq = mlt.change_amp_seq(amp_seq, expected_gain_sam, brian_measure_sam, iteration_type)
             nml_amp_seq = mlt.normalize_amp_seq(amp_seq, f_seq, phase_list)
@@ -627,7 +635,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
     def designset(self):
         AWG_framerate = 64e9  # AWG采样率
-        self.parent.AWGHandle.set_fs(fs=AWG_framerate)
         Df = 1 * 10 ** 6
         # FM_AWG = AWG_framerate / 2.56   # AWG最高分析频率
         N_AWG = int(AWG_framerate / Df)
@@ -652,6 +659,24 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.parent.AWGInfo.f_list = f_list
         self.parent.AWGInfo.amp_list = amp_list
         self.parent.AWGInfo.phase_list = phase_list
+        ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
+        self.parent.AWGInfo.f_list = f_list
+        self.parent.AWGInfo.amp_list = amp_list
+        self.parent.AWGInfo.phase_list = phase_list
+        self.parent.AWGInfo.ts = ts
+        self.parent.AWGInfo.ys = ys
+        FFT_y, Fre = SBS_DSP.get_fft(ys, AWG_framerate)
+        self.parent.AWGInfo.FFT_y = FFT_y
+        self.parent.AWGInfo.Fre = Fre
+        # Lorenz拟合
+        Tb = 20 * 10 ** 6  # 10~30Mhz布里渊线宽
+        omega_sbs = 9.7e9  # 布里渊平移量
+        f_measure = np.arange(CF - 2 * BW - omega_sbs, CF + 2 * BW - omega_sbs, 10 ** 6)
+        self.parent.AWGInfo.f_measure = f_measure
+        total_lorenz = SBS_DSP.add_lorenz(f_measure, amp_list * 0.008, f_list, Tb)
+
+        self.parent.AWGInfo.gb = total_lorenz
+
 
     def sweep_Pump(self,i,amp_list,f_list,phase_list):
         j=10  # 多音扫频梳齿数
@@ -678,8 +703,14 @@ class AWGCtrl(QtWidgets.QGroupBox):
         两种方式，扫频与正常
         :return:
         '''
+        AWG_framerate = 64e9  # AWG采样率
+        self.parent.AWGHandle.set_fs(fs=AWG_framerate)
         if self.pumpdesignsetBtu.isChecked():
-            AWG_framerate = 64e9  # AWG采样率
+            if self.plusFreq.isChecked():
+                self.parent.AWGInfo.f_list+=self.parent.AWGInfo.BWFreq
+            if self.minusFreq.isChecked():
+                self.parent.AWGInfo.f_list-=self.parent.AWGInfo.BWFreq
+
             f_list = self.parent.AWGInfo.f_list
             amp_list = self.parent.AWGInfo.amp_list
             phase_list = self.parent.AWGInfo.phase_list
@@ -726,10 +757,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 self.timer.start(0)
             else:
                 self.timer.stop()
-
                 # 预反馈部分
-                if len(f_list)>1:
-                    amp_list = self.pre_amp_seq(BW, DF)
+                # if len(f_list)>1:todo:长度不匹配，后期改
+                #     amp_list = self.pre_amp_seq(BW, DF)
 
                 # ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
                 ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
@@ -751,14 +781,13 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 self.parent.AWGInfo.FFT_y = FFT_y
                 self.parent.AWGInfo.Fre = Fre
                 # Lorenz拟合
-                Tb = 20 * 10 ** 6  # 10~30Mhz布里渊线宽
-                omega_sbs = 9.7e9  # 布里渊平移量
+                Tb = 10 * 10 ** 6  # 10~30Mhz布里渊线宽
+                omega_sbs = 7e9  # 布里渊平移量
                 f_measure = np.arange(CF - 2 * BW - omega_sbs, CF + 2 * BW - omega_sbs, 10 ** 6)
                 self.parent.AWGInfo.f_measure = f_measure
                 total_lorenz = SBS_DSP.add_lorenz(f_measure, amp_list * 0.008, f_list, Tb)
 
                 self.parent.AWGInfo.gb = total_lorenz
-
 
 
 
@@ -804,9 +833,8 @@ class FcombDisplay(QtWidgets.QGroupBox):
         pg.setConfigOption('foreground', 'k')
 
         self.pw = pg.MultiPlotWidget()
-        self.plot_data = self.pw.addPlot(left='Amp', bottom='Freq(Hz)', title='FreqCombs&LorenzSBSGain')
+        self.plot_data = self.pw.addPlot(left='Amp', bottom='Freq(Hz)', title='SBSGain')
 
-        #
         self.plot_btn = QtWidgets.QPushButton('Replot', self)
         self.plot_btn.clicked.connect(self.plot2)
 
@@ -827,6 +855,12 @@ class FcombDisplay(QtWidgets.QGroupBox):
         self.plot_data.plot(z, w, pen=r_color1)
         self.plot_data.plot(f_measure, gb, pen=r_color2)
         self.plot_data.showGrid(x=True, y=True)
+
+    def plot3(self,gain_on_off,freq_data):
+        self.plot_data.clear()
+        r_color1 = np.random.choice(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'd', 'l', 's'])
+        self.plot_data.plot(freq_data,gain_on_off,pen=r_color1)
+        self.plot_data.showGrid(x=True,y=True)
 
 
 class LightCtrl(QtWidgets.QGroupBox):
@@ -1179,6 +1213,9 @@ class Feedback(QtWidgets.QGroupBox):
         反馈次数
         均方误差
     '''
+    # btu_map = QtWidgets.QPushButton('Mapping')
+    # btu_map.setCheckable(True)
+    # btu_map.setStyleSheet('''QPushButton:hover{background:yellow;}''')
 
     def __init__(self, parent):
         QtWidgets.QGroupBox.__init__(self, parent)
@@ -1204,13 +1241,31 @@ class Feedback(QtWidgets.QGroupBox):
         self.backBtu = QtWidgets.QPushButton('Original')
         self.back = QtWidgets.QLineEdit()
         self.back.setPlaceholderText('NONE_PUMP')
-        self.bfsBtu = QtWidgets.QPushButton('BFS')
+        self.bfsBtu = QtWidgets.QPushButton('S_BFS&FWHM')
         self.bfs = QtWidgets.QLineEdit()
-        self.bfs.setPlaceholderText('Single_Comb')
+        self.bfs.setPlaceholderText('bfs_GHz')
+        self.linew=QtWidgets.QLineEdit()
+        self.linew.setPlaceholderText('L_W_MHz')
+        self.smoothindx=QtWidgets.QLineEdit()
+        self.smoothindx.setPlaceholderText('smooth_i=301')
+        self.width_peak=QtWidgets.QLineEdit()
+        self.width_peak.setPlaceholderText('width=500')
+        self.rel_height=QtWidgets.QLineEdit()
+        self.rel_height.setPlaceholderText('height=0.1')
+        self.min_base_indx=QtWidgets.QLineEdit()
+        self.min_base_indx.setPlaceholderText('base=0')
 
         self.modFB = QtWidgets.QComboBox()
         self.modFB.addItems(api_val.FB_modList)
         self.modFBDispaly = QtWidgets.QLineEdit()
+
+        self.ManualBtu=QtWidgets.QPushButton('Manual')
+        self.ManualBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
+        self.btu_map=QtWidgets.QPushButton('Mapping')
+        self.btu_map.setCheckable(True)
+        self.btu_map.setStyleSheet('''QPushButton:hover{background:yellow;}''')
+        self.btu_dfFB=QtWidgets.QPushButton('DF_FB')
+        self.btu_dfFB.setStyleSheet('''QPushButton:hover{background:yellow;}''')
 
         FBLayout = QtWidgets.QGridLayout()
         FBLayout.setAlignment(QtCore.Qt.AlignLeft)
@@ -1222,7 +1277,15 @@ class Feedback(QtWidgets.QGroupBox):
         FBLayout.addWidget(self.back, 1, 4, 1, 1)
         FBLayout.addWidget(self.bfsBtu, 0, 5, 1, 1)
         FBLayout.addWidget(self.bfs, 1, 5, 1, 1)
-        FBLayout.addWidget(self.activeBtu, 0, 6, 2, 1)
+        FBLayout.addWidget(self.linew,1,6,1,1)
+        FBLayout.addWidget(self.activeBtu, 0, 7, 2, 1)
+        FBLayout.addWidget(self.ManualBtu,2,1,1,1)
+        FBLayout.addWidget(self.btu_map,2,4,1,1)
+        FBLayout.addWidget(self.smoothindx,2,2,1,1)
+        FBLayout.addWidget(self.min_base_indx,2,3,1,1)
+        FBLayout.addWidget(self.width_peak,2,5,1,1)
+        FBLayout.addWidget(self.rel_height,2,6,1,1)
+        FBLayout.addWidget(self.btu_dfFB,2,7,1,1)
         FBLayout.addWidget(QtWidgets.QLabel('Mod_Switch:'), 0, 2)
         FBLayout.addWidget(self.modFB, 0, 3)
         FBLayout.addWidget(self.modFBDispaly, 1, 2, 1, 2)
@@ -1232,37 +1295,104 @@ class Feedback(QtWidgets.QGroupBox):
         self.backBtu.clicked.connect(self.getBack)
         self.activeBtu.clicked.connect(self.FB_Function)
         self.bfsBtu.clicked.connect(self.getBFS)
+        self.ManualBtu.clicked.connect(self.Manual_Fun)
+        self.btu_map.clicked.connect(self.mapping_Fun)
+        self.btu_dfFB.clicked.connect(self.dfFB_Fun)
 
-        self.bfs.textChanged.connect(self.setbfs)
+        self.bfs.textChanged.connect(self.set_update)
+        self.linew.textChanged.connect(self.set_update)
+        self.smoothindx.textChanged.connect(self.set_update)
+        self.width_peak.textChanged.connect(self.set_update)
+        self.min_base_indx.textChanged.connect(self.set_update)
 
-        self.BGS_freq = []
-        self.BGS_amp = []
-        self.bfs_value = 7.15e3
+        # self.BGS_freq = []
+        # self.BGS_amp = []
+        # self.bfs_value = 7.15e3
 
-    def setbfs(self):
-        self.parent.AWGInfo.gamma_b=float(self.bfs.text())      #手动设置线宽
+    def dfFB_Fun(self):
+        freq_design_seq = self.parent.AWGInfo.f_list
+        freq = self.parent.AWGInfo.freq_FB
+        gain_offset = self.parent.AWGInfo.gain_on_off_FB
+        BFS=self.parent.AWGInfo.bfs
+        FWHM=self.parent.AWGInfo.gamma_b
+        new_freq_design=df_feedback(freq_design_seq,freq,gain_offset,BFS,FWHM)
+        self.parent.AWGInfo.f_list=new_freq_design
+        # AWGCtrl.DonePump(self)
+        f_list=new_freq_design
+        amp_list = self.parent.AWGInfo.amp_list
+        phase_list = self.parent.AWGInfo.phase_list
+        ts = self.parent.AWGInfo.ts
+        ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
+
+        wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
+        self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
+        self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                                           ch=self.parent.AWGInfo.ChannelNum)
+        if self.parent.AWGInfo.AWG_Status:
+            # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+            #                                     channel=self.parent.AWGInfo.ChannelNum)
+            self.parent.AWGHandle.play()
+        else:
+            msg = Shared.MsgError(self, 'No Instrument!', 'No AWG is connected!')
+            msg.exec_()
+
+    def mapping_Fun(self):
+        if self.btu_map.isChecked():
+            if self.parent.PNAHandle:
+                self.parent.AWGInfo.map=1
+            else:
+                msg = Shared.MsgError(self, 'No Instrument!', 'No PNAN5225A is connected!')
+                msg.exec_()
+                self.btu_map.setCheckable(True)
+        else:
+            self.parent.AWGInfo.map=0
+
+    def set_update(self):
+        if self.linew.text():
+            self.parent.AWGInfo.gamma_b=float(self.linew.text())      #手动设置线宽
+        if self.bfs.text():
+            self.parent.AWGInfo.bfs=float(self.bfs.text())
+        if self.smoothindx.text():
+            self.parent.AWGInfo.smooth=int(self.smoothindx.text())
+        if self.width_peak.text():
+            self.parent.AWGInfo.width_peak=int(self.width_peak.text())
+            # print(self.parent.AWGInfo.width_peak)
+        if self.rel_height.text():
+            self.parent.AWGInfo.rel_height_peak=float(self.rel_height.text())
+        if self.min_base_indx.text():
+            self.parent.AWGInfo.min_base_indx=int(self.min_base_indx.text())
+
 
     def search_index(self, f_seq, f_measure):
+        # 功能：找到f_seq在f_measure中最接近位置(差的绝对值最小)的索引f_index
+        # PS : 当前默认每个点都能找到，如果范围不对应可能会出现隐藏bug
         f_index = np.zeros(f_seq.size, dtype=int)
-        f_resolution = (f_measure[1] - f_measure[0])
-        index_bef = 0
-        for i in range(f_seq.size):
-            for j in range(index_bef, f_measure.size):
-                if abs(f_measure[j] - f_seq[i]) < .51 * f_resolution:
-                    f_index[i] = j
-                    index_bef = j
-                    break
+        idx_seq = 0
+        find_num = 0
+        idx_min = 0
+        idx_max = -1  # 默认梳齿不是f_measure最后一个元素
+        while find_num < f_seq.size:
+            freq_slide = abs(f_measure[idx_min: idx_max] - f_seq[idx_seq])
+            find_idx = np.argmin(freq_slide) + idx_min
+            f_index[idx_seq] = find_idx
+            find_num += 1
+            if idx_seq < 0:
+                idx_seq = -idx_seq
+                idx_max = find_idx  # 更新搜索右边界
+            else:
+                idx_min = find_idx  # 更新搜索左边界
+                idx_seq = -(idx_seq + 1)
         return f_index
+
 
     def expected_gain(self, f_index, measure_brian, type_filter):
         # 3db带宽范围：fmax - fmin + FWHM（半峰全宽）
         # 2版：均值取fmax - fmin范围内，最后算泵浦对应位置
         len_seq = len(f_index)
-        brian_measure_sam = np.array([measure_brian[i] for i in f_index])  # 最接近频梳频率的采样点增益
 
         if type_filter == 'Rectangle':
             # expected_gain_sam = np.ones(len_seq) * np.mean(brian_measure_sam)
-            expected_gain_sam = np.ones(len_seq) * np.mean(measure_brian[f_index[0]:f_index[-1]])
+            expected_gain_sam = np.ones(len_seq) * np.mean(measure_brian[f_index[1]:f_index[-2]])
         elif type_filter == 'Triangle':
             mb_min = max(np.min(measure_brian), 0)
             mb_max = np.max(measure_brian)
@@ -1314,8 +1444,8 @@ class Feedback(QtWidgets.QGroupBox):
         else:
             if (self.parent.PNAHandle):
                 freq_BG_Signal, amp_BG_Signal = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
-                self.BGS_freq = freq_BG_Signal
-                self.BGS_amp = amp_BG_Signal
+                self.parent.AWGInfo.BJ_freq = freq_BG_Signal
+                self.parent.AWGInfo.BJ_amp = amp_BG_Signal
                 # self.BGS_amp=savgol_filter(amp_BG_Signal,51, 3, mode='nearest')
                 self.back.clear()
                 self.back.setPlaceholderText('Well Done!!!')
@@ -1327,12 +1457,16 @@ class Feedback(QtWidgets.QGroupBox):
         # 函数功能：峰值分析，具体包括通过开关增益计算主峰频率、增益、半高全宽FWHM,基线
         # 输入：测量频率(单位GHz)，开关增益
         # 输出：主峰BFS(默认中心频率15GHz),峰值，FWHM,基线(常数)
+        freq = np.array(freq, dtype='float64')
         f_resolution = float(freq[1] - freq[0])  # 频率分辨率(GHz)
-        peaks, _ = find_peaks(gain_on_off, width=500, rel_height=0.1)  # 寻峰
+        # peaks, _ = find_peaks(gain_on_off, width=500, rel_height=0.1)  # 寻峰
+        gain_on_off = np.array(gain_on_off)
+        max_peak = np.max(gain_on_off)
+        peaks, _ = find_peaks(gain_on_off, height=[max_peak - 1, max_peak])  # 寻峰
 
         prominences = peak_prominences(gain_on_off, peaks)[0]  # 计算峰高
         idx_main_peak = prominences.argmax()  # 找主峰
-        BFS = 15 - freq[peaks[idx_main_peak]]  # 求BFS(单位GHz)，默认中心频率15GHz todo:可将15GHz换为输入变量
+        BFS = self.parent.AWGInfo.CFFreq/1e9 - freq[peaks[idx_main_peak]]  # 求BFS(单位GHz)，默认中心频率15GHz
         main_peak_gain = prominences[idx_main_peak]  # 主峰峰值
         baseline = max(gain_on_off[peaks]) - main_peak_gain  # 求基线
 
@@ -1350,18 +1484,18 @@ class Feedback(QtWidgets.QGroupBox):
             if (self.parent.PNAHandle):
                 freq_single_comb, amp_single_comb = self.parent.PNAHandle.pna_acquire(
                     measName=self.parent.PNAInfo.Scale)  # todo:改为本地已存单频泵浦增益数据
-                freq_design_seq = self.parent.AWGInfo.f_list
-                amp_single_comb = amp_single_comb - self.BGS_amp
+                freq_single_comb = freq_single_comb/1e9  # 单位GHz
+                amp_single_comb = amp_single_comb - self.parent.AWGInfo.BJ_amp
 
                 amp_single_comb = savgol_filter(amp_single_comb, 301, 3)  # 3阶SG平滑
                 BFS, main_peak_gain, FWHM_main_peak, baseline = self.peak_analysis(freq_single_comb, amp_single_comb)  # 获取峰值分析参数
-                self.bfs_value = BFS*1e3  # 单位MHz
-                self.gamma_b = FWHM_main_peak  # 单位MHz
-                # self.gamma_b=9
-
-                self.parent.AWGInfo.gamma_b=self.gamma_b
+                self.parent.AWGInfo.bfs = BFS  # SBS平移量单位GHz
+                self.parent.AWGInfo.gamma_b=FWHM_main_peak   # 单频线宽单位MHz
+                self.parent.AWGInfo.baseline=baseline
                 self.bfs.clear()
-                self.bfs.setPlaceholderText('bfs='+str(round(self.bfs_value / 1e3,1)) + 'GHz'+'线宽='+str(round(self.gamma_b,1))+'MHz')
+                self.linew.clear()
+                self.bfs.setPlaceholderText('bfs='+str(round(self.parent.AWGInfo.bfs,1)) + 'GHz')
+                self.linew.setPlaceholderText('线宽='+str(round(self.parent.AWGInfo.gamma_b,1))+'MHz')
             else:
                 self.bfs.clear()
                 self.bfs.setPlaceholderText('Check PNA!')
@@ -1388,19 +1522,24 @@ class Feedback(QtWidgets.QGroupBox):
                         方案1：改为手动单次反馈
                         方案2：修改时延函数"""
                         freq_design_seq = self.parent.AWGInfo.f_list
+                        print('freq_design_seq', len(freq_design_seq))
                         amp_design_seq = self.parent.AWGInfo.amp_list
                         freq_measure, amp_measure = self.parent.PNAHandle.pna_acquire(
                             measName=self.parent.PNAInfo.Scale)
-                        amp_measure = amp_measure - self.BGS_amp  # 计算开关增益 todo：改为读取已保存的开关增益
-                        f_index = self.search_index(freq_design_seq - self.bfs_value * 1e6, freq_measure)  # 搜索时减去BFS
+                        amp_measure = amp_measure - self.parent.AWGInfo.BJ_amp  # 计算开关增益
                         amp_measure = savgol_filter(amp_measure, 301, 3)  # 单位MHz；300点3阶SG平滑去噪
+                        baseline = peak_analysis(freq=freq_measure / 1e9, gain_on_off=amp_measure)
+                        amp_measure = amp_measure - baseline  # 开关增益减去基线
 
-                        expected_amp_sam = self.expected_gain(f_index, amp_measure, mod_shape)
-                        amp_measure_sam = np.array([amp_measure[i] for i in f_index])  # 最接近频梳频率的采样点增益
+                        f_index = self.search_index(freq_design_seq - self.parent.AWGInfo.bfs * 1e9, freq_measure)  # 搜索时减去BFS
+                        print('f_index',len(f_index))
+                        expected_amp_sam = self.expected_gain(f_index, amp_measure, 'Rectangle')
+                        amp_measure_sam = np.array([amp_measure[j] for j in f_index])  # 最接近频梳频率的采样点增益
+                        print('amp_design_seq', len(amp_design_seq),'expected_amp_sam',len(expected_amp_sam),'amp_measure_sam',len(amp_measure_sam))
                         amp_design_seq_new = mlt.change_amp_seq(amp_design_seq, expected_amp_sam, amp_measure_sam, 1)
 
                         self.parent.AWGInfo.amp_list = amp_design_seq_new
-                        print(amp_design_seq_new)
+                        print('new amp_design_seq =', amp_design_seq_new)
 
                         ys = SBS_DSP.synthesize1(amp_design_seq_new,
                                                  self.parent.AWGInfo.f_list,
@@ -1409,10 +1548,17 @@ class Feedback(QtWidgets.QGroupBox):
                         self.parent.AWGInfo.ys = ys
                         wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
                         self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
-                        self.parent.AWGHandle.clear_all_wfm()
-                        wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
-                                                                   ch=self.parent.AWGInfo.ChannelNum)
-                        self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
+                        # self.parent.AWGHandle.clear_all_wfm()
+                        # wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                        #                                            ch=self.parent.AWGInfo.ChannelNum)
+                        # self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
+                        self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                                                           ch=self.parent.AWGInfo.ChannelNum)
+                        if self.parent.AWGInfo.AWG_Status:
+                            # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                            #                                     channel=self.parent.AWGInfo.ChannelNum)
+                            self.parent.AWGHandle.play()
+
                         self.FBnum.setText(str(i))
                         # 预留设备设置时间10ms
                         time.sleep(10)
@@ -1435,9 +1581,6 @@ class Feedback(QtWidgets.QGroupBox):
                     for a in range(ant_Num):
                         freq_measure[a], amp_measure[a]=self.parent.PNAHandle.pna_acquire()
 
-
-
-
                 else:
                     pass
 
@@ -1451,6 +1594,10 @@ class Feedback(QtWidgets.QGroupBox):
         elif mod_index == 2:
             self.modFBDispaly.clear()
             self.modFBDispaly.setPlaceholderText('FB_Num.')
+
+    def Manual_Fun(self):
+        self.parent.ManualFB_Fun.exec_()
+
 
 
 class VNAMonitor(QtWidgets.QGroupBox):
@@ -1477,6 +1624,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.timer.timeout.connect(self.plot)
         self.timer.start(1500)
         # 设置计时间隔并启动(1000ms == 1s)
+        self.map_len=1
 
     def timer_start(self):
         if self.parent.PNAHandle:
@@ -1489,12 +1637,86 @@ class VNAMonitor(QtWidgets.QGroupBox):
             pass
 
     def plot(self):
+        # self.timer.stop()
         self.plot_data.clear()
         if self.parent.Display == 1:
             freq, result = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
-            self.plot_data.plot(freq, result, pen='b')
+            if self.parent.AWGInfo.map*self.map_len==1:
+                if len(result)==len(self.parent.AWGInfo.BJ_amp):
+                    gain_on_off=result-self.parent.AWGInfo.BJ_amp
+                    gain_on_off=savgol_filter(gain_on_off,self.parent.AWGInfo.smooth,3)
+                    self.map_len=1
+                    if self.parent.AWGInfo.min_base_indx==0:
+                        baseline = peak_analysis(freq=freq / 1e9, gain_on_off=gain_on_off)
+
+                        gain_on_off_offset=gain_on_off-baseline
+                    else:
+                        gain_on_off_offset = gain_on_off-min(gain_on_off)
+                    # gain_on_off_offset.tolist()
+                else:
+                    msg = Shared.MsgError(self, 'Note!!', '请重新采集背景信号！')
+                    msg.exec_()
+                    # self.map_len=0
+                    # Feedback.btu_map.setChecked(True)
+                    gain_on_off_offset = result
+            else:
+                gain_on_off_offset=result
+
+            self.plot_data.plot(freq, gain_on_off_offset, pen='b')
+            self.parent.AWGInfo.freq_FB=freq
+            self.parent.AWGInfo.gain_on_off_FB=gain_on_off_offset
+            # self.timer.start(1000)
         else:
             pass
 
     def off(self):
         self.pgPlot.clearMouse()
+
+def peak_analysis(freq,gain_on_off):
+    # 函数功能：峰值分析，具体包括通过开关增益计算主峰频率、增益、半高全宽FWHM,基线
+    # 输入：测量频率(单位GHz)，开关增益
+    # 输出：主峰BFS(默认中心频率15GHz),峰值，FWHM,基线(常数)
+    freq = np.array(freq, dtype='float64')
+    f_resolution = float(freq[1] - freq[0])  # 频率分辨率(GHz)
+    # peaks, _ = find_peaks(gain_on_off, width, rel_height)  # 寻峰
+    gain_on_off = np.array(gain_on_off)
+    max_peak = np.max(gain_on_off)
+    peaks, _ = find_peaks(gain_on_off, height=[max_peak-1,max_peak])  # 寻峰
+
+    prominences = np.array(peak_prominences(gain_on_off, peaks)[0])  # 计算峰高
+    idx_main_peak = prominences.argmax()  # 找主峰
+    # BFS = 15 - freq[peaks[idx_main_peak]]  # 求BFS(单位GHz)，默认中心频率15GHz 可将15GHz换为输入变量
+    main_peak_gain = prominences[idx_main_peak]  # 主峰峰值
+    baseline = max(gain_on_off[peaks]) - main_peak_gain  # 求基线
+
+    # results_half = peak_widths(gain_on_off, peaks, rel_height=0.5)  # tuple{0：宽度;1：高度;2:xmin;3:xmax}
+    # FWHM_main_peak = results_half[0][idx_main_peak]*1e3*f_resolution  # 主峰半高全宽(单位MHz)
+
+    # return BFS, main_peak_gain, FWHM_main_peak, baseline
+    return baseline
+
+def df_feedback(freq_design_seq, freq, gain_offset, BFS, FWHM):
+    # 功能：通过左右区间积分，在自然线宽范围内微调梳齿频率间隔（待验证）
+    # 输入：梳齿频率freq_design_seq(Hz), 开关增益的频率freq(Hz)和校准基线后的开关响应gain_offset(dB)
+    # BFS  # 读取单频测量所得BFS，单位GHz
+    # FWHM  # 读取单频测量所得FWHM，单位MHz
+
+    # 边缘梳齿频率不变，只改中间
+    freq_design_seq_sam = freq_design_seq[1:-1]
+    new_freq_design = freq_design_seq
+
+    # print('freq_design_seq_sam =', freq_design_seq_sam + BFS*1e9)
+    f_index = mlt.search_index(freq_design_seq_sam - BFS * 1e9, freq)  # 搜索时减去BFS,freq_design_seq和freq单位相同(Hz)
+    # print('find freq =', freq[f_index])
+
+    ratio = 0.4  # 加窗点数/FWHM对应点数
+    n_dots = int(ratio * (f_index[1] - f_index[0]))  # 半区间取点个数
+    sample_array = np.array([gain_offset[i - n_dots:i + n_dots + 1] for i in f_index])
+    left_list = np.hstack((np.ones(n_dots) / n_dots, np.zeros(n_dots + 1)))
+    left_measure_sam = np.dot(sample_array, left_list)
+    right_list = np.hstack((np.zeros(n_dots + 1), np.ones(n_dots) / n_dots))
+    right_measure_sam = np.dot(sample_array, right_list)
+    temp = (0.5 - left_measure_sam / (left_measure_sam + right_measure_sam))
+    offset_f = temp * FWHM
+    new_freq_design[1:-1] = freq_design_seq_sam - offset_f * 1e6
+    return new_freq_design

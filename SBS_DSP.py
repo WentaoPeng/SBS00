@@ -56,7 +56,7 @@ def square_wave(start, zhouqi, midu, xdecimals, ydecimals):
     return x, y
 
 
-def square_filter(center_F, bandwidth, df,rand_seed):
+def square_filter(center_F, bandwidth, df,rand_seed=0):
     # start_F = center_F - bandwidth / 2
     # # end_F=center_F+bandwidth/2
     dots = int(round(bandwidth / df))+1
@@ -68,18 +68,21 @@ def square_filter(center_F, bandwidth, df,rand_seed):
     # phase_list = []
     # i = 0
     # while i < dots:
-    #     # f_list.append(start_F + i * df + a * 10 ** 6)
-    #     f_list.append(start_F + i * df)
+        # f_list.append(start_F + i * df + a * 10 ** 6)
+        # f_list.append(start_F + i * df)
     #     amp_list[i] = 0.003
     #     phase_list.append(randen_phase())
     #     i = i + 1
     amp_list = np.ones(dots)
+    print('dots',dots)
     f_list = np.arange(-dots // 2 + 1, dots // 2 + 1) * df + center_F
+    # f_list = np.linspace(center_F-bandwidth/2, center_F+bandwidth/2, dots)
     rand_seed = 0  # 改为操作界面输入，默认值为0
     np.random.seed(rand_seed)
     phase_list = np.random.randint(low=0, high=8, size=dots) * (np.pi / 4)
     # phase_list = [np.pi*(n %2==0) for n in range(dots)]  # 奇数pi。偶数0
     # phase_list=np.zeros(dots)
+    print(len(amp_list))
     print(phase_list)
     return f_list, amp_list, phase_list
 
@@ -384,8 +387,8 @@ if __name__ == '__main__':
     # 以MHz为单位，频梳间隔为15~20MHz
     # ts = np.linspace(0,t_FPGA,N_FPGA,endpoint=False)
     center_F = 15 * 10 ** 9
-    bandwidth = 30 * 10 ** 6
-    df = 3 * 10 ** 6
+    bandwidth = 100 * 10 ** 6
+    df = 4 * 10 ** 6
     shape = 0
     CF_gap = 0
     BW_gap = 30 * 10 ** 6
@@ -406,11 +409,11 @@ if __name__ == '__main__':
 
         ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
         ys = synthesize1(amp_list, f_list, ts, phase_list)
-        print(f_list)
-        txt = get_awgfile(ys, center_F, bandwidth, df, shape)
-        center_F = center_F + CF_gap
-        bandwidth = bandwidth + BW_gap
-        df = df + df_gap
+        print(len(f_list))
+        # txt = get_awgfile(ys, center_F, bandwidth, df, shape)
+        # center_F = center_F + CF_gap
+        # bandwidth = bandwidth + BW_gap
+        # df = df + df_gap
     # 验证设计波形AWG.np.array格式
 
     # f_list,amp_list,phase_list=square_filter(center_F,bandwidth,df)
@@ -431,56 +434,56 @@ if __name__ == '__main__':
     # mif=get_mifile(ys)
     # txt = get_awgfile(ys)
 
-    plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
-    plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示符号
-
-    plt.figure()
-    plt.subplot(211)
-    plt.plot(ts, ys, 'b')
-    plt.xlabel("t（毫秒）")
-    plt.ylabel("S(t)幅值")
-    plt.title("叠加信号图")
+    # plt.rcParams['font.sans-serif'] = ['SimHei']  # 用来正常显示中文标签
+    # plt.rcParams['axes.unicode_minus'] = False  # 用来正常显示符号
+    #
+    # plt.figure()
+    # plt.subplot(211)
+    # plt.plot(ts, ys, 'b')
+    # plt.xlabel("t（毫秒）")
+    # plt.ylabel("S(t)幅值")
+    # plt.title("叠加信号图")
+    # # plt.show()
+    #
+    # # fs,hz=get_fft(ys,N_FPGA)
+    # fs, hz = get_fft(ys, N_AWG)
+    # # angle_fs = np.angle(np.abs(np.abs(fft(ys))/N_FPGA))
+    # # angle_hz=np.arange(len(ys))
+    # plt.subplot(212)
+    # plt.plot(hz, fs, 'g')
+    # # plt.subplot(313)
+    # # plt.plot(angle_fs,angle_fs,'p')
+    # plt.xlabel("F（MHz）")
+    # plt.ylabel("A归一化")
+    # plt.title("PUMP频梳")
+    # plt.savefig('triangle.png')
     # plt.show()
-
-    # fs,hz=get_fft(ys,N_FPGA)
-    fs, hz = get_fft(ys, N_AWG)
-    # angle_fs = np.angle(np.abs(np.abs(fft(ys))/N_FPGA))
-    # angle_hz=np.arange(len(ys))
-    plt.subplot(212)
-    plt.plot(hz, fs, 'g')
-    # plt.subplot(313)
-    # plt.plot(angle_fs,angle_fs,'p')
-    plt.xlabel("F（MHz）")
-    plt.ylabel("A归一化")
-    plt.title("PUMP频梳")
-    plt.savefig('triangle.png')
-    plt.show()
-
-    # print(len(ys))
-    # ys=np.ones(len(ys))*ys
-    shape_list = ['Square', 'Triangle', 'Band_stop', 'Guass']
-    ys = np.loadtxt('AWG_' + shape_list[shape] + 'CW=' + str((center_F - CF_gap) / 10 ** 9) + 'GHz' + 'BW=' + str(
-        (bandwidth - BW_gap) / (10 ** 6)) + 'MHz' + 'Df=' + str((df - df_gap) / (10 ** 6)) + 'MHz' + '.txt'
-                    )
-    # fft_ys = np.abs(np.abs(fft(ys)) / N_AWG)
-    # fft_ys = scipy.fft.fft(ys)
-    # fft_ys1 = abs(fft_ys)
-    # fft_ys2 = abs(fft_ys1 / N_AWG)
-    # fft_ys3 = fft_ys2[range(int(N_AWG / 2))]
-    # Fs = np.arange(len(ys))
-    FFT_y, Fre = get_fft(ys, AWG_framerate)
     #
-    #
-    # angle_ys = np.angle(fft_ys)
-    #
-    plt.figure()
-    # plt.subplot(311)
-    # plt.plot(ts, ys)
-    # plt.subplot(312)
-    # plt.xlim(14500, 15500)
-    # plt.plot(Fs, fft_ys2)
-    plt.plot(Fre, FFT_y)
-    # plt.subplot(313)
-    # plt.plot(Fs, angle_ys)
-    plt.xlim(1.3e10, 1.52e10)
-    plt.show()
+    # # print(len(ys))
+    # # ys=np.ones(len(ys))*ys
+    # shape_list = ['Square', 'Triangle', 'Band_stop', 'Guass']
+    # ys = np.loadtxt('AWG_' + shape_list[shape] + 'CW=' + str((center_F - CF_gap) / 10 ** 9) + 'GHz' + 'BW=' + str(
+    #     (bandwidth - BW_gap) / (10 ** 6)) + 'MHz' + 'Df=' + str((df - df_gap) / (10 ** 6)) + 'MHz' + '.txt'
+    #                 )
+    # # fft_ys = np.abs(np.abs(fft(ys)) / N_AWG)
+    # # fft_ys = scipy.fft.fft(ys)
+    # # fft_ys1 = abs(fft_ys)
+    # # fft_ys2 = abs(fft_ys1 / N_AWG)
+    # # fft_ys3 = fft_ys2[range(int(N_AWG / 2))]
+    # # Fs = np.arange(len(ys))
+    # FFT_y, Fre = get_fft(ys, AWG_framerate)
+    # #
+    # #
+    # # angle_ys = np.angle(fft_ys)
+    # #
+    # plt.figure()
+    # # plt.subplot(311)
+    # # plt.plot(ts, ys)
+    # # plt.subplot(312)
+    # # plt.xlim(14500, 15500)
+    # # plt.plot(Fs, fft_ys2)
+    # plt.plot(Fre, FFT_y)
+    # # plt.subplot(313)
+    # # plt.plot(Fs, angle_ys)
+    # plt.xlim(1.3e10, 1.52e10)
+    # plt.show()
