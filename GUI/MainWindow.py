@@ -14,15 +14,20 @@ import traceback
 import sys
 import pyqtgraph as pg
 
-
 class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self)
 
+        self.app = QtWidgets.QApplication.instance()
+        screen_resolution = self.app.desktop().screenGeometry()  # 读取当前设备桌面分辨率
+        scr_width = screen_resolution.width()
+        scr_height = screen_resolution.height()
+
         # 设置窗口属性
         self.setWindowTitle('SBSSystem')
-        self.setMinimumSize(1500, 840)
+        # self.setMinimumSize(scr_width*0.8, scr_height*0.8)  # 按比例显示最小窗口尺寸
+
         self.testModeSignLabel = QtWidgets.QLabel('[TEST MODE ACTIVE -- NOTHING IS REAL]!')
         self.testModeSignLabel.setStyleSheet('color: {:s}'.format(Shared.msgcolor(0)))
         self.testModeSignLabel.setAlignment(QtCore.Qt.AlignCenter)
@@ -129,21 +134,40 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # 设置主要模块显示位置
         self.mainLayout = QtWidgets.QGridLayout()
-        self.mainLayout.setSpacing(12)
-        self.mainLayout.addWidget(self.AWGStatus, 0, 2, 4, 2)
+        self.mainLayout.setContentsMargins(1,1,1,1)
+        self.mainLayout.setSpacing(0)
 
         self.mainLayout.addWidget(self.AWGCtrl, 0, 0, 4, 2)
-        self.mainLayout.addWidget(self.PNACtrl, 4, 0, 6, 2)
-        self.mainLayout.addWidget(self.LightCtrl, 10, 0, 2, 4)
+        self.mainLayout.addWidget(self.AWGStatus, 0, 2, 4, 2)  # (*widget, fromRow, fromColumn, rowSpan, columnSpan)
+
+        self.mainLayout.addWidget(self.PNACtrl, 4, 0, 5, 2)
         self.mainLayout.addWidget(self.EDFACtrl, 4, 2, 6, 2)
 
-        self.mainLayout.addWidget(self.testModeSignLabel, 12, 5, 1, 2)
-        self.mainLayout.addWidget(self.errorSignLabel, 12, 7, 1, 2)
+        self.mainLayout.addWidget(self.AWGDisplay, 0, 5, 3, 2)  # 画两幅，时域与频域2*2
+        self.mainLayout.addWidget(self.FcombDisplay, 0, 7, 3, 2)
+        self.mainLayout.addWidget(self.Feedback, 3, 5, 2, 4)
+        self.mainLayout.addWidget(self.VNAMonitor, 5, 5, 5, 5)
 
-        self.mainLayout.addWidget(self.AWGDisplay, 0, 5, 4, 2)  # 画两幅，时域与频域2*2
-        self.mainLayout.addWidget(self.FcombDisplay, 0, 7, 4, 2)
-        self.mainLayout.addWidget(self.Feedback, 4, 5, 2, 4)
-        self.mainLayout.addWidget(self.VNAMonitor, 6, 5, 6, 4)
+        self.mainLayout.addWidget(self.LightCtrl, 11, 0, 2, 4)
+        self.mainLayout.addWidget(self.testModeSignLabel, 10, 5, 1, 2)
+        self.mainLayout.addWidget(self.errorSignLabel, 10, 7, 1, 2)
+
+        # self.mainLayout.addWidget(self.AWGCtrl, 0, 0, 1, 2)
+        # self.mainLayout.addWidget(self.AWGStatus, 0, 1,1,1)  # (*widget, fromRow, fromColumn, rowSpan, columnSpan)
+        # self.mainLayout.addWidget(self.AWGDisplay, 0, 2,1,2)  # 画两幅，时域与频域2*2
+        # self.mainLayout.addWidget(self.FcombDisplay, 0, 3,1,2)
+        # self.mainLayout.addWidget(self.PNACtrl, 1, 0)
+        # self.mainLayout.addWidget(self.EDFACtrl, 1, 1)
+        # self.mainLayout.addWidget(self.Feedback, 1, 2)
+        # self.mainLayout.addWidget(self.LightCtrl, 2, 0, 1, 2)
+        # self.mainLayout.addWidget(self.VNAMonitor, 2, 2, 2, 2)
+        # self.mainLayout.addWidget(self.testModeSignLabel, 3, 0)
+        # self.mainLayout.addWidget(self.errorSignLabel, 3, 1)
+
+        # self.mainLayout.setColumnStretch(2, 1)
+        # self.mainLayout.setRowStretch(0, 2)
+        # self.mainLayout.setRowStretch(4, 2)
+        # self.mainLayout.setRowStretch(10, 1)
 
         self.mainWidget = QtWidgets.QWidget()
         self.mainWidget.setLayout(self.mainLayout)
@@ -169,6 +193,13 @@ class MainWindow(QtWidgets.QMainWindow):
     #     except Exception  as e:
     #         self.logger.info('model predictor may be fail')
     #         self.logger.error('model error %s' % traceback.format_exc())  # 具体的错误会捕获
+
+
+    def _resize_with_ratio(self, input_ui):
+        input_ui.resize(input_ui.width() * self.ratio_wid, input_ui.height() * self.ratio_height)
+
+    def _move_with_ratio(self, input_ui):
+        input_ui.move(input_ui.x() * self.ratio_wid, input_ui.y() * self.ratio_height)
 
     def refresh_inst(self):
 

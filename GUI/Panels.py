@@ -338,34 +338,37 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.channelNumset = Shared.AWGChannelBox()
 
         #     显示参量
-        AWGLayout = QtWidgets.QGridLayout()
-        AWGLayout.addWidget(QtWidgets.QLabel('DAC'), 0, 0)
-        AWGLayout.addWidget(self.DACset, 0, 1, 1, 2)
+        DACLayout = QtWidgets.QHBoxLayout()  # 第二行
+        DACLayout.addWidget(QtWidgets.QLabel('DAC'))
+        DACLayout.addWidget(self.DACset)
 
-        AWGLayout.addWidget(QtWidgets.QLabel('AWGChannel'), 1, 0)
-        AWGLayout.addWidget(self.channelNumset, 1, 1, 1, 3)
-        AWGWidget.setLayout(AWGLayout)
+        AWGChannelLayout =  QtWidgets.QHBoxLayout()  # 第三行
+        AWGChannelLayout.addWidget(QtWidgets.QLabel('AWGChannel'))
+        AWGChannelLayout.addWidget(self.channelNumset)
 
         #     AWG输出功率设置以及运行按钮
         self.AWGPowerSwitchBtu = QtWidgets.QPushButton('OFF')
         self.AWGPowerSwitchBtu.setCheckable(True)
         AWGPowerInput = QtWidgets.QPushButton('Set Power')
 
-        AWGPowerLayout = QtWidgets.QHBoxLayout()
+        AWGPowerLayout = QtWidgets.QHBoxLayout()  # 第一行
         AWGPowerLayout.setAlignment(QtCore.Qt.AlignLeft)
         AWGPowerLayout.addWidget(AWGPowerInput)
         AWGPowerLayout.addWidget(QtWidgets.QLabel('Pump Switch'))
         AWGPowerLayout.addWidget(self.AWGPowerSwitchBtu)
         AWGPowerCtrl = QtWidgets.QWidget()
-        AWGPowerCtrl.setLayout(AWGPowerLayout)
+
+        AWGLayout = QtWidgets.QVBoxLayout()
+        AWGLayout.addLayout(AWGPowerLayout)
+        AWGLayout.addLayout(DACLayout)
+        AWGLayout.addLayout(AWGChannelLayout)
+        AWGWidget.setLayout(AWGLayout)
 
         #     pump设计子界面
         PumpDesign = QtWidgets.QGroupBox()
         PumpDesign.setTitle('PUMPDesign_AWG')
         PumpDesign.setFlat(True)
         PumpDesign.setAlignment(QtCore.Qt.AlignLeft)
-        PumpLayout = QtWidgets.QGridLayout()
-        # PumpLayout.setSpacing(1)
 
         self.PumpModeSel = QtWidgets.QComboBox()
         self.PumpModeSel.addItems(api_awg.Shape_MODE_LIST)
@@ -375,6 +378,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.CenterFreqUnitSel = QtWidgets.QComboBox()
         self.CenterFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.CenterFreqUnitSel.setCurrentIndex(3)
+
         CenterFreqLayout = QtWidgets.QHBoxLayout()
         CenterFreqLayout.addWidget(QtWidgets.QLabel('CenterFreq'))
         CenterFreqLayout.addWidget(self.CenterFreqFill)
@@ -428,6 +432,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.plusFreq.setChecked(False)
         self.minusFreq=QtWidgets.QCheckBox('Minus')
 
+        PumpLayout = QtWidgets.QGridLayout()
 
         PumpLayout.addWidget(QtWidgets.QLabel('Pump Shape :'), 0, 0)
         PumpLayout.addWidget(self.pumpdesignsetBtu,1,0,2,1)
@@ -964,6 +969,7 @@ class LightCtrl(QtWidgets.QGroupBox):
         LightWidget.setLayout(LightLayout)
 
         mainLayout = QtWidgets.QVBoxLayout()
+        mainLayout.addStretch(1)
         mainLayout.setAlignment(QtCore.Qt.AlignTop)
         mainLayout.addWidget(LightWidget)
         self.setLayout(mainLayout)
@@ -1615,6 +1621,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.plot_btn.clicked.connect(self.plot)
 
         self.v_layout = QtWidgets.QVBoxLayout()
+        self.v_layout.addStretch(1)
         self.v_layout.addWidget(self.pgPlot)
         self.v_layout.addWidget(self.plot_btn)
         self.setLayout(self.v_layout)
