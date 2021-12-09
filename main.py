@@ -5,16 +5,15 @@ __version__ = '2020'
 # ! encoding = utf-8
 
 import sys
-from PyQt5 import QtWidgets, QtCore
-
+from PyQt5 import QtWidgets
 import GUI.MainWindow
 
 if __name__ == '__main__':
-    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
     app = QtWidgets.QApplication(sys.argv)
 
     window = GUI.MainWindow.MainWindow()
-    # window.show()
-    window.showMaximized()
+    window.show()
+    # window.showNormal()  # 高分辨率显示
+    # window.showMaximized()  # 字体适应最大化屏幕缩放
 
     sys.exit(app.exec_())

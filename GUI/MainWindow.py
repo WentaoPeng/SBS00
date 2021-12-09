@@ -21,12 +21,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.app = QtWidgets.QApplication.instance()
         screen_resolution = self.app.desktop().screenGeometry()  # 读取当前设备桌面分辨率
-        scr_width = screen_resolution.width()
-        scr_height = screen_resolution.height()
+        self.scr_width = screen_resolution.width()
+        self.scr_height = screen_resolution.height()
 
         # 设置窗口属性
         self.setWindowTitle('SBSSystem')
-        # self.setMinimumSize(scr_width*0.8, scr_height*0.8)  # 按比例显示最小窗口尺寸
+        self.setMinimumSize(self.scr_width*0.8, self.scr_height*1.1)  # 按比例显示最小窗口尺寸
 
         self.testModeSignLabel = QtWidgets.QLabel('[TEST MODE ACTIVE -- NOTHING IS REAL]!')
         self.testModeSignLabel.setStyleSheet('color: {:s}'.format(Shared.msgcolor(0)))
@@ -165,8 +165,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.mainLayout.addWidget(self.errorSignLabel, 3, 1)
 
         # self.mainLayout.setColumnStretch(2, 1)
-        # self.mainLayout.setRowStretch(0, 2)
-        # self.mainLayout.setRowStretch(4, 2)
+        # self.mainLayout.setRowStretch(0, 1)
+        # self.mainLayout.setRowStretch(1, 2)
+        # self.mainLayout.setRowStretch(2, 2)
         # self.mainLayout.setRowStretch(10, 1)
 
         self.mainWidget = QtWidgets.QWidget()
@@ -194,6 +195,17 @@ class MainWindow(QtWidgets.QMainWindow):
     #         self.logger.info('model predictor may be fail')
     #         self.logger.error('model error %s' % traceback.format_exc())  # 具体的错误会捕获
 
+    def showMaximized(self):
+        font = QtGui.QFont("宋体")
+        pointsize = font.pointSize()
+        # font.setPixelSize(pointsize * 90 / 72)
+        font.setPixelSize(pointsize * self.scr_width/self.scr_height*0.8)
+        self.setFont(font)
+        super().showMaximized()
+
+    def showNormal(self):
+        QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+        super().showNormal()
 
     def _resize_with_ratio(self, input_ui):
         input_ui.resize(input_ui.width() * self.ratio_wid, input_ui.height() * self.ratio_height)

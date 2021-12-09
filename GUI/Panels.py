@@ -423,7 +423,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.pumpdesignsetBtu=QtWidgets.QPushButton('Set')
         self.pumpdesignsetBtu.setCheckable(True)
         self.pumpdesignsetBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
-        self.pumpdesignsetBtu.setMaximumSize(200,200)
+        self.pumpdesignsetBtu.setMaximumSize(200, 200)
 
         self.sweepFreq=QtWidgets.QCheckBox('Sweep_Freq')
         # self.sweepFreq.setCheckState(True)
@@ -1653,7 +1653,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
                     gain_on_off=result-self.parent.AWGInfo.BJ_amp
                     gain_on_off=savgol_filter(gain_on_off,self.parent.AWGInfo.smooth,3)
                     self.map_len=1
-                    if self.parent.AWGInfo.min_base_indx==0:
+                    if self.parent.AWGInfo.min_base_indx == 0:
                         baseline = peak_analysis(freq=freq / 1e9, gain_on_off=gain_on_off)
 
                         gain_on_off_offset=gain_on_off-baseline
