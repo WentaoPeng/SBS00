@@ -10,6 +10,7 @@ import re
 from GUI import Panels as panels_fun
 from scipy.signal import savgol_filter, find_peaks, peak_widths, peak_prominences
 import SBS_DSP
+import pandas as pd
 from pyqtgraph import siFormat
 import pyqtgraph as pg
 
@@ -231,7 +232,13 @@ class manualFB_list(QtWidgets.QDialog):
             self.btu_save_data.clicked.connect(self.save_data)
 
         def save_data(self):
-            pass
+            '''[频率，幅值,相位]写入csv '''
+            filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", "/",
+                                                         'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别
+            pump_lists_designed = pd.DataFrame(
+                {'freq_list_designed': self.parent.AWGInfo.f_list, 'amp_list_designed': self.parent.AWGInfo.amp_list,
+                 'phase_list_designed': self.parent.AWGInfo.phase_list})
+            pump_lists_designed.to_csv(filepath, index=False, sep=',')  # 将DataFrame存储为csv,index表示是否显示行名，default=True
 
         def mapping_Fun(self):
             if self.btu_map.isChecked():
