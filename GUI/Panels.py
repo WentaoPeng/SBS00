@@ -1250,6 +1250,8 @@ class Feedback(QtWidgets.QGroupBox):
         self.bfsBtu = QtWidgets.QPushButton('S_BFS&FWHM')
         self.bfs = QtWidgets.QLineEdit()
         self.bfs.setPlaceholderText('bfs_GHz')
+        self.alpha = QtWidgets.QLineEdit()
+        self.alpha.setPlaceholderText('alpha=1')
         self.linew=QtWidgets.QLineEdit()
         self.linew.setPlaceholderText('L_W_MHz')
         self.smoothindx=QtWidgets.QLineEdit()
@@ -1282,6 +1284,7 @@ class Feedback(QtWidgets.QGroupBox):
         FBLayout.addWidget(self.backBtu, 0, 4, 1, 1)
         FBLayout.addWidget(self.back, 1, 4, 1, 1)
         FBLayout.addWidget(self.bfsBtu, 0, 5, 1, 1)
+        FBLayout.addWidget(self.alpha, 0, 6, 1, 1)
         FBLayout.addWidget(self.bfs, 1, 5, 1, 1)
         FBLayout.addWidget(self.linew,1,6,1,1)
         FBLayout.addWidget(self.activeBtu, 0, 7, 2, 1)
@@ -1307,6 +1310,7 @@ class Feedback(QtWidgets.QGroupBox):
 
         self.bfs.textChanged.connect(self.set_update)
         self.linew.textChanged.connect(self.set_update)
+        self.alpha.textChanged.connect(self.set_update)
         self.smoothindx.textChanged.connect(self.set_update)
         self.width_peak.textChanged.connect(self.set_update)
         self.min_base_indx.textChanged.connect(self.set_update)
@@ -1358,6 +1362,8 @@ class Feedback(QtWidgets.QGroupBox):
             self.parent.AWGInfo.gamma_b=float(self.linew.text())      #手动设置线宽
         if self.bfs.text():
             self.parent.AWGInfo.bfs=float(self.bfs.text())
+        if self.alpha.text():
+            self.parent.AWGInfo.alpha=float(self.alpha.text())
         if self.smoothindx.text():
             self.parent.AWGInfo.smooth=int(self.smoothindx.text())
         if self.width_peak.text():
@@ -1509,6 +1515,7 @@ class Feedback(QtWidgets.QGroupBox):
 
     def FB_Function(self, status):
         mod_index = self.modFB.currentIndex()
+        print('alpha=',self.parent.AWGInfo.alpha)
 
         mod_shape = self.parent.AWGInfo.mod_sel
         if status:
@@ -1536,13 +1543,16 @@ class Feedback(QtWidgets.QGroupBox):
                         amp_measure = savgol_filter(amp_measure, 301, 3)  # 单位MHz；300点3阶SG平滑去噪
                         baseline = peak_analysis(freq=freq_measure / 1e9, gain_on_off=amp_measure)
                         amp_measure = amp_measure - baseline  # 开关增益减去基线
+                        measure_max = amp_measure.max()
+                        amp_measure = amp_measure / measure_max  # 最大值归一化
 
                         f_index = self.search_index(freq_design_seq - self.parent.AWGInfo.bfs * 1e9, freq_measure)  # 搜索时减去BFS
                         print('f_index',len(f_index))
                         expected_amp_sam = self.expected_gain(f_index, amp_measure, 'Rectangle')
                         amp_measure_sam = np.array([amp_measure[j] for j in f_index])  # 最接近频梳频率的采样点增益
                         print('amp_design_seq', len(amp_design_seq),'expected_amp_sam',len(expected_amp_sam),'amp_measure_sam',len(amp_measure_sam))
-                        amp_design_seq_new = mlt.change_amp_seq(amp_design_seq, expected_amp_sam, amp_measure_sam, 1)
+                        amp_design_seq_new = mlt.change_amp_seq(amp_design_seq, expected_amp_sam, amp_measure_sam, 1,self.parent.AWGInfo.alpha)
+                        amp_design_seq_new = mlt.normalize_amp_seq(amp_design_seq_new,freq_design_seq,self.parent.AWGInfo.phase_list)
 
                         self.parent.AWGInfo.amp_list = amp_design_seq_new
                         print('new amp_design_seq =', amp_design_seq_new)

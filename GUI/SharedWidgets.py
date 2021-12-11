@@ -66,6 +66,7 @@ class AWGInfo():
         self.BJ_freq=[]     #背景
         self.BJ_amp=[]
         self.bfs=0          #GHz
+        self.alpha=1  # 反馈因子
         self.map=0
         self.baseline=[]
         self.freq_FB=[]

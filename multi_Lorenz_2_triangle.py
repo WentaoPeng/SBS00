@@ -263,11 +263,11 @@ def multi_change(data_list, index_list, change_data_list):
     return data_list
 
 
-def change_amp_seq(amp_seq, expected_gain_sam, brian_measure_sam, iteration_type=1):
+def change_amp_seq(amp_seq, expected_gain_sam, brian_measure_sam, iteration_type=1,alpha=1):
     # 功能：更新amp_seq；
     # iteration_type-更新方式：[1]-2+3，[2]-线性，[3]-根号,[4]-边界参考旁边 (默认选[1])
     if len(amp_seq) > 1:
-        alpha = np.mean(amp_seq)
+        # alpha = np.mean(amp_seq)
         if iteration_type == 1:  # 方式1：2+3
             amp_seq[0] = np.sqrt(alpha * expected_gain_sam[0] / brian_measure_sam[0] * amp_seq[0])
             amp_seq[-1] = np.sqrt(alpha * expected_gain_sam[-1] / brian_measure_sam[-1] * amp_seq[-1])
