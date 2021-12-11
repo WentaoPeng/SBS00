@@ -26,7 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # 设置窗口属性
         self.setWindowTitle('SBSSystem')
-        self.setMinimumSize(self.scr_width*0.85, self.scr_height*1.1)  # 按比例显示最小窗口尺寸
+        self.setMinimumSize(self.scr_width*0.8, self.scr_height*1.1)  # 按比例显示最小窗口尺寸
 
         self.testModeSignLabel = QtWidgets.QLabel('[TEST MODE ACTIVE -- NOTHING IS REAL]!')
         self.testModeSignLabel.setStyleSheet('color: {:s}'.format(Shared.msgcolor(0)))

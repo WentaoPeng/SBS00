@@ -12,8 +12,8 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
 
     window = GUI.MainWindow.MainWindow()
-    # window.show()
-    window.showNormal()  # 高分辨率显示
+    window.show()
+    # window.showNormal()  # 高分辨率显示
     # window.showMaximized()  # 字体适应最大化屏幕缩放
 
     sys.exit(app.exec_())
