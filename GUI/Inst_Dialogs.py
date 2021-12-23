@@ -7,6 +7,9 @@ from API import AWGapi as api_awg
 from API import PNAapi as api_pna
 from API import LightAPI as api_light
 import re
+import pandas as pd
+import os
+import datetime
 from GUI import Panels as panels_fun
 from scipy.signal import savgol_filter, find_peaks, peak_widths, peak_prominences
 import SBS_DSP
@@ -124,7 +127,7 @@ class manualInstDialog(QtWidgets.QDialog):
         self.parent=parent
         self.setMinimumSize(200,200)
         self.setWindowTitle('Manual Input Inst_IP')
-        self.awgip='192.168.1.102'
+        self.awgip='192.168.1.103'
         self.pnaip='192.168.1.100'
         self.lightip='192.168.1.101'
 
@@ -136,7 +139,7 @@ class manualInstDialog(QtWidgets.QDialog):
         self.AWGIP=QtWidgets.QWidget()
         self.AWGIPFill=QtWidgets.QLineEdit()
         self.AWGIPFill.setInputMask("000.000.000.000")
-        self.AWGIPFill.setText("192.168.1.102")
+        self.AWGIPFill.setText("192.168.1.103")
 
         self.PNAIP=QtWidgets.QWidget()
         self.PNAIPFill=QtWidgets.QLineEdit()
@@ -231,7 +234,32 @@ class manualFB_list(QtWidgets.QDialog):
             self.btu_save_data.clicked.connect(self.save_data)
 
         def save_data(self):
-            pass
+            '''[频率，幅值,相位]写入csv '''
+            today_date = datetime.datetime.now().strftime('%Y-%m-%d')
+            default_path = os.path.join(r"D:\Documents\项目", today_date)
+            default_name = '\\pump_IL_cp'
+            self.mkdir(default_path)
+            self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path+default_name,
+                                                                             'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别
+            pump_lists_designed = pd.DataFrame(
+                {'freq_list_designed': self.parent.AWGInfo.f_list, 'amp_list_designed': self.parent.AWGInfo.amp_list,
+                 'phase_list_designed': self.parent.AWGInfo.phase_list})
+            pump_lists_designed.to_csv(self.filepath, index=False, sep=',')  # 将DataFrame存储为csv,index表示是否显示行名，default=True
+
+
+        def mkdir(self, path):
+            isExists = os.path.exists(path)
+            if not isExists:
+                # 如果不存在则创建目录
+                # 创建目录操作函数
+                os.makedirs(path)
+                print(path + ' 创建成功')
+                return True
+            else:
+                # 如果目录存在则不创建，并提示目录已存在
+                print(path + ' 目录已存在')
+                return False
+
 
         def mapping_Fun(self):
             if self.btu_map.isChecked():
