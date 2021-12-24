@@ -237,7 +237,7 @@ class manualFB_list(QtWidgets.QDialog):
             '''[频率，幅值,相位]写入csv '''
             today_date = datetime.datetime.now().strftime('%Y-%m-%d')
             default_path = os.path.join(r"D:\Documents\项目", today_date)
-            default_name = '\\pump_IL_cp'
+            default_name = '\\CF_BW_DF'
             self.mkdir(default_path)
             self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path+default_name,
                                                                              'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别

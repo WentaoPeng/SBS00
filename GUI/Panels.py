@@ -7,6 +7,9 @@ from PyQt5.QtCore import QObject
 import pyqtgraph as pg
 import pyvisa
 import time
+import os
+import datetime
+import pandas as pd
 import numpy as np
 from GUI import SharedWidgets as Shared
 from API import AWGapi as api_awg
@@ -1628,13 +1631,21 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.pgPlot = pg.MultiPlotWidget()
         self.plot_data = self.pgPlot.addPlot(left='RF_Power(dB)', bottom='Freq(Hz)', title='RF_Spectrum')
         self.plot_btn = QtWidgets.QPushButton('Replot', self)
+        self.export_btn = QtWidgets.QPushButton('export', self)
         self.plot_btn.clicked.connect(self.plot)
+        self.export_btn.clicked.connect(self.export)
+
+        self.btn_layout = QtWidgets.QHBoxLayout()
+        self.btn_layout.addWidget(self.plot_btn)
+        self.btn_layout.addWidget(self.export_btn)
 
         self.v_layout = QtWidgets.QVBoxLayout()
         self.v_layout.addStretch(1)
         self.v_layout.addWidget(self.pgPlot)
-        self.v_layout.addWidget(self.plot_btn)
+        self.v_layout.addLayout(self.btn_layout)
+
         self.setLayout(self.v_layout)
+
         # self.data=np.empty()
         # self.timer_start()
         self.timer = QtCore.QTimer(self)
@@ -1682,9 +1693,38 @@ class VNAMonitor(QtWidgets.QGroupBox):
             self.plot_data.plot(freq, gain_on_off_offset, pen='b')
             self.parent.AWGInfo.freq_FB=freq
             self.parent.AWGInfo.gain_on_off_FB=gain_on_off_offset
+            self.plot_data.showGrid(x=True, y=True)
             # self.timer.start(1000)
         else:
             pass
+
+    def export(self):
+        '''[频率，幅值]写入csv '''
+        # todo：把相位也读取保存
+        today_date = datetime.datetime.now().strftime('%Y-%m-%d')
+        default_path = os.path.join(r"D:\Documents\项目", today_date)
+        default_name = '\\pump_IL_cp'
+        self.mkdir(default_path)
+        self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path + default_name,
+                                                                    'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别
+        pump_lists_designed = pd.DataFrame(
+            {'freq_list': self.parent.AWGInfo.freq_FB, 'amp_list': self.parent.AWGInfo.gain_on_off_FB})
+        pump_lists_designed.to_csv(self.filepath, index=False, sep=',')  # 将DataFrame存储为csv,index表示是否显示行名，default=True
+
+
+    def mkdir(self, path):
+        isExists = os.path.exists(path)
+        if not isExists:
+            # 如果不存在则创建目录
+            # 创建目录操作函数
+            os.makedirs(path)
+            print(path + ' 创建成功')
+            return True
+        else:
+            # 如果目录存在则不创建，并提示目录已存在
+            print(path + ' 目录已存在')
+            return False
+
 
     def off(self):
         self.pgPlot.clearMouse()
