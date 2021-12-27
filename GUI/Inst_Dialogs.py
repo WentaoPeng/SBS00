@@ -181,12 +181,15 @@ class manualInstDialog(QtWidgets.QDialog):
             self.done(True)
             return None
         else:
-            try:
-                self.parent.AWGHandle=api_awg.M9502A(self.awgip,reset=True)
-                print(self.parent.AWGHandle)
-                self.done(True)
-            except:
-                return None
+            if self.awgip == '...':
+                pass
+            else:
+                try:
+                    self.parent.AWGHandle=api_awg.M9502A(self.awgip,reset=True)
+                    print(self.parent.AWGHandle)
+                    self.done(True)
+                except:
+                    return None
 
         if self.pnaip=='N.A.':
             self.done(True)
