@@ -13,6 +13,8 @@ import logging
 import traceback
 import sys
 import pyqtgraph as pg
+# from QCandyUi.CandyWindow import colorful
+# @colorful('blueDeep')
 
 class MainWindow(QtWidgets.QMainWindow):
 

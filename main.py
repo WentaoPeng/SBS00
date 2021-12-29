@@ -7,12 +7,15 @@ __version__ = '2020'
 import sys
 from PyQt5 import QtWidgets
 import GUI.MainWindow
+from QCandyUi import CandyWindow
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
 
     window = GUI.MainWindow.MainWindow()
-    window.show()
+    CandyWindow = CandyWindow.createWindow(window, 'blueDeep', 'Control Monitor', '')
+    CandyWindow.show()
+    # window.show()
     # window.showNormal()  # 高分辨率显示
     # window.showMaximized()  # 字体适应最大化屏幕缩放
 

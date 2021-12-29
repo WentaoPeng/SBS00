@@ -38,8 +38,8 @@ class AWGInfo():
     def __init__(self):
         self.instName = 'AWG M9502A'
         self.ChannelNum = 1
-        self.CFFreq = 10 * 10 ** 9
-        self.BWFreq = 200 * 10 ** 6
+        self.CFFreq = 15 * 10 ** 9
+        self.BWFreq = 0 * 10 ** 6
         self.DFFreq = 10 * 10 ** 6
         self.AWG_Status = False
         self.mod_index = 0

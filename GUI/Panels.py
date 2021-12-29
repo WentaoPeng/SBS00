@@ -377,7 +377,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.PumpModeSel.addItems(api_awg.Shape_MODE_LIST)
 
         self.CenterFreq = QtWidgets.QWidget()
-        self.CenterFreqFill = QtWidgets.QLineEdit('10')
+        self.CenterFreqFill = QtWidgets.QLineEdit('15')
         self.CenterFreqUnitSel = QtWidgets.QComboBox()
         self.CenterFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.CenterFreqUnitSel.setCurrentIndex(3)
@@ -389,7 +389,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.CenterFreq.setLayout(CenterFreqLayout)
 
         self.BandWidth = QtWidgets.QWidget()
-        self.BandWidthFill = QtWidgets.QLineEdit('200')
+        self.BandWidthFill = QtWidgets.QLineEdit('0')
         self.BandWidthUnitSel = QtWidgets.QComboBox()
         self.BandWidthUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.BandWidthUnitSel.setCurrentIndex(2)
@@ -400,7 +400,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.BandWidth.setLayout(BandWidthLayout)
 
         self.CombFreq = QtWidgets.QWidget()
-        self.CombFreqFill = QtWidgets.QLineEdit('10')
+        self.CombFreqFill = QtWidgets.QLineEdit('15')
         self.CombFreqUnitSel = QtWidgets.QComboBox()
         self.CombFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.CombFreqUnitSel.setCurrentIndex(2)
@@ -424,8 +424,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.PumpDesignDoneBtu.setMaximumSize(200,200)
 
         self.pumpdesignsetBtu=QtWidgets.QPushButton('Set')
-        self.pumpdesignsetBtu.setCheckable(True)
-        self.pumpdesignsetBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
+        self.pumpdesignsetBtu.setCheckable(True);
+        self.pumpdesignsetBtu.setStyleSheet('''QPushButton:hover{background:yellow;}QPushButton:checked{background:yellow;color:blue}''')
         self.pumpdesignsetBtu.setMaximumSize(200, 200)
 
         self.sweepFreq=QtWidgets.QCheckBox('Sweep_Freq')
