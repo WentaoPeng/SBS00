@@ -8,6 +8,7 @@ import sys
 from PyQt5 import QtWidgets
 import GUI.MainWindow
 from QCandyUi import CandyWindow
+# todo:修复CandyWindow带来的关闭bug,进一步优化控件美观和使用
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

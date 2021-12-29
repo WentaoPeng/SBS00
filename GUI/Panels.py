@@ -8,6 +8,7 @@ import pyqtgraph as pg
 import pyvisa
 import time
 import os
+import glob
 import datetime
 import pandas as pd
 import numpy as np
@@ -1066,7 +1067,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.addressEDFA1 = QtWidgets.QLabel()
 
         self.setPower1 = QtWidgets.QWidget()
-        self.setPower1Fill = QtWidgets.QLineEdit('5.0')
+        self.setPower1Fill = QtWidgets.QLineEdit('0.0')
         self.setPower1UnitSel = QtWidgets.QComboBox()
         self.setPower1UnitSel.addItems(['dBm', 'mW'])
         self.setPower1UnitSel.setCurrentIndex(0)
@@ -1081,7 +1082,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.P1slider.setOrientation(QtCore.Qt.Horizontal)
         self.P1slider.setMaximum(35)
         self.P1slider.setMinimum(0)
-        self.P1slider.setValue(5)
+        self.P1slider.setValue(0)
         self.P1slider.setPageStep(1)
         # self.P1slider.setSingleStep(0.01)
         self.P1slider.setTickInterval(0.01)
@@ -1119,7 +1120,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.addressEDFA2 = QtWidgets.QLabel()
 
         self.setPower2 = QtWidgets.QWidget()
-        self.setPower2Fill = QtWidgets.QLineEdit('5.0')
+        self.setPower2Fill = QtWidgets.QLineEdit('0.0')
         self.setPower2UnitSel = QtWidgets.QComboBox()
         self.setPower2UnitSel.addItems(['dBm', 'mW'])
         self.setPower2UnitSel.setCurrentIndex(0)
@@ -1134,7 +1135,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.P2slider.setOrientation(QtCore.Qt.Horizontal)
         self.P2slider.setMaximum(35)
         self.P2slider.setMinimum(0)
-        self.P2slider.setValue(5)
+        self.P2slider.setValue(0)
         self.P2slider.setPageStep(1)
         self.P2slider.setTickInterval(0.01)
 
@@ -1188,8 +1189,8 @@ class EDFACtrl(QtWidgets.QGroupBox):
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No EDFA is connected!')
             msg.exec_()
-            self.setChecked(False)
-            self.parent.EDFACtrl.setChecked(False)
+            # self.setChecked(False)
+            # self.parent.EDFACtrl.setChecked(False)
         # self.parent.EDFACtrl.print_info()
 
     def EDFAChangeFun(self):
@@ -1295,6 +1296,13 @@ class Feedback(QtWidgets.QGroupBox):
         self.rel_height.setPlaceholderText('height=0.1')
         self.min_base_indx=QtWidgets.QLineEdit()
         self.min_base_indx.setPlaceholderText('base=0')
+        self.ChipNumFill = QtWidgets.QLineEdit('1-1')
+        self.ILFill = QtWidgets.QLineEdit('0')
+        self.OnePercentCPFill = QtWidgets.QLineEdit('0')
+
+        self.SaveDataType = QtWidgets.QComboBox()
+        self.SaveDataType.addItems(['org', 'avg', 'onf', 'smt'])  # org-原始单测数据，avg-10次平均数据，onf-开关增益，smt-平滑数据
+        self.SaveDataType.setCurrentIndex(0)
 
         self.modFB = QtWidgets.QComboBox()
         self.modFB.addItems(api_val.FB_modList)
@@ -1331,6 +1339,15 @@ class Feedback(QtWidgets.QGroupBox):
         FBLayout.addWidget(QtWidgets.QLabel('Mod_Switch:'), 0, 2)
         FBLayout.addWidget(self.modFB, 0, 3)
         FBLayout.addWidget(self.modFBDispaly, 1, 2, 1, 2)
+        FBLayout.addWidget(QtWidgets.QLabel('chip:'), 3, 0, 1, 1)
+        FBLayout.addWidget(self.ChipNumFill, 3, 1, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('Insertion Loss(dB):'), 3, 2, 1, 1)
+        FBLayout.addWidget(self.ILFill, 3, 3, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('1% Incident Power(dBm):'), 3, 4, 1, 1)
+        FBLayout.addWidget(self.OnePercentCPFill, 3, 5, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('Data Type:'), 3, 6, 1, 1)
+        FBLayout.addWidget(self.SaveDataType, 3, 7, 1, 1)
+
         self.setLayout(FBLayout)
 
         self.modFB.currentIndexChanged[int].connect(self.switch_mod)
@@ -1344,6 +1361,10 @@ class Feedback(QtWidgets.QGroupBox):
         self.bfs.textChanged.connect(self.set_update)
         self.linew.textChanged.connect(self.set_update)
         self.alpha.textChanged.connect(self.set_update)
+        self.ChipNumFill.textChanged.connect(self.set_update)
+        self.ILFill.textChanged.connect(self.set_update)
+        self.OnePercentCPFill.textChanged.connect(self.set_update)
+        self.SaveDataType.currentIndexChanged.connect(self.set_update)
         self.smoothindx.textChanged.connect(self.set_update)
         self.width_peak.textChanged.connect(self.set_update)
         self.min_base_indx.textChanged.connect(self.set_update)
@@ -1397,6 +1418,14 @@ class Feedback(QtWidgets.QGroupBox):
             self.parent.AWGInfo.bfs=float(self.bfs.text())
         if self.alpha.text():
             self.parent.AWGInfo.alpha=float(self.alpha.text())
+        if self.ChipNumFill.text():
+            self.parent.AWGInfo.ChipNumFill=self.ChipNumFill.text()
+        if self.ILFill.text():
+            self.parent.AWGInfo.ILFill = self.ILFill.text()
+        if self.OnePercentCPFill.text():
+            self.parent.AWGInfo.OnePercentCPFill = self.OnePercentCPFill.text()
+        if self.SaveDataType.currentText():
+            self.parent.AWGInfo.SaveDataType = self.SaveDataType.currentText()
         if self.smoothindx.text():
             self.parent.AWGInfo.smooth=int(self.smoothindx.text())
         if self.width_peak.text():
@@ -1661,7 +1690,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.pgPlot = pg.MultiPlotWidget()
         self.plot_data = self.pgPlot.addPlot(left='RF_Power(dB)', bottom='Freq(Hz)', title='RF_Spectrum')
         self.plot_btn = QtWidgets.QPushButton('Replot', self)
-        self.export_btn = QtWidgets.QPushButton('export', self)
+        self.export_btn = QtWidgets.QPushButton('Export', self)
         self.plot_btn.clicked.connect(self.plot)
         self.export_btn.clicked.connect(self.export)
 
@@ -1732,15 +1761,26 @@ class VNAMonitor(QtWidgets.QGroupBox):
         '''[频率，幅值]写入csv '''
         # todo：把相位也读取保存
         today_date = datetime.datetime.now().strftime('%Y-%m-%d')
-        default_path = os.path.join(r"D:\Documents\项目", today_date)
-        default_name = '\\pump_IL_cp'
+        default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"chip{self.parent.AWGInfo.ChipNumFill}")
         self.mkdir(default_path)
-        self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path + default_name,
-                                                                    'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别
-        pump_lists_designed = pd.DataFrame(
-            {'freq_list': self.parent.AWGInfo.freq_FB, 'amp_list': self.parent.AWGInfo.gain_on_off_FB})
-        pump_lists_designed.to_csv(self.filepath, index=False, sep=',')  # 将DataFrame存储为csv,index表示是否显示行名，default=True
+        if self.parent.AWGInfo.BWFreq == 0:  # 此时主要关注单频泵浦增益与耦合功率关系
+            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,1)}G_EP{self.parent.EDFAInfo.EDFA1power}_IL{self.parent.AWGInfo.ILFill}_1IP{self.parent.AWGInfo.OnePercentCPFill}_'
+        else:  # 此时主要关注带宽扩展情况
+            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,1)}G_BW{round(self.parent.AWGInfo.BWFreq/1E6,1)}M_DF{round(self.parent.AWGInfo.DFFreq/1E6,1)}M_EP{self.parent.EDFAInfo.EDFA1power}_'
 
+        count_same_name = len(glob.glob(rf'{default_path}{default_name}*'))
+        self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path + default_name+str(count_same_name),
+                                                                    'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别
+        PNA_monitor_lists = pd.DataFrame(
+            {'freq_list': self.parent.AWGInfo.freq_FB, 'amp_list': self.parent.AWGInfo.gain_on_off_FB})
+        PNA_monitor_lists.to_csv(self.filepath, index=False, sep=',')  # 将DataFrame存储为csv,index表示是否显示行名，default=True
+        if self.parent.AWGInfo.BWFreq != 0:  # 顺便保存当前带宽扩展下的pump设计值
+            pump_lists_designed = pd.DataFrame(
+                {'freq_list_designed': self.parent.AWGInfo.f_list, 'amp_list_designed': self.parent.AWGInfo.amp_list,
+                 'phase_list_designed': self.parent.AWGInfo.phase_list})
+            dir1,filename = os.path.split(self.filepath)
+            pump_lists_designed.to_csv(os.path.join(dir1,f'setting_{filename}'), index=False,
+                                       sep=',')  # 将DataFrame存储为csv,index表示是否显示行名，default=True
 
     def mkdir(self, path):
         isExists = os.path.exists(path)

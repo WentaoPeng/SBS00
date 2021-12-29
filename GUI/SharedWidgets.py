@@ -75,6 +75,10 @@ class AWGInfo():
         self.width_peak=500
         self.rel_height_peak=0.1
         self.min_base_indx=0
+        self.ChipNumFill = '1-1'  # 当日测试芯片编号
+        self.ILFill = '0'  # 该芯片编号的插损
+        self.OnePercentCPFill = '0'  # 该芯片编号1%入射泵浦光功率(未减插损)
+        self.SaveDataType = 'org'  # 采集数据类型
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''

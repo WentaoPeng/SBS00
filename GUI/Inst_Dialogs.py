@@ -9,6 +9,7 @@ from API import LightAPI as api_light
 import re
 import pandas as pd
 import os
+import glob
 import datetime
 from GUI import Panels as panels_fun
 from scipy.signal import savgol_filter, find_peaks, peak_widths, peak_prominences
@@ -239,10 +240,12 @@ class manualFB_list(QtWidgets.QDialog):
         def save_data(self):
             '''[频率，幅值,相位]写入csv '''
             today_date = datetime.datetime.now().strftime('%Y-%m-%d')
-            default_path = os.path.join(r"D:\Documents\项目", today_date)
-            default_name = '\\CF_BW_DF'
+            default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"chip{self.parent.AWGInfo.ChipNumFill}")
             self.mkdir(default_path)
-            self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path+default_name,
+            default_name = rf'\settings_{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,1)}G_BW{round(self.parent.AWGInfo.BWFreq/1E6,1)}M_DF{round(self.parent.AWGInfo.DFFreq/1E6,1)}M_'
+
+            count_same_name = len(glob.glob(rf'{default_path}{default_name}*'))
+            self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path+default_name+str(count_same_name),
                                                                              'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别
             pump_lists_designed = pd.DataFrame(
                 {'freq_list_designed': self.parent.AWGInfo.f_list, 'amp_list_designed': self.parent.AWGInfo.amp_list,
