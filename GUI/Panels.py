@@ -370,7 +370,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         #     pump设计子界面
         PumpDesign = QtWidgets.QGroupBox()
-        PumpDesign.setTitle('PUMPDesign_AWG')
+        PumpDesign.setTitle('PUMP Design_AWG')
         PumpDesign.setFlat(True)
         PumpDesign.setAlignment(QtCore.Qt.AlignLeft)
 
@@ -426,7 +426,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         self.pumpdesignsetBtu=QtWidgets.QPushButton('Set')
         self.pumpdesignsetBtu.setCheckable(True);
-        self.pumpdesignsetBtu.setStyleSheet('''QPushButton:hover{background:yellow;}QPushButton:checked{background:yellow;color:blue}''')
+        self.pumpdesignsetBtu.setStyleSheet('''QPushButton:hover{background:yellow;}QPushButton:checked{background:gray;color:white}''')
         self.pumpdesignsetBtu.setMaximumSize(200, 200)
 
         self.sweepFreq=QtWidgets.QCheckBox('Sweep_Freq')
@@ -493,8 +493,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No AWG is connected!')
             msg.exec_()
-            self.setChecked(False)
-            self.parent.AWGCtrl.setChecked(False)
+            # self.setChecked(False)
+            # self.parent.AWGCtrl.setChecked(False)
 
     def tune_mod_parameter(self):
         # 状态信息同步
@@ -1312,7 +1312,7 @@ class Feedback(QtWidgets.QGroupBox):
         self.ManualBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
         self.btu_map=QtWidgets.QPushButton('Mapping')
         self.btu_map.setCheckable(True)
-        self.btu_map.setStyleSheet('''QPushButton:hover{background:yellow;}''')
+        self.btu_map.setStyleSheet('''QPushButton:hover{background:gray;color:white}QPushButton:checked{background:rgb(87,250,255);color:gray}''')
         self.btu_dfFB=QtWidgets.QPushButton('DF_FB')
         self.btu_dfFB.setStyleSheet('''QPushButton:hover{background:yellow;}''')
 
@@ -1407,7 +1407,7 @@ class Feedback(QtWidgets.QGroupBox):
             else:
                 msg = Shared.MsgError(self, 'No Instrument!', 'No PNAN5225A is connected!')
                 msg.exec_()
-                self.btu_map.setCheckable(True)
+                self.btu_map.setChecked(False)
         else:
             self.parent.AWGInfo.map=0
 
