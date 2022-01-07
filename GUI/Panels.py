@@ -1270,18 +1270,19 @@ class Feedback(QtWidgets.QGroupBox):
         FBWidget.setAlignment(QtCore.Qt.AlignLeft)
 
         # 需要显示收敛方式，均方误差实时显示（颜色标记升降）；反馈次数显示
-        self.MSE = QtWidgets.QLineEdit()
-        self.MSE.setPlaceholderText('MSEDisplay')
+        # self.MSE = QtWidgets.QLineEdit()
+        # self.MSE.setPlaceholderText('MSEDisplay')
         self.FBnum = QtWidgets.QLineEdit()
-        self.FBnum.setPlaceholderText('FB_Number')
+        self.FBnum.setPlaceholderText('1')
         self.activeBtu = QtWidgets.QPushButton('Run')
         self.activeBtu.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:red;}''')
         self.activeBtu.setMaximumSize(400, 400)
         self.activeBtu.setCheckable(True)
-        self.backBtu = QtWidgets.QPushButton('Original')
+        self.backBtu = QtWidgets.QPushButton('Save Noise')
         self.back = QtWidgets.QLineEdit()
         self.back.setPlaceholderText('NONE_PUMP')
-        self.bfsBtu = QtWidgets.QPushButton('S_BFS&FWHM')
+        self.SaveForFBBTu = QtWidgets.QPushButton('SaveFor FB')
+        self.bfsBtu = QtWidgets.QPushButton('S_BFS FWHM')
         self.bfs = QtWidgets.QLineEdit()
         self.bfs.setPlaceholderText('bfs_GHz')
         self.alpha = QtWidgets.QLineEdit()
@@ -1296,9 +1297,10 @@ class Feedback(QtWidgets.QGroupBox):
         self.rel_height.setPlaceholderText('height=0.1')
         self.min_base_indx=QtWidgets.QLineEdit()
         self.min_base_indx.setPlaceholderText('base=0')
-        self.ChipNumFill = QtWidgets.QLineEdit('1-1')
+        self.ChipNumFill = QtWidgets.QLineEdit('chip1-1')
         self.ILFill = QtWidgets.QLineEdit('0')
         self.OnePercentCPFill = QtWidgets.QLineEdit('0')
+        self.OCoutFill = QtWidgets.QLineEdit('0')
 
         self.SaveDataType = QtWidgets.QComboBox()
         self.SaveDataType.addItems(['org', 'avg', 'onf', 'smt'])  # org-原始单测数据，avg-10次平均数据，onf-开关增益，smt-平滑数据
@@ -1306,7 +1308,8 @@ class Feedback(QtWidgets.QGroupBox):
 
         self.modFB = QtWidgets.QComboBox()
         self.modFB.addItems(api_val.FB_modList)
-        self.modFBDispaly = QtWidgets.QLineEdit()
+        self.modFB.setCurrentIndex(2)
+        # self.modFBDispaly = QtWidgets.QLineEdit()
 
         self.ManualBtu=QtWidgets.QPushButton('Manual')
         self.ManualBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
@@ -1318,52 +1321,57 @@ class Feedback(QtWidgets.QGroupBox):
 
         FBLayout = QtWidgets.QGridLayout()
         FBLayout.setAlignment(QtCore.Qt.AlignLeft)
-        FBLayout.addWidget(QtWidgets.QLabel('MSE:'), 0, 0, 1, 1)
-        FBLayout.addWidget(self.MSE, 0, 1, 1, 1)
-        FBLayout.addWidget(QtWidgets.QLabel('FB_Num:'), 1, 0, 1, 1)
+        # FBLayout.addWidget(QtWidgets.QLabel('MSE:'), 0, 0, 1, 1)
+        # FBLayout.addWidget(self.MSE, 0, 1, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('Mod_Switch:'), 0, 0, 1, 1)
+        FBLayout.addWidget(self.modFB, 0, 1, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('FB_Number:'), 1, 0, 1, 1)
         FBLayout.addWidget(self.FBnum, 1, 1, 1, 1)
-        FBLayout.addWidget(self.backBtu, 0, 4, 1, 1)
-        FBLayout.addWidget(self.back, 1, 4, 1, 1)
-        FBLayout.addWidget(self.bfsBtu, 0, 5, 1, 1)
+        FBLayout.addWidget(self.backBtu, 0, 2, 1, 1)
+        FBLayout.addWidget(self.back, 1, 2, 1, 1)
+        FBLayout.addWidget(self.bfsBtu, 0, 3, 1, 1)
+        FBLayout.addWidget(self.bfs, 0, 4, 1, 1)
+        FBLayout.addWidget(self.SaveForFBBTu, 0, 5, 1, 1)
         FBLayout.addWidget(self.alpha, 0, 6, 1, 1)
-        FBLayout.addWidget(self.bfs, 1, 5, 1, 1)
-        FBLayout.addWidget(self.linew,1,6,1,1)
+        FBLayout.addWidget(self.linew,1,4,1,1)
         FBLayout.addWidget(self.activeBtu, 0, 7, 2, 1)
-        FBLayout.addWidget(self.ManualBtu,2,1,1,1)
+        FBLayout.addWidget(self.ManualBtu,1,3,1,1)
         FBLayout.addWidget(self.btu_map,2,4,1,1)
         FBLayout.addWidget(self.smoothindx,2,2,1,1)
         FBLayout.addWidget(self.min_base_indx,2,3,1,1)
         FBLayout.addWidget(self.width_peak,2,5,1,1)
         FBLayout.addWidget(self.rel_height,2,6,1,1)
         FBLayout.addWidget(self.btu_dfFB,2,7,1,1)
-        FBLayout.addWidget(QtWidgets.QLabel('Mod_Switch:'), 0, 2)
-        FBLayout.addWidget(self.modFB, 0, 3)
-        FBLayout.addWidget(self.modFBDispaly, 1, 2, 1, 2)
-        FBLayout.addWidget(QtWidgets.QLabel('chip:'), 3, 0, 1, 1)
-        FBLayout.addWidget(self.ChipNumFill, 3, 1, 1, 1)
+        # FBLayout.addWidget(self.modFBDispaly, 1, 2, 1, 2)
+        # FBLayout.addWidget(QtWidgets.QLabel('chip:'), 3, 0, 1, 1)
+        FBLayout.addWidget(self.ChipNumFill, 3, 0, 1, 1)
+        FBLayout.addWidget(self.SaveDataType, 3, 1, 1, 1)
         FBLayout.addWidget(QtWidgets.QLabel('Insertion Loss(dB):'), 3, 2, 1, 1)
         FBLayout.addWidget(self.ILFill, 3, 3, 1, 1)
         FBLayout.addWidget(QtWidgets.QLabel('1% Incident Power(dBm):'), 3, 4, 1, 1)
         FBLayout.addWidget(self.OnePercentCPFill, 3, 5, 1, 1)
-        FBLayout.addWidget(QtWidgets.QLabel('Data Type:'), 3, 6, 1, 1)
-        FBLayout.addWidget(self.SaveDataType, 3, 7, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('OC output(dBm):'), 3, 6, 1, 1)
+        FBLayout.addWidget(self.OCoutFill, 3, 7, 1, 1)
 
         self.setLayout(FBLayout)
 
-        self.modFB.currentIndexChanged[int].connect(self.switch_mod)
+        # self.modFB.currentIndexChanged[int].connect(self.switch_mod)
         self.backBtu.clicked.connect(self.getBack)
         self.activeBtu.clicked.connect(self.FB_Function)
         self.bfsBtu.clicked.connect(self.getBFS)
+        self.SaveForFBBTu.clicked.connect(self.SaveForFB)
         self.ManualBtu.clicked.connect(self.Manual_Fun)
         self.btu_map.clicked.connect(self.mapping_Fun)
         self.btu_dfFB.clicked.connect(self.dfFB_Fun)
 
+        self.FBnum.textChanged.connect(self.set_update)
         self.bfs.textChanged.connect(self.set_update)
         self.linew.textChanged.connect(self.set_update)
         self.alpha.textChanged.connect(self.set_update)
         self.ChipNumFill.textChanged.connect(self.set_update)
-        self.ILFill.textChanged.connect(self.set_update)
-        self.OnePercentCPFill.textChanged.connect(self.set_update)
+        self.ILFill.textChanged.connect(self.IL_to_OC)
+        self.OCoutFill.textChanged.connect(self.OC_to_IL)
+        self.OnePercentCPFill.textChanged.connect(self.InPower_change)
         self.SaveDataType.currentIndexChanged.connect(self.set_update)
         self.smoothindx.textChanged.connect(self.set_update)
         self.width_peak.textChanged.connect(self.set_update)
@@ -1411,6 +1419,30 @@ class Feedback(QtWidgets.QGroupBox):
         else:
             self.parent.AWGInfo.map=0
 
+
+    def OC_to_IL(self):
+        # 根据OCoutFill和1%输入泵浦功率估算IL并更新
+        if self.OCoutFill.text():
+            self.parent.AWGInfo.OCoutFill = float(self.OCoutFill.text())
+            IL = float(self.parent.AWGInfo.OnePercentCPFill)+19.956-14.5-0.6-self.parent.AWGInfo.OCoutFill
+            self.ILFill.setText(str(round(IL, 2)))
+
+
+    def IL_to_OC(self):
+        # 根据IL和1%输入泵浦功率估算OCoutFill并更新
+        if self.ILFill.text():
+            self.parent.AWGInfo.ILFill = float(self.ILFill.text())
+            OCout = float(self.parent.AWGInfo.OnePercentCPFill)+19.956-14.5-0.6-self.parent.AWGInfo.ILFill
+            self.OCoutFill.setText(str(round(OCout, 2)))
+
+
+    def InPower_change(self):
+        # 1%输入泵浦功率改变，更新IL和OCout
+        if self.OnePercentCPFill.text():
+            self.parent.AWGInfo.OnePercentCPFill = self.OnePercentCPFill.text()
+            self.OC_to_IL()
+
+
     def set_update(self):
         if self.linew.text():
             self.parent.AWGInfo.gamma_b=float(self.linew.text())      #手动设置线宽
@@ -1420,14 +1452,12 @@ class Feedback(QtWidgets.QGroupBox):
             self.parent.AWGInfo.alpha=float(self.alpha.text())
         if self.ChipNumFill.text():
             self.parent.AWGInfo.ChipNumFill=self.ChipNumFill.text()
-        if self.ILFill.text():
-            self.parent.AWGInfo.ILFill = self.ILFill.text()
-        if self.OnePercentCPFill.text():
-            self.parent.AWGInfo.OnePercentCPFill = self.OnePercentCPFill.text()
         if self.SaveDataType.currentText():
             self.parent.AWGInfo.SaveDataType = self.SaveDataType.currentText()
         if self.smoothindx.text():
             self.parent.AWGInfo.smooth=int(self.smoothindx.text())
+        if self.FBnum.text():
+            self.parent.AWGInfo.FB_number = int(self.FBnum.text())
         if self.width_peak.text():
             self.parent.AWGInfo.width_peak=int(self.width_peak.text())
             # print(self.parent.AWGInfo.width_peak)
@@ -1574,10 +1604,18 @@ class Feedback(QtWidgets.QGroupBox):
                 self.bfs.clear()
                 self.bfs.setPlaceholderText('Check PNA!')
 
+    def SaveForFB(self):
+        if self.parent.AWGInfo.freq_FB:
+            self.parent.AWGInfo.saved_freq_FB = np.array(self.parent.AWGInfo.freq_FB)
+            self.parent.AWGInfo.saved_gain_on_off_FB =  np.array(self.parent.AWGInfo.gain_on_off_FB)
+            print('SaveForFB done')
+        else:
+            msg = Shared.MsgError(self, 'No Data', 'There is nothing to save...')
+            msg.exec_()
+
 
     def FB_Function(self, status):
         mod_index = self.modFB.currentIndex()
-        print('alpha=',self.parent.AWGInfo.alpha)
 
         mod_shape = self.parent.AWGInfo.mod_sel
         if status:
@@ -1588,61 +1626,76 @@ class Feedback(QtWidgets.QGroupBox):
                 self.activeBtu.setCheckable(True)
                 # mod_index=2,以反馈次数作为收敛量
                 if mod_index == 2:
-                    FB_num = int(self.modFBDispaly.text())
-                    print(FB_num)
+                    # FB_num = int(self.modFBDispaly.text())
+                    FB_num = self.parent.AWGInfo.FB_number
+                    print('FB_num = ', FB_num)
                     i = 1
                     for _ in range(FB_num):
-                        """当前反馈为实时反馈FB_num次结束，等待时间长且容易卡死
-                        todo：
-                        方案1：改为手动单次反馈
-                        方案2：修改时延函数"""
+                        print('alpha=', self.parent.AWGInfo.alpha)
+                        """用手动保存的离线数据反馈FB_num次
+                        todo:在能控制EDFA后，改为自动关闭EDFA并反馈,再打开EDFA
+                        """
                         freq_design_seq = self.parent.AWGInfo.f_list
                         print('freq_design_seq', len(freq_design_seq))
                         amp_design_seq = self.parent.AWGInfo.amp_list
-                        freq_measure, amp_measure = self.parent.PNAHandle.pna_acquire(
-                            measName=self.parent.PNAInfo.Scale)
-                        amp_measure = amp_measure - self.parent.AWGInfo.BJ_amp  # 计算开关增益
-                        amp_measure = savgol_filter(amp_measure, 301, 3)  # 单位MHz；300点3阶SG平滑去噪
-                        baseline = peak_analysis(freq=freq_measure / 1e9, gain_on_off=amp_measure)
-                        amp_measure = amp_measure - baseline  # 开关增益减去基线
-                        measure_max = amp_measure.max()
-                        amp_measure = amp_measure / measure_max  # 最大值归一化
+                        # 获取已保存的增益谱数据
+                        freq_measure = self.parent.AWGInfo.saved_freq_FB
+                        amp_measure = self.parent.AWGInfo.saved_gain_on_off_FB
+                        # print(freq_measure)
+                        if freq_measure:
+                            print('Ready to feedback...')
+                            amp_measure = amp_measure - self.parent.AWGInfo.BJ_amp  # 计算开关增益
+                            amp_measure = savgol_filter(amp_measure, 301, 3)  # 单位MHz；300点3阶SG平滑去噪
+                            baseline = peak_analysis(freq=freq_measure / 1e9, gain_on_off=amp_measure)
+                            amp_measure = amp_measure - baseline  # 开关增益减去基线
+                            measure_max = amp_measure.max()
+                            amp_measure = amp_measure / measure_max  # 最大值归一化
 
-                        f_index = self.search_index(freq_design_seq - self.parent.AWGInfo.bfs * 1e9, freq_measure)  # 搜索时减去BFS
-                        print('f_index',len(f_index))
-                        expected_amp_sam = self.expected_gain(f_index, amp_measure, 'Rectangle')
-                        amp_measure_sam = np.array([amp_measure[j] for j in f_index])  # 最接近频梳频率的采样点增益
-                        print('amp_design_seq', len(amp_design_seq),'expected_amp_sam',len(expected_amp_sam),'amp_measure_sam',len(amp_measure_sam))
-                        amp_design_seq_new = mlt.change_amp_seq(amp_design_seq, expected_amp_sam, amp_measure_sam, 1,self.parent.AWGInfo.alpha)
-                        amp_design_seq_new = mlt.normalize_amp_seq(amp_design_seq_new,freq_design_seq,self.parent.AWGInfo.phase_list)
+                            f_index = self.search_index(freq_design_seq - self.parent.AWGInfo.bfs * 1e9,
+                                                        freq_measure)  # 搜索时减去BFS
+                            print('f_index', len(f_index))
+                            expected_amp_sam = self.expected_gain(f_index, amp_measure, 'Rectangle')
+                            amp_measure_sam = np.array([amp_measure[j] for j in f_index])  # 最接近频梳频率的采样点增益
+                            print('amp_design_seq', len(amp_design_seq), 'expected_amp_sam', len(expected_amp_sam),
+                                  'amp_measure_sam', len(amp_measure_sam))
+                            amp_design_seq_new = mlt.change_amp_seq(amp_design_seq, expected_amp_sam, amp_measure_sam,
+                                                                    1, self.parent.AWGInfo.alpha)
+                            amp_design_seq_new = mlt.normalize_amp_seq(amp_design_seq_new, freq_design_seq,
+                                                                       self.parent.AWGInfo.phase_list)
 
-                        self.parent.AWGInfo.amp_list = amp_design_seq_new
-                        print('new amp_design_seq =', amp_design_seq_new)
+                            self.parent.AWGInfo.amp_list = amp_design_seq_new
+                            print('new amp_design_seq =', amp_design_seq_new)
 
-                        ys = SBS_DSP.synthesize1(amp_design_seq_new,
-                                                 self.parent.AWGInfo.f_list,
-                                                 self.parent.AWGInfo.ts,
-                                                 self.parent.AWGInfo.phase_list)
-                        self.parent.AWGInfo.ys = ys
-                        wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
-                        self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
-                        # self.parent.AWGHandle.clear_all_wfm()
-                        # wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
-                        #                                            ch=self.parent.AWGInfo.ChannelNum)
-                        # self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
-                        self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
-                                                           ch=self.parent.AWGInfo.ChannelNum)
-                        if self.parent.AWGInfo.AWG_Status:
-                            # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
-                            #                                     channel=self.parent.AWGInfo.ChannelNum)
-                            self.parent.AWGHandle.play()
+                            ys = SBS_DSP.synthesize1(amp_design_seq_new,
+                                                     self.parent.AWGInfo.f_list,
+                                                     self.parent.AWGInfo.ts,
+                                                     self.parent.AWGInfo.phase_list)
+                            self.parent.AWGInfo.ys = ys
+                            wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
+                            self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
+                            # self.parent.AWGHandle.clear_all_wfm()
+                            # wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                            #                                            ch=self.parent.AWGInfo.ChannelNum)
+                            # self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
+                            print('Connecting AWG...')
+                            self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                                                               ch=self.parent.AWGInfo.ChannelNum)
+                            if self.parent.AWGInfo.AWG_Status:
+                                # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                                #                                     channel=self.parent.AWGInfo.ChannelNum)
+                                self.parent.AWGHandle.play()
 
-                        self.FBnum.setText(str(i))
-                        # 预留设备设置时间10ms
-                        time.sleep(10)
-                        i += 1
-                    self.FBnum.setText(str(i - 1) + '  Done !!!')
-                    # self.activeBtu.setCheckable(False)
+                            self.FBnum.setText(str(i))
+                            # 预留设备设置时间10ms
+                            time.sleep(10)
+                            i += 1
+                            self.FBnum.setText(str(i - 1) + '  Done !!!')
+                            # self.activeBtu.setCheckable(False)
+                        else:
+                            msg = Shared.MsgError(self, 'No Data', 'Please save data before feedback!')
+                            msg.exec_()
+
+
                 elif mod_index == 1:
                     # 范围在0-1
                     '''
@@ -1664,14 +1717,14 @@ class Feedback(QtWidgets.QGroupBox):
 
     def switch_mod(self):
         mod_index = self.modFB.currentIndex()
-
-        if mod_index == 1:
-            self.modFBDispaly.clear()
-            self.modFBDispaly.setPlaceholderText('MSE')
-
-        elif mod_index == 2:
-            self.modFBDispaly.clear()
-            self.modFBDispaly.setPlaceholderText('FB_Num.')
+        #
+        # if mod_index == 1:
+        #     self.modFBDispaly.clear()
+        #     self.modFBDispaly.setPlaceholderText('MSE')
+        #
+        # elif mod_index == 2:
+        #     self.modFBDispaly.clear()
+        #     self.modFBDispaly.setPlaceholderText('FB_Num.')
 
     def Manual_Fun(self):
         self.parent.ManualFB_Fun.exec_()
@@ -1750,8 +1803,8 @@ class VNAMonitor(QtWidgets.QGroupBox):
                 gain_on_off_offset=result
 
             self.plot_data.plot(freq, gain_on_off_offset, pen='b')
-            self.parent.AWGInfo.freq_FB=freq
-            self.parent.AWGInfo.gain_on_off_FB=gain_on_off_offset
+            self.parent.AWGInfo.freq_FB = freq
+            self.parent.AWGInfo.gain_on_off_FB = gain_on_off_offset
             self.plot_data.showGrid(x=True, y=True)
             # self.timer.start(1000)
         else:
@@ -1761,7 +1814,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
         '''[频率，幅值]写入csv '''
         # todo：把相位也读取保存
         today_date = datetime.datetime.now().strftime('%Y-%m-%d')
-        default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"chip{self.parent.AWGInfo.ChipNumFill}")
+        default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"{self.parent.AWGInfo.ChipNumFill}")
         self.mkdir(default_path)
         if self.parent.AWGInfo.BWFreq == 0:  # 此时主要关注单频泵浦增益与耦合功率关系
             default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,1)}G_EP{self.parent.EDFAInfo.EDFA1power}_IL{self.parent.AWGInfo.ILFill}_1IP{self.parent.AWGInfo.OnePercentCPFill}_'

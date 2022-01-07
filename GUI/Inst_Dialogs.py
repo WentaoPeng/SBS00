@@ -240,7 +240,7 @@ class manualFB_list(QtWidgets.QDialog):
         def save_data(self):
             '''[频率，幅值,相位]写入csv '''
             today_date = datetime.datetime.now().strftime('%Y-%m-%d')
-            default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"chip{self.parent.AWGInfo.ChipNumFill}")
+            default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"{self.parent.AWGInfo.ChipNumFill}")
             self.mkdir(default_path)
             default_name = rf'\settings_{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,1)}G_BW{round(self.parent.AWGInfo.BWFreq/1E6,1)}M_DF{round(self.parent.AWGInfo.DFFreq/1E6,1)}M_'
 

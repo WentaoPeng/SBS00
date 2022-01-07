@@ -71,12 +71,18 @@ class AWGInfo():
         self.baseline=[]
         self.freq_FB=[]
         self.gain_on_off_FB=[]
+        # 保存当前增益谱用于反馈
+        self.saved_freq_FB = []
+        self.saved_gain_on_off_FB = []
+
+        self.FB_number = 1  # 默认反馈1次
         self.smooth=301
         self.width_peak=500
         self.rel_height_peak=0.1
         self.min_base_indx=0
-        self.ChipNumFill = '1-1'  # 当日测试芯片编号
+        self.ChipNumFill = 'chip1-1'  # 当日测试芯片编号
         self.ILFill = '0'  # 该芯片编号的插损
+        self.OCoutFill = '0'  # 光环形器监控泵浦从波导输出
         self.OnePercentCPFill = '0'  # 该芯片编号1%入射泵浦光功率(未减插损)
         self.SaveDataType = 'org'  # 采集数据类型
 
