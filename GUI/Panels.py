@@ -184,6 +184,10 @@ class PNACtrl(QtWidgets.QGroupBox):
         self.AvgPoints = QtWidgets.QSpinBox()
         self.InitialBtu = QtWidgets.QPushButton('Initial')
         self.EnterBtu = QtWidgets.QPushButton('Enter')
+        self.SmoothBtu = QtWidgets.QPushButton('Smoothing')
+        self.SmoothBtu.setCheckable(True)
+        self.SmoothBtu.setStyleSheet(
+            '''QPushButton:hover{background:gray;color:white}QPushButton:checked{background:rgb(87,250,255);color:gray}''')
         self.AllMeasBtu = QtWidgets.QPushButton('ALLMeas')
 
         self.ScaleSet = QtWidgets.QWidget()
@@ -254,6 +258,7 @@ class PNACtrl(QtWidgets.QGroupBox):
         stimulusLayout.addWidget(self.PointSet, 1, 1, 1, 2)
         stimulusLayout.addWidget(self.powerset, 0, 1, 1, 2)
         stimulusLayout.addWidget(self.EnterBtu, 4, 1)
+        stimulusLayout.addWidget(self.SmoothBtu, 4, 2)
         stimulus.setLayout(stimulusLayout)
 
         mainLayout = QtWidgets.QVBoxLayout()
@@ -272,6 +277,7 @@ class PNACtrl(QtWidgets.QGroupBox):
 
         self.InitialBtu.clicked.connect(self.InitialF)
         self.EnterBtu.clicked.connect(self.setPNA)
+        self.SmoothBtu.clicked.connect(self.setSmoothing)
         self.AllMeasBtu.clicked.connect(self.AllDisplay)
 
         self.clicked.connect(self.check)
@@ -293,6 +299,16 @@ class PNACtrl(QtWidgets.QGroupBox):
                                             avgpoints=self.parent.PNAInfo.AvgPoints,
                                             power=self.parent.PNAInfo.Power)
 
+
+    def setSmoothing(self):
+        if self.parent.testModeAction.isChecked() or self.parent.PNAHandle:
+            if self.SmoothBtu.isChecked():
+                self.parent.PNAHandle.set_Smoothing(True)
+                self.parent.AWGInfo.SaveDataType = 'smt'
+            else:
+                self.parent.PNAHandle.set_Smoothing(False)
+                self.parent.AWGInfo.SaveDataType = 'org'
+
     def tune_mod_parameter(self):
         self.parent.PNAInfo.Scale = self.ScaleSetUnitSel.currentText()
         self.parent.PNAInfo.AvgPoints = int(self.AvgPoints.text())
@@ -312,7 +328,7 @@ class PNACtrl(QtWidgets.QGroupBox):
             self.setChecked(True)
             self.parent.PNACtrl.setChecked(True)
         else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No PNAN5225A is connected!')
+            msg = Shared.MsgError(self, 'No Instrument!', 'PNA-N5225A is not connected!')
             msg.exec_()
             self.setChecked(False)
             self.parent.PNACtrl.setChecked(False)

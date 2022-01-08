@@ -82,6 +82,13 @@ class PNASCPI(socketscpi.SocketInstrument):
         self.write('SENS:AVER ON')
         self.query('*opc?')
 
+
+    def set_Smoothing(self,Btn):
+        if Btn:
+            self.write(f'CALC:SMO ON')
+        else:
+            self.write(f'CALC:SMO OFF')
+
     def PNA_setup(self, measName=['S21']):
         """
         :param kwargs:针对初始化enter，
