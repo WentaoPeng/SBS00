@@ -1418,15 +1418,17 @@ class Feedback(QtWidgets.QGroupBox):
         # self.bfs_value = 7.15e3
 
     def dfFB_Fun(self):
+        # 根据离线保存的数据进行频率反馈
+        # todo：加入EDFA控制后在线反馈
         freq_design_seq = self.parent.AWGInfo.f_list
-        freq = self.parent.AWGInfo.freq_FB
-        gain_offset = self.parent.AWGInfo.gain_on_off_FB
-        BFS=self.parent.AWGInfo.bfs
-        FWHM=self.parent.AWGInfo.gamma_b
-        new_freq_design=df_feedback(freq_design_seq,freq,gain_offset,BFS,FWHM)
-        self.parent.AWGInfo.f_list=new_freq_design
+        freq = self.parent.AWGInfo.saved_freq_FB
+        gain_offset = self.parent.AWGInfo.saved_gain_on_off_FB
+        BFS = self.parent.AWGInfo.bfs
+        FWHM = self.parent.AWGInfo.gamma_b
+        new_freq_design = df_feedback(freq_design_seq, freq, gain_offset, BFS, FWHM)
+        self.parent.AWGInfo.f_list = new_freq_design
         # AWGCtrl.DonePump(self)
-        f_list=new_freq_design
+        f_list = new_freq_design
         amp_list = self.parent.AWGInfo.amp_list
         phase_list = self.parent.AWGInfo.phase_list
         ts = self.parent.AWGInfo.ts
