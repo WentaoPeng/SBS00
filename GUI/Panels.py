@@ -445,6 +445,10 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.pumpdesignsetBtu.setStyleSheet('''QPushButton:hover{background:yellow;}QPushButton:checked{background:gray;color:white}''')
         self.pumpdesignsetBtu.setMaximumSize(200, 200)
 
+        self.preFBBtn=QtWidgets.QPushButton('pre FB')
+        self.preFBBtn.setCheckable(True)
+        self.preFBBtn.setStyleSheet('''QPushButton:hover{background:gray;color:white}QPushButton:checked{background:rgb(87,250,255);color:gray}''')
+
         self.sweepFreq=QtWidgets.QCheckBox('Sweep_Freq')
         # self.sweepFreq.setCheckState(True)
         self.sweepFreq.setChecked(False)
@@ -458,6 +462,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         PumpLayout.addWidget(self.pumpdesignsetBtu,1,0,2,1)
         PumpLayout.addWidget(self.PumpDesignDoneBtu,3, 0, 2, 1)
         PumpLayout.addWidget(self.PumpModeSel, 0, 1)
+        PumpLayout.addWidget(self.preFBBtn, 0, 2)
         PumpLayout.addWidget(self.CenterFreq, 1, 1, 2, 3)
         PumpLayout.addWidget(self.BandWidth, 2, 1, 2, 3)
         PumpLayout.addWidget(self.CombFreq, 3, 1, 2, 3)
@@ -688,9 +693,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
             phase_list = []
 
         # 预反馈部分
-        if len(f_list) > 1:
+        if len(f_list) > 1 and self.preFBBtn.isChecked():
             amp_list = self.pre_amp_seq(BW, DF)
-            print('amp_list:', amp_list)
+            print(' pre amp_list:', amp_list)
 
         self.parent.AWGInfo.f_list = f_list
         self.parent.AWGInfo.amp_list = amp_list
