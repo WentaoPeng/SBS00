@@ -47,7 +47,7 @@ class MainForm(QtWidgets.QWidget):
         for file in all_files:
             data_frame = pd.read_csv(file, index_col=False, header=0, sep=',')
             filename_str = os.path.basename(file)[:-4]
-            if 'BW' not in filename_str:
+            if 'BW' in filename_str:
                 data_frame['freq_list'] = data_frame['freq_list'] / 1E9  # 横坐标 Hz -> GHz
                 xlabel_str = 'Frequency(GHz)'
             else:
