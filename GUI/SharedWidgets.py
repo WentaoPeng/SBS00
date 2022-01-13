@@ -85,6 +85,7 @@ class AWGInfo():
         self.OCoutFill = '0'  # 光环形器监控泵浦从波导输出
         self.OnePercentCPFill = '0'  # 该芯片编号1%入射泵浦光功率(未减插损)
         self.SaveDataType = 'org'  # 采集数据类型
+        self.iteration_type = 1  # 反馈公式
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''

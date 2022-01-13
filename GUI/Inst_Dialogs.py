@@ -247,6 +247,9 @@ class manualFB_list(QtWidgets.QDialog):
             count_same_name = len(glob.glob(rf'{default_path}{default_name}*'))
             self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path+default_name+str(count_same_name),
                                                                              'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别
+            if self.filepath == "":
+                print("\n取消选择")
+                return
             pump_lists_designed = pd.DataFrame(
                 {'freq_list_designed': self.parent.AWGInfo.f_list, 'amp_list_designed': self.parent.AWGInfo.amp_list,
                  'phase_list_designed': self.parent.AWGInfo.phase_list})

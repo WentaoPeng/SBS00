@@ -1327,6 +1327,10 @@ class Feedback(QtWidgets.QGroupBox):
         self.modFB.setCurrentIndex(2)
         # self.modFBDispaly = QtWidgets.QLineEdit()
 
+        self.iteration_type = QtWidgets.QComboBox()
+        self.iteration_type.addItems(['1', '2', '3', '4'])
+        self.iteration_type.setCurrentIndex(0)
+
         self.ManualBtu=QtWidgets.QPushButton('Manual')
         self.ManualBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
         self.btu_map=QtWidgets.QPushButton('Mapping')
@@ -1349,7 +1353,9 @@ class Feedback(QtWidgets.QGroupBox):
         FBLayout.addWidget(self.bfs, 0, 4, 1, 1)
         FBLayout.addWidget(self.SaveForFBBTu, 0, 5, 1, 1)
         FBLayout.addWidget(self.alpha, 0, 6, 1, 1)
-        FBLayout.addWidget(self.linew,1,4,1,1)
+        FBLayout.addWidget(self.linew, 1, 4, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('Iteration Type:'), 1, 5, 1, 1)
+        FBLayout.addWidget(self.iteration_type, 1, 6, 1, 1)
         FBLayout.addWidget(self.activeBtu, 0, 7, 2, 1)
         FBLayout.addWidget(self.ManualBtu,1,3,1,1)
         FBLayout.addWidget(self.btu_map,2,4,1,1)
@@ -1389,6 +1395,7 @@ class Feedback(QtWidgets.QGroupBox):
         self.OCoutFill.textChanged.connect(self.OC_to_IL)
         self.OnePercentCPFill.textChanged.connect(self.InPower_change)
         self.SaveDataType.currentIndexChanged.connect(self.set_update)
+        self.iteration_type.currentIndexChanged.connect(self.set_update)
         self.smoothindx.textChanged.connect(self.set_update)
         self.width_peak.textChanged.connect(self.set_update)
         self.min_base_indx.textChanged.connect(self.set_update)
@@ -1456,7 +1463,7 @@ class Feedback(QtWidgets.QGroupBox):
         # 1%输入泵浦功率改变，更新IL和OCout
         if self.OnePercentCPFill.text():
             self.parent.AWGInfo.OnePercentCPFill = self.OnePercentCPFill.text()
-            self.OC_to_IL()
+            self.IL_to_OC()
 
 
     def set_update(self):
@@ -1467,9 +1474,11 @@ class Feedback(QtWidgets.QGroupBox):
         if self.alpha.text():
             self.parent.AWGInfo.alpha=float(self.alpha.text())
         if self.ChipNumFill.text():
-            self.parent.AWGInfo.ChipNumFill=self.ChipNumFill.text()
+            self.parent.AWGInfo.ChipNumFill = self.ChipNumFill.text()
         if self.SaveDataType.currentText():
             self.parent.AWGInfo.SaveDataType = self.SaveDataType.currentText()
+        if self.iteration_type.currentText():
+            self.parent.AWGInfo.iteration_type = int(self.iteration_type.currentText())
         if self.smoothindx.text():
             self.parent.AWGInfo.smooth=int(self.smoothindx.text())
         if self.FBnum.text():
@@ -1645,6 +1654,7 @@ class Feedback(QtWidgets.QGroupBox):
                     # FB_num = int(self.modFBDispaly.text())
                     FB_num = self.parent.AWGInfo.FB_number
                     print('FB_num = ', FB_num)
+                    print('iteration_type = ', self.parent.AWGInfo.iteration_type)
                     i = 1
                     for _ in range(FB_num):
                         print('alpha=', self.parent.AWGInfo.alpha)
@@ -1675,7 +1685,7 @@ class Feedback(QtWidgets.QGroupBox):
                             print('amp_design_seq', len(amp_design_seq), 'expected_amp_sam', len(expected_amp_sam),
                                   'amp_measure_sam', len(amp_measure_sam))
                             amp_design_seq_new = mlt.change_amp_seq(amp_design_seq, expected_amp_sam, amp_measure_sam,
-                                                                    1, self.parent.AWGInfo.alpha)
+                                                                    self.parent.AWGInfo.iteration_type, self.parent.AWGInfo.alpha)
                             amp_design_seq_new = mlt.normalize_amp_seq(amp_design_seq_new, freq_design_seq,
                                                                        self.parent.AWGInfo.phase_list)
 
@@ -1840,6 +1850,9 @@ class VNAMonitor(QtWidgets.QGroupBox):
         count_same_name = len(glob.glob(rf'{default_path}{default_name}*'))
         self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path + default_name+str(count_same_name),
                                                                     'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别
+        if self.filepath == "":
+            print("\n取消选择")
+            return
         PNA_monitor_lists = pd.DataFrame(
             {'freq_list': self.parent.AWGInfo.freq_FB, 'amp_list': self.parent.AWGInfo.gain_on_off_FB})
         PNA_monitor_lists.to_csv(self.filepath, index=False, sep=',')  # 将DataFrame存储为csv,index表示是否显示行名，default=True

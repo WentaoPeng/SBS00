@@ -35,7 +35,9 @@ class MainForm(QtWidgets.QWidget):
         # input_path = r'D:\Documents\5G项目\2021-12-30\chip3-2-1226'  # 手动输入目标文件夹地址
         default_path = r'D:\Documents\5G项目'  # 默认目标文件夹地址
         input_path, datatype = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', default_path, 'csv(*.csv)')
-        # print(input_path)
+        if input_path == "":
+            print("\n取消选择")
+            return
         filedir, filename = os.path.split(input_path)
         print(filedir, filename)
         feature_name = filename.split('_')[0]
