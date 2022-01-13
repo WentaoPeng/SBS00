@@ -395,40 +395,44 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         self.CenterFreq = QtWidgets.QWidget()
         self.CenterFreqFill = QtWidgets.QLineEdit('15')
+        self.CenterFreqFill.setAlignment(QtCore.Qt.AlignHCenter)
         self.CenterFreqUnitSel = QtWidgets.QComboBox()
         self.CenterFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.CenterFreqUnitSel.setCurrentIndex(3)
 
         CenterFreqLayout = QtWidgets.QHBoxLayout()
-        CenterFreqLayout.addWidget(QtWidgets.QLabel('CenterFreq'))
+        CenterFreqLayout.addWidget(QtWidgets.QLabel('CF:'))
         CenterFreqLayout.addWidget(self.CenterFreqFill)
         CenterFreqLayout.addWidget(self.CenterFreqUnitSel)
         self.CenterFreq.setLayout(CenterFreqLayout)
 
         self.BandWidth = QtWidgets.QWidget()
         self.BandWidthFill = QtWidgets.QLineEdit('0')
+        self.BandWidthFill.setAlignment(QtCore.Qt.AlignHCenter)
         self.BandWidthUnitSel = QtWidgets.QComboBox()
         self.BandWidthUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.BandWidthUnitSel.setCurrentIndex(2)
         BandWidthLayout = QtWidgets.QHBoxLayout()
-        BandWidthLayout.addWidget(QtWidgets.QLabel('BandWidth'))
+        BandWidthLayout.addWidget(QtWidgets.QLabel('BW:'))
         BandWidthLayout.addWidget(self.BandWidthFill)
         BandWidthLayout.addWidget(self.BandWidthUnitSel)
         self.BandWidth.setLayout(BandWidthLayout)
 
         self.CombFreq = QtWidgets.QWidget()
         self.CombFreqFill = QtWidgets.QLineEdit('15')
+        self.CombFreqFill.setAlignment(QtCore.Qt.AlignHCenter)
         self.CombFreqUnitSel = QtWidgets.QComboBox()
         self.CombFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.CombFreqUnitSel.setCurrentIndex(2)
         CombFreqLayout = QtWidgets.QHBoxLayout()
-        CombFreqLayout.addWidget(QtWidgets.QLabel('Comb DF'))
+        CombFreqLayout.addWidget(QtWidgets.QLabel('DF:'))
         CombFreqLayout.addWidget(self.CombFreqFill)
         CombFreqLayout.addWidget(self.CombFreqUnitSel)
         self.CombFreq.setLayout(CombFreqLayout)
 
-        self.rand_seed=QtWidgets.QWidget()
+        self.rand_seed = QtWidgets.QWidget()
         self.rand_SFill = QtWidgets.QLineEdit('0')
+        self.rand_SFill.setAlignment(QtCore.Qt.AlignHCenter)
         rand_seedLayout=QtWidgets.QHBoxLayout()
         rand_seedLayout.addWidget(QtWidgets.QLabel('Rand_S'))
         rand_seedLayout.addWidget(self.rand_SFill)
@@ -744,13 +748,18 @@ class AWGCtrl(QtWidgets.QGroupBox):
         两种方式，扫频与正常
         :return:
         '''
-        AWG_framerate = 64e9  # AWG采样率
-        self.parent.AWGHandle.set_fs(fs=AWG_framerate)
         if self.pumpdesignsetBtu.isChecked():
             if self.plusFreq.isChecked():
-                self.parent.AWGInfo.f_list+=self.parent.AWGInfo.BWFreq
+                self.parent.AWGInfo.f_list += self.parent.AWGInfo.BWFreq
+                self.parent.AWGInfo.CFFreq += self.parent.AWGInfo.BWFreq
+                self.CenterFreqFill.setText(str(round(self.parent.AWGInfo.CFFreq/1E9,2)))
             if self.minusFreq.isChecked():
-                self.parent.AWGInfo.f_list-=self.parent.AWGInfo.BWFreq
+                self.parent.AWGInfo.f_list -= self.parent.AWGInfo.BWFreq
+                self.parent.AWGInfo.CFFreq -= self.parent.AWGInfo.BWFreq
+                self.CenterFreqFill.setText(str(round(self.parent.AWGInfo.CFFreq / 1E9, 2)))
+
+            AWG_framerate = 64e9  # AWG采样率
+            self.parent.AWGHandle.set_fs(fs=AWG_framerate)
 
             f_list = self.parent.AWGInfo.f_list
             amp_list = self.parent.AWGInfo.amp_list
@@ -1859,9 +1868,9 @@ class VNAMonitor(QtWidgets.QGroupBox):
         default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"{self.parent.AWGInfo.ChipNumFill}")
         self.mkdir(default_path)
         if self.parent.AWGInfo.BWFreq == 0:  # 此时主要关注单频泵浦增益与耦合功率关系
-            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,1)}G_EP{self.parent.EDFAInfo.EDFA1power}_IL{self.parent.AWGInfo.ILFill}_1IP{self.parent.AWGInfo.OnePercentCPFill}_'
+            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,2)}G_EP{self.parent.EDFAInfo.EDFA1power}_IL{self.parent.AWGInfo.ILFill}_1IP{self.parent.AWGInfo.OnePercentCPFill}_'
         else:  # 此时主要关注带宽扩展情况
-            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,1)}G_BW{round(self.parent.AWGInfo.BWFreq/1E6,1)}M_DF{round(self.parent.AWGInfo.DFFreq/1E6,1)}M_EP{self.parent.EDFAInfo.EDFA1power}_'
+            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,2)}G_BW{round(self.parent.AWGInfo.BWFreq/1E6,1)}M_DF{round(self.parent.AWGInfo.DFFreq/1E6,1)}M_EP{self.parent.EDFAInfo.EDFA1power}_'
 
         count_same_name = len(glob.glob(rf'{default_path}{default_name}*'))
         self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path + default_name+str(count_same_name),

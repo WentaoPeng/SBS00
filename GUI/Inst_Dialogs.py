@@ -242,7 +242,7 @@ class manualFB_list(QtWidgets.QDialog):
             today_date = datetime.datetime.now().strftime('%Y-%m-%d')
             default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"{self.parent.AWGInfo.ChipNumFill}")
             self.mkdir(default_path)
-            default_name = rf'\settings_{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,1)}G_BW{round(self.parent.AWGInfo.BWFreq/1E6,1)}M_DF{round(self.parent.AWGInfo.DFFreq/1E6,1)}M_'
+            default_name = rf'\settings_{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,2)}G_BW{round(self.parent.AWGInfo.BWFreq/1E6,1)}M_DF{round(self.parent.AWGInfo.DFFreq/1E6,1)}M_'
 
             count_same_name = len(glob.glob(rf'{default_path}{default_name}*'))
             self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path+default_name+str(count_same_name),
