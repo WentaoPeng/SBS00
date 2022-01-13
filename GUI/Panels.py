@@ -1117,26 +1117,36 @@ class EDFACtrl(QtWidgets.QGroupBox):
 
         self.addressEDFA1 = QtWidgets.QLabel()
 
+        self.setCurrent1 = QtWidgets.QWidget()
+        self.setCurrent1Fill = QtWidgets.QLineEdit('0')
+
+        setCurrent1Layout = QtWidgets.QHBoxLayout()
+        setCurrent1Layout.addWidget(QtWidgets.QLabel('InputCurrent'))
+        setCurrent1Layout.addWidget(self.setCurrent1Fill)
+        setCurrent1Layout.addWidget(QtWidgets.QLabel('mA'))
+        self.setCurrent1.setLayout(setCurrent1Layout)
+
         self.setPower1 = QtWidgets.QWidget()
-        self.setPower1Fill = QtWidgets.QLineEdit('0.0')
+        self.setPower1Fill = QtWidgets.QLineEdit('0.00')
+        self.setPower1Fill.setMinimumWidth(10)
         self.setPower1UnitSel = QtWidgets.QComboBox()
         self.setPower1UnitSel.addItems(['dBm', 'mW'])
         self.setPower1UnitSel.setCurrentIndex(0)
 
         setPower1Layout = QtWidgets.QHBoxLayout()
-        setPower1Layout.addWidget(QtWidgets.QLabel('SetPower'))
+        setPower1Layout.addWidget(QtWidgets.QLabel('Output'))
         setPower1Layout.addWidget(self.setPower1Fill)
         setPower1Layout.addWidget(self.setPower1UnitSel)
         self.setPower1.setLayout(setPower1Layout)
 
-        self.P1slider = QtWidgets.QSlider()
-        self.P1slider.setOrientation(QtCore.Qt.Horizontal)
-        self.P1slider.setMaximum(35)
-        self.P1slider.setMinimum(0)
-        self.P1slider.setValue(0)
-        self.P1slider.setPageStep(1)
-        # self.P1slider.setSingleStep(0.01)
-        self.P1slider.setTickInterval(0.01)
+        # self.P1slider = QtWidgets.QSlider()
+        # self.P1slider.setOrientation(QtCore.Qt.Horizontal)
+        # self.P1slider.setMaximum(35)
+        # self.P1slider.setMinimum(0)
+        # self.P1slider.setValue(0)
+        # self.P1slider.setPageStep(1)
+        # # self.P1slider.setSingleStep(0.01)
+        # self.P1slider.setTickInterval(0.01)
 
         self.PointSlider = QtWidgets.QSlider()
         self.PointSlider.setOrientation(QtCore.Qt.Horizontal)
@@ -1145,7 +1155,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.PointSlider.setValue(0)
         self.PointSlider.setPageStep(1)
         # self.P1slider.setSingleStep(0.01)
-        self.P1slider.setTickInterval(0.01)
+        # self.P1slider.setTickInterval(0.01)
 
         self.enterBtu1 = QtWidgets.QPushButton('Enter')
         self.activeBtu1 = QtWidgets.QPushButton('Active')
@@ -1153,9 +1163,10 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.activeBtu1.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:red;}''')
 
         EDFA1Layout.addWidget(QtWidgets.QLabel('Inst_COM:'), 0, 0)
-        EDFA1Layout.addWidget(self.addressEDFA1, 0, 1, 1, 3)
-        EDFA1Layout.addWidget(self.setPower1, 1, 0, 1, 3)
-        EDFA1Layout.addWidget(self.P1slider, 3, 0, 1, 3)
+        EDFA1Layout.addWidget(self.addressEDFA1, 0, 0, 1, 3)
+        EDFA1Layout.addWidget(self.setCurrent1, 1, 0, 1, 3)
+        EDFA1Layout.addWidget(self.setPower1, 2, 0, 1, 3)
+        # EDFA1Layout.addWidget(self.P1slider, 3, 0, 1, 3)
         EDFA1Layout.addWidget(self.PointSlider, 4, 0, 1, 3)
         EDFA1Layout.addWidget(self.enterBtu1, 5, 0, 1, 1)
         EDFA1Layout.addWidget(self.activeBtu1, 5, 2, 1, 1)
@@ -1197,7 +1208,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.PointSlider2.setValue(0)
         self.PointSlider2.setPageStep(1)
         # self.P1slider.setSingleStep(0.01)
-        self.P1slider.setTickInterval(0.01)
+        # self.P1slider.setTickInterval(0.01)
 
         self.enterBtu2 = QtWidgets.QPushButton('Enter')
         self.activeBtu2 = QtWidgets.QPushButton('Active')
@@ -1221,8 +1232,8 @@ class EDFACtrl(QtWidgets.QGroupBox):
 
         self.setPower1Fill.textChanged.connect(self.EDFAChangeFun)
         # self.setPower1Fill.textChanged.connect(self.EDFAFillChangeFun)
-        self.P1slider.valueChanged.connect(self.EDFAChangeFun)
-        self.PointSlider.valueChanged.connect(self.EDFAChangeFun)
+        # self.P1slider.valueChanged.connect(self.EDFAChangeFun)
+        # self.PointSlider.valueChanged.connect(self.EDFAChangeFun)
         self.PointSlider2.valueChanged.connect(self.EDFAChangeFun)
         # self.setPower2Fill.textChanged.connect(self.EDFAFillChangeFun)
         self.setPower2Fill.textChanged.connect(self.EDFAChangeFun)
@@ -1246,7 +1257,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
 
     def EDFAChangeFun(self):
 
-        self.setPower1Fill.setText(str(self.P1slider.value())+'.'+str(self.PointSlider.value()))
+        # self.setPower1Fill.setText(str(self.P1slider.value())+'.'+str(self.PointSlider.value()))
         self.setPower2Fill.setText(str(self.P2slider.value())+'.'+str(self.PointSlider2.value()))
         EDFA1_status, EDFA1_Power = api_val.val_edfa1power(self.setPower1Fill.text(),
                                                            self.setPower1UnitSel.currentText())
