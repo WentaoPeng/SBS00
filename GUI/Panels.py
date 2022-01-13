@@ -456,9 +456,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.sweepFreq=QtWidgets.QCheckBox('Sweep_Freq')
         # self.sweepFreq.setCheckState(True)
         self.sweepFreq.setChecked(False)
-        self.plusFreq=QtWidgets.QCheckBox('Plus')
+        self.plusFreq = QtWidgets.QCheckBox('Plus')
         self.plusFreq.setChecked(False)
-        self.minusFreq=QtWidgets.QCheckBox('Minus')
+        self.minusFreq = QtWidgets.QCheckBox('Minus')
 
         PumpLayout = QtWidgets.QGridLayout()
 
@@ -500,6 +500,10 @@ class AWGCtrl(QtWidgets.QGroupBox):
         AWGPowerInput.clicked.connect(self.AWGRFPower)
         self.AWGPowerSwitchBtu.clicked.connect(self.AWGRFPowerSwitch_auto)
         self.AWGPowerSwitchBtu.toggled.connect(self.AWGPowerSwitch_Label)
+
+        self.plusFreq.clicked.connect(self.checkminus)
+        self.minusFreq.clicked.connect(self.checkplus)
+
         # self.powerSwitchTimer.timeout.connect(self.ramp_AWGRFPower)
         # 设计泵浦事件
         self.PumpDesignDoneBtu.clicked.connect(self.DonePump)
@@ -608,6 +612,15 @@ class AWGCtrl(QtWidgets.QGroupBox):
         else:
             self.AWGPowerSwitchBtu.setText('OFF')
 
+    def checkminus(self):
+        # 避免minusFreq和plusFreq同时打开
+        if self.minusFreq.isChecked():
+            self.minusFreq.setChecked(False)
+
+    def checkplus(self):
+        # 避免minusFreq和plusFreq同时打开
+        if self.plusFreq.isChecked():
+            self.plusFreq.setChecked(False)
 
     def pre_amp_seq(self, BW, DF):
         # 产生AWG波形前，自动迭代出最佳泵浦幅值
