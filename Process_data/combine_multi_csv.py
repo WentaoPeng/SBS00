@@ -50,7 +50,7 @@ class MainForm(QtWidgets.QWidget):
             data_frame = pd.read_csv(file, index_col=False, header=0, sep=',')
             filename_str = os.path.basename(file)[:-4]
             if 'BW' in filename_str:
-                data_frame['freq_list'] = data_frame['freq_list'] / 1E9  # 横坐标 Hz -> GHz
+                data_frame[data_frame.columns[0]] = data_frame[data_frame.columns[0]] / 1E9  # 横坐标 Hz -> GHz
                 xlabel_str = 'Frequency(GHz)'
             else:
                 filename_str_split = filename_str.split('_')
@@ -60,7 +60,7 @@ class MainForm(QtWidgets.QWidget):
                 data_frame['freq_list'] = CF - data_frame['freq_list'] / 1E9  # 横坐标转换为BFS(GHz)
                 xlabel_str = 'BFS(GHz)'
             data_frame.columns = [xlabel_str] + list(data_frame.columns)[1:-1]+[filename_str]  # 最后一列以文件名命名
-            plt.plot(data_frame[xlabel_str], data_frame[filename_str])
+            plt.plot(data_frame[xlabel_str], data_frame[data_frame.columns[1]])
             all_data_frames.append(data_frame)
             file_counter += 1
         data_frame_concat = pd.concat(all_data_frames, axis=1)  # axis=1-平行拼接
