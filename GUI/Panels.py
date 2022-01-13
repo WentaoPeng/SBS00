@@ -1686,7 +1686,7 @@ class Feedback(QtWidgets.QGroupBox):
                                   'amp_measure_sam', len(amp_measure_sam))
                             amp_design_seq_new = mlt.change_amp_seq(amp_design_seq, expected_amp_sam, amp_measure_sam,
                                                                     self.parent.AWGInfo.iteration_type, self.parent.AWGInfo.alpha)
-                            amp_design_seq_new = mlt.normalize_amp_seq(amp_design_seq_new, freq_design_seq,
+                            amp_design_seq_new = mlt.normalize_amp_seq(amp_design_seq_new, freq_design_seq/1E6,
                                                                        self.parent.AWGInfo.phase_list)
 
                             self.parent.AWGInfo.amp_list = amp_design_seq_new
