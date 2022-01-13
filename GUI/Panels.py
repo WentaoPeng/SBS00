@@ -1621,9 +1621,9 @@ class Feedback(QtWidgets.QGroupBox):
                 self.bfs.setPlaceholderText('Check PNA!')
 
     def SaveForFB(self):
-        if self.parent.AWGInfo.freq_FB:
+        if any(self.parent.AWGInfo.freq_FB):
             self.parent.AWGInfo.saved_freq_FB = np.array(self.parent.AWGInfo.freq_FB)
-            self.parent.AWGInfo.saved_gain_on_off_FB =  np.array(self.parent.AWGInfo.gain_on_off_FB)
+            self.parent.AWGInfo.saved_gain_on_off_FB = np.array(self.parent.AWGInfo.gain_on_off_FB)
             print('SaveForFB done')
         else:
             msg = Shared.MsgError(self, 'No Data', 'There is nothing to save...')
@@ -1658,7 +1658,7 @@ class Feedback(QtWidgets.QGroupBox):
                         freq_measure = self.parent.AWGInfo.saved_freq_FB
                         amp_measure = self.parent.AWGInfo.saved_gain_on_off_FB
                         # print(freq_measure)
-                        if freq_measure:
+                        if any(freq_measure):
                             print('Ready to feedback...')
                             amp_measure = amp_measure - self.parent.AWGInfo.BJ_amp  # 计算开关增益
                             amp_measure = savgol_filter(amp_measure, 301, 3)  # 单位MHz；300点3阶SG平滑去噪
