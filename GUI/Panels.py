@@ -606,13 +606,18 @@ class AWGCtrl(QtWidgets.QGroupBox):
         ''' [1] input initial settings (set requirements of filter) '''
         bandwidth = BW/1e6  # MHz
         comb_df = DF/1e6  # MHz
-        iteration_type = 1  # 迭代方式，[1]-2+3，[2]-线性，[3]-根号,[4]-边界参考旁边 (默认选[1])
+        iteration_type = self.parent.AWGInfo.iteration_type  # 迭代方式，[1]-2+3，[2]-线性，[3]-根号,[4]-边界参考旁边 (默认选[1])
         gamma_B = self.parent.AWGInfo.gamma_b  # MHz，布里渊线宽(通过单梳测量得到，可以只存一次）
-        type_filter = 'square'  # type_filter='square','triangle'
+        # type_filter = 'square'  # type_filter='square','triangle'
+        mod_sel = self.parent.AWGInfo.mod_sel
+        if mod_sel =='Rectangle':
+            type_filter = 'square'
+        elif mod_sel =='Triangle':
+            type_filter = 'triangle'
 
         ''' [2] check and preprocess '''
         # assert bandwidth % comb_df == 0
-        N_pump = int(bandwidth / comb_df)+1
+        N_pump = int(round(bandwidth / comb_df))+1
         central_freq = 0  # 因为只要确定形状，故此处中心频率采用相对值，设置为0
         BFS = 0  # 因为只要确定形状，故不考虑布里渊频移，设置为0
 
@@ -681,6 +686,12 @@ class AWGCtrl(QtWidgets.QGroupBox):
             amp_list = []
             f_list = []
             phase_list = []
+
+        # 预反馈部分
+        if len(f_list) > 1:
+            amp_list = self.pre_amp_seq(BW, DF)
+            print('amp_list:', amp_list)
+
         self.parent.AWGInfo.f_list = f_list
         self.parent.AWGInfo.amp_list = amp_list
         self.parent.AWGInfo.phase_list = phase_list
@@ -782,9 +793,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 self.timer.start(0)
             else:
                 self.timer.stop()
-                # 预反馈部分
-                # if len(f_list)>1:todo:长度不匹配，后期改
-                #     amp_list = self.pre_amp_seq(BW, DF)
 
                 # ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
                 ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)

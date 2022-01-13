@@ -337,7 +337,7 @@ class manualFB_list(QtWidgets.QDialog):
             '''
             self.list_table.blockSignals(True)
             amp_list= self.parent.AWGInfo.amp_list
-            f_list=self.parent.AWGInfo.f_list/1e9    #GHz显示
+            f_list=np.array(self.parent.AWGInfo.f_list)/1e9    #GHz显示
             phase_list=self.parent.AWGInfo.phase_list
             arry=np.array([amp_list,f_list,phase_list])
             # print(arry,arry[1],arry[2],arry[1][2])
