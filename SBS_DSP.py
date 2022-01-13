@@ -60,8 +60,6 @@ def square_filter(center_F, bandwidth, df,rand_seed=0):
     # start_F = center_F - bandwidth / 2
     # # end_F=center_F+bandwidth/2
     dots = int(round(bandwidth / df))+1
-    if (dots % 2) == 0:
-        dots += 1
     # # a = np.random.randint(0, df / (10 ** 6) + 1)
     # f_list = []
     # amp_list = np.empty(dots)
@@ -76,6 +74,8 @@ def square_filter(center_F, bandwidth, df,rand_seed=0):
     amp_list = np.ones(dots)
     print('dots',dots)
     f_list = np.arange(-dots // 2 + 1, dots // 2 + 1) * df + center_F
+    if dots % 2 == 0:
+        f_list = f_list - df/2
     # f_list = np.linspace(center_F-bandwidth/2, center_F+bandwidth/2, dots)
     rand_seed = 0  # 改为操作界面输入，默认值为0
     np.random.seed(rand_seed)

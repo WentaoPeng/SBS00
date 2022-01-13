@@ -1643,6 +1643,7 @@ class Feedback(QtWidgets.QGroupBox):
         mod_index = self.modFB.currentIndex()
 
         mod_shape = self.parent.AWGInfo.mod_sel
+        print('mod_shape:', mod_shape)
         if status:
             if (self.parent.testModeAction.isChecked()):
                 self.activeBtu.setCheckable(True)
@@ -1680,7 +1681,7 @@ class Feedback(QtWidgets.QGroupBox):
                             f_index = self.search_index(freq_design_seq - self.parent.AWGInfo.bfs * 1e9,
                                                         freq_measure)  # 搜索时减去BFS
                             print('f_index', len(f_index))
-                            expected_amp_sam = self.expected_gain(f_index, amp_measure, 'Rectangle')
+                            expected_amp_sam = self.expected_gain(f_index, amp_measure, mod_shape)
                             amp_measure_sam = np.array([amp_measure[j] for j in f_index])  # 最接近频梳频率的采样点增益
                             print('amp_design_seq', len(amp_design_seq), 'expected_amp_sam', len(expected_amp_sam),
                                   'amp_measure_sam', len(amp_measure_sam))
