@@ -56,7 +56,7 @@ def square_wave(start, zhouqi, midu, xdecimals, ydecimals):
     return x, y
 
 
-def square_filter(center_F, bandwidth, df,rand_seed=0):
+def square_filter(center_F, bandwidth,df, rand_seed=0):
     # start_F = center_F - bandwidth / 2
     # # end_F=center_F+bandwidth/2
     dots = int(round(bandwidth / df))+1
@@ -77,7 +77,7 @@ def square_filter(center_F, bandwidth, df,rand_seed=0):
     if dots % 2 == 0:
         f_list = f_list - df/2
     # f_list = np.linspace(center_F-bandwidth/2, center_F+bandwidth/2, dots)
-    rand_seed = 0  # 改为操作界面输入，默认值为0
+    # rand_seed = 0  # 改为操作界面输入，默认值为0
     np.random.seed(rand_seed)
     phase_list = np.random.randint(low=0, high=8, size=dots) * (np.pi / 4)
     # phase_list = [np.pi*(n %2==0) for n in range(dots)]  # 奇数pi。偶数0

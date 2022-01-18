@@ -761,6 +761,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
         两种方式，扫频与正常
         :return:
         '''
+        AWG_framerate = 64e9  # AWG采样率
+        self.parent.AWGHandle.set_fs(fs=AWG_framerate)
+
         if self.pumpdesignsetBtu.isChecked():
             if self.plusFreq.isChecked():
                 self.parent.AWGInfo.f_list += self.parent.AWGInfo.BWFreq
@@ -770,9 +773,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 self.parent.AWGInfo.f_list -= self.parent.AWGInfo.BWFreq
                 self.parent.AWGInfo.CFFreq -= self.parent.AWGInfo.BWFreq
                 self.CenterFreqFill.setText(str(round(self.parent.AWGInfo.CFFreq / 1E9, 2)))
-
-            AWG_framerate = 64e9  # AWG采样率
-            self.parent.AWGHandle.set_fs(fs=AWG_framerate)
 
             f_list = self.parent.AWGInfo.f_list
             amp_list = self.parent.AWGInfo.amp_list
