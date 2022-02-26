@@ -1818,13 +1818,23 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.pgPlot = pg.MultiPlotWidget()
         self.plot_data = self.pgPlot.addPlot(left='RF_Power(dB)', bottom='Freq(Hz)', title='RF_Spectrum')
         self.plot_btn = QtWidgets.QPushButton('Replot', self)
+        self.plot_btn.setCheckable(True)
         self.export_btn = QtWidgets.QPushButton('Export', self)
+        self.Band_width_btn=QtWidgets.QPushButton('30MHz-8GHz',self)
+        self.Band_width_btn.setCheckable(True)
+        self.center_freq_btu=QtWidgets.QPushButton('0-40GHz',self)
+        self.center_freq_btu.setCheckable(True)
         self.plot_btn.clicked.connect(self.plot)
         self.export_btn.clicked.connect(self.export)
+        self.Band_width_btn.clicked.connect(self.BandWidth_ctrl)
+        self.center_freq_btu.clicked.connect(self.CenterFreq_ctrl)
+
 
         self.btn_layout = QtWidgets.QHBoxLayout()
         self.btn_layout.addWidget(self.plot_btn)
         self.btn_layout.addWidget(self.export_btn)
+        self.btn_layout.addWidget(self.Band_width_btn)
+        self.btn_layout.addWidget(self.center_freq_btu)
 
         self.v_layout = QtWidgets.QVBoxLayout()
         self.v_layout.addStretch(1)
@@ -1835,21 +1845,59 @@ class VNAMonitor(QtWidgets.QGroupBox):
 
         # self.data=np.empty()
         # self.timer_start()
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.plot)
-        self.timer.start(1500)
+        self.timer = pg.QtCore.QTimer(self)
+        # self.timer.stop()
+        # self.timer.setInterval(15000)
+        self.timer.start(3000)
+        self.timer.timeout.connect(self.btu_Judge)
+        # self.timer.timeout.connect(self.plot)
+        # self.timer.start(1500)
         # 设置计时间隔并启动(1000ms == 1s)
         self.map_len=1
+        bandwidth_path=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\文档\test-bandwidth'
+        center_freq_path=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\文档\test-centerfreq'
+        self.bandwidth_files=glob.glob(os.path.join(bandwidth_path,"*.xlsx"))
+        self.center_files=glob.glob(os.path.join(center_freq_path,"*.xlsx"))
+
+
+        self.Band_i=0
+        self.Center_i=0
+
+    def btu_Judge(self):
+        if self.plot_btn.isChecked():
+            self.plot()
+        elif self.Band_width_btn.isChecked():
+            self.bandfiles_size = np.size(self.bandwidth_files)
+            print(self.bandfiles_size)
+            if self.Band_i==self.bandfiles_size:
+                self.Band_width_btn.setChecked(False)
+                self.Band_i=0
+            else:
+                self.BandWidth_ctrl()
+
+        elif self.center_freq_btu.isChecked():
+            self.centerfiles_size = np.size(self.center_files)
+            print(self.centerfiles_size)
+            if self.Center_i==self.centerfiles_size:
+                self.center_freq_btu.setChecked(False)
+                self.Center_i=0
+            else:
+                self.plot_data.clear()
+                self.CenterFreq_ctrl()
+        else:
+            pass
+        self.timer.start()
 
     def timer_start(self):
         if self.parent.PNAHandle:
             # PNACtrl.setChecked(True)
-            PNACtrl.InitialF
-            self.timer = QtCore.QTimer(self)
+            # PNACtrl.InitialF
+            # self.timer = QtCore.QTimer(self)
+            self.timer.start()
             self.timer.timeout.connect(self.plot)
-            self.timer.start(1000)
+            # self.timer.start(1500)
         else:
-            pass
+            self.timer.stop()
 
     def plot(self):
         # self.timer.stop()
@@ -1882,8 +1930,30 @@ class VNAMonitor(QtWidgets.QGroupBox):
             self.parent.AWGInfo.gain_on_off_FB = gain_on_off_offset
             self.plot_data.showGrid(x=True, y=True)
             # self.timer.start(1000)
+            self.timer_start()
         else:
             pass
+
+    def BandWidth_ctrl(self):
+        if self.Band_i==0:
+            self.plot_data.clear()
+        self.plot_data.showGrid(x=True, y=True)
+        self.excel_files=pd.read_excel(self.bandwidth_files[self.Band_i])
+        self.plot_data.plot(self.excel_files["Freq"], self.excel_files["Power"], pen='b')
+        self.Band_i += 1
+        # print(self.Band_i)
+
+
+    def CenterFreq_ctrl(self):
+        self.plot_data.showGrid(x=True, y=True)
+        self.excel_files = pd.read_excel(self.bandwidth_files[self.Center_i])
+        self.plot_data.plot(self.excel_files["Freq"], self.excel_files["Power"], pen='b')
+        self.Center_i += 1
+        # print(self.Center_i)
+
+    # def dynamic_plot(self):
+    #     self.plot_data.setdata(self.excel_files["Freq"], self.excel_files["Power"], pen='b')
+    #     self.timer.stop()
 
     def export(self):
         '''[频率，幅值]写入csv '''
