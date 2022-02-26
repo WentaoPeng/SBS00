@@ -131,6 +131,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.FcombDisplay = Panels.FcombDisplay(self)
         self.VNAMonitor = Panels.VNAMonitor(self)
 
+        # 选项卡
+        self.centralWidget = QtWidgets.QWidget(self)
+        self.centralWidget.setObjectName("centralWidget")
+
+        self.splitter = QtWidgets.QSplitter(self.centralWidget)
+        self.splitter.setOrientation(QtCore.Qt.Vertical)
+        self.splitter.setObjectName("splitter")
+
+        self.tabWidget = QtWidgets.QTabWidget(self.splitter)
+        self.tabWidget.setEnabled(True)
+        self.tabWidget.setMinimumSize(QtCore.QSize(0, 85))
+        self.tabWidget.setObjectName("tabWidget")
+        self.tabWidget.addTab(self.VNAMonitor, "PNA")
+
+        self.export_btn = QtWidgets.QPushButton('Export11', self)
+        self.tabWidget.addTab(self.export_btn, "export_btn")
+
         # 反馈模块
         self.Feedback = Panels.Feedback(self)
 
@@ -148,7 +165,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainLayout.addWidget(self.AWGDisplay, 0, 5, 3, 2)  # 画两幅，时域与频域2*2
         self.mainLayout.addWidget(self.FcombDisplay, 0, 7, 3, 2)
         self.mainLayout.addWidget(self.Feedback, 3, 5, 2, 4)
-        self.mainLayout.addWidget(self.VNAMonitor, 5, 5, 5, 5)
+        self.mainLayout.addWidget(self.tabWidget, 5, 5, 5, 5)
 
         self.mainLayout.addWidget(self.LightCtrl, 11, 0, 2, 4)
         self.mainLayout.addWidget(self.testModeSignLabel, 10, 5, 1, 2)
