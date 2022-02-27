@@ -1848,24 +1848,29 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.timer = pg.QtCore.QTimer(self)
         # self.timer.stop()
         # self.timer.setInterval(15000)
-        self.timer.start(3000)
+        self.timer.start(2000)
         self.timer.timeout.connect(self.btu_Judge)
         # self.timer.timeout.connect(self.plot)
         # self.timer.start(1500)
         # 设置计时间隔并启动(1000ms == 1s)
         self.map_len=1
-        bandwidth_path=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\文档\test-bandwidth'
-        center_freq_path=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\文档\test-centerfreq'
-        self.bandwidth_files=glob.glob(os.path.join(bandwidth_path,"*.xlsx"))
-        self.center_files=glob.glob(os.path.join(center_freq_path,"*.xlsx"))
+        bandwidth_path=r'D:\Documents\5G项目\test for'
+        center_freq_path=r'D:\Documents\5G项目\test for'
+        self.bandwidth_files=glob.glob(os.path.join(bandwidth_path,"*.csv"))
+        self.center_files=glob.glob(os.path.join(center_freq_path,"*.csv"))
 
 
         self.Band_i=0
         self.Center_i=0
 
     def btu_Judge(self):
+        # todo: debug-8G画图时不能返回PNA，否则无法清空
+        self.timer.stop()
         if self.plot_btn.isChecked():
             self.plot()
+            self.Band_width_btn.setChecked(False)
+            self.center_freq_btu.setChecked(False)
+            self.timer.start(1500)
         elif self.Band_width_btn.isChecked():
             self.bandfiles_size = np.size(self.bandwidth_files)
             print(self.bandfiles_size)
@@ -1874,7 +1879,6 @@ class VNAMonitor(QtWidgets.QGroupBox):
                 self.Band_i=0
             else:
                 self.BandWidth_ctrl()
-
         elif self.center_freq_btu.isChecked():
             self.centerfiles_size = np.size(self.center_files)
             print(self.centerfiles_size)
@@ -1930,7 +1934,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
             self.parent.AWGInfo.gain_on_off_FB = gain_on_off_offset
             self.plot_data.showGrid(x=True, y=True)
             # self.timer.start(1000)
-            self.timer_start()
+            # self.timer_start()
         else:
             pass
 
@@ -1938,15 +1942,17 @@ class VNAMonitor(QtWidgets.QGroupBox):
         if self.Band_i==0:
             self.plot_data.clear()
         self.plot_data.showGrid(x=True, y=True)
-        self.excel_files=pd.read_excel(self.bandwidth_files[self.Band_i])
-        self.plot_data.plot(self.excel_files["Freq"], self.excel_files["Power"], pen='b')
+        self.excel_files=pd.read_csv(self.bandwidth_files[self.Band_i], index_col=False, header=0, sep=',')
+        xstr=self.excel_files.columns[0]
+        ystr = self.excel_files.columns[1]
+        self.plot_data.plot(self.excel_files[xstr], self.excel_files[ystr], pen='b')
         self.Band_i += 1
         # print(self.Band_i)
 
 
     def CenterFreq_ctrl(self):
         self.plot_data.showGrid(x=True, y=True)
-        self.excel_files = pd.read_excel(self.bandwidth_files[self.Center_i])
+        self.excel_files = pd.read_csv(self.bandwidth_files[self.Center_i])
         self.plot_data.plot(self.excel_files["Freq"], self.excel_files["Power"], pen='b')
         self.Center_i += 1
         # print(self.Center_i)
