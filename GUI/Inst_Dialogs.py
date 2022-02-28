@@ -232,6 +232,7 @@ class manualFB_list(QtWidgets.QDialog):
             self.gain_on_off_offset=[]
             self.btu_display.clicked.connect(self.data_setup)
             self.btu_save.clicked.connect(self.data_save)
+            self.btu_load.clicked.connect(self.data_load)
             self.btu_accept.clicked.connect(self.manual_Fun)
             self.btu_map.clicked.connect(self.mapping_Fun)
             self.btu_cancel.clicked.connect(self.reject)
@@ -330,6 +331,33 @@ class manualFB_list(QtWidgets.QDialog):
             self.parent.AWGInfo.phase_list=new_arry[2]
             # print(self.parent.AWGInfo.f_list)
 
+
+        def data_load(self):
+            #     读取保存的文件到展示界面
+            default_path = r'D:\Documents\5G项目'  # 默认目标文件夹地址
+            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择泵浦设置文件', default_path)
+            if input_path == "":
+                print("\n取消选择")
+                return
+
+            print("\n你选择的文件为:")
+            print(input_path)
+
+            self.list_table.blockSignals(True)
+            data_frame = pd.read_csv(input_path, index_col=False, header=0, sep=',')
+            amp_list = data_frame[data_frame.columns[1]]
+            f_list = np.array(data_frame[data_frame.columns[0]]) / 1e9  # GHz显示
+            phase_list = data_frame[data_frame.columns[2]]
+            arry = np.array([amp_list, f_list, phase_list])
+            self.list_table.setRowCount(len(amp_list))
+            for column in range(3):
+                for row in range(len(amp_list)):
+                    self.list_table.setItem(row, column, QtWidgets.QTableWidgetItem(format(arry[column][row], '.6f')))
+                    # self.list_table.item(row, column).setTextAlignment(QtCore.AlignHCenter | QtCore.AlignVCenter)
+            self.list_table.update()
+            self.list_table.blockSignals(False)
+
+
         def data_setup(self):
             '''
             更新页面数据
@@ -357,6 +385,7 @@ class manualFB_list(QtWidgets.QDialog):
             self.list_table=QtWidgets.QTableWidget(self)
             self.btu_display=QtWidgets.QPushButton('Display')
             self.btu_save=QtWidgets.QPushButton('Save')
+            self.btu_load = QtWidgets.QPushButton('Load')
             self.btu_accept=QtWidgets.QPushButton('Accept')
             self.btu_cancel=QtWidgets.QPushButton('Cancel')
             self.btu_map=QtWidgets.QPushButton('Mapping')
@@ -367,6 +396,7 @@ class manualFB_list(QtWidgets.QDialog):
             self.vbox=QtWidgets.QVBoxLayout()
             self.vbox.addWidget(self.btu_display)
             self.vbox.addWidget(self.btu_save)
+            self.vbox.addWidget(self.btu_load)
             self.vbox.addWidget(self.btu_accept)
             self.vbox.addWidget(self.btu_map)
             self.vbox.addWidget(self.btu_save_data)
