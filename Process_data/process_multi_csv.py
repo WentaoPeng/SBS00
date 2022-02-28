@@ -40,7 +40,7 @@ class MainForm(QtWidgets.QWidget):
         # btn 1
         self.btn_chooseDir = QtWidgets.QPushButton(self)
         self.btn_chooseDir.setObjectName("btn_chooseDir")
-        self.btn_chooseDir.setText("选择文件夹")
+        self.btn_chooseDir.setText("选择数据所在文件夹")
 
         # 设置布局
         layout = QtWidgets.QVBoxLayout()

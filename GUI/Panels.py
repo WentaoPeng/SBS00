@@ -1856,7 +1856,10 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.map_len=1
         bandwidth_path=r'D:\Documents\5G项目\test for\8G'
         center_freq_path=r'D:\Documents\5G项目\test for\0-40G'
-        self.bandwidth_files=glob.glob(os.path.join(bandwidth_path,"*.csv"))
+        # self.bandwidth_files=glob.glob(os.path.join(bandwidth_path,"*.xlsx"))
+        # self.bandwidth_files = sorted(self.bandwidth_files, key=lambda name: int(name.split('\\')[-1][:-5]))
+        self.bandwidth_files = glob.glob(os.path.join(bandwidth_path, "*.csv"))
+        self.bandwidth_files = sorted(self.bandwidth_files, key=lambda name: int(name.split('\\')[-1][:-4]))
         self.center_files=glob.glob(os.path.join(center_freq_path,"*.csv"))
         self.center_files = sorted(self.center_files, key=lambda name: float(name.split('_')[1][2:-1]))
 
