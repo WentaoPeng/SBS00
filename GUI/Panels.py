@@ -1350,8 +1350,8 @@ class Feedback(QtWidgets.QGroupBox):
         self.alpha.setPlaceholderText('alpha=1')
         self.linew = QtWidgets.QLineEdit()
         self.linew.setPlaceholderText('L_W_MHz')
-        self.smoothindx = QtWidgets.QLineEdit()
-        self.smoothindx.setPlaceholderText('smooth_i=301')
+        self.smoothindx = QtWidgets.QLineEdit('45')
+        # self.smoothindx.setPlaceholderText('smooth_i=301')
         self.width_peak = QtWidgets.QLineEdit()
         self.width_peak.setPlaceholderText('width=500')
         self.rel_height = QtWidgets.QLineEdit()
@@ -1886,7 +1886,6 @@ class VNAMonitor(QtWidgets.QGroupBox):
                 self.plot()
                 self.Band_width_btn.setChecked(False)
                 self.center_freq_btu.setChecked(False)
-                self.timer.start(1500)
             elif self.parent.testModeAction.isChecked():
                 self.Band_width_btn.setChecked(False)
                 self.center_freq_btu.setChecked(False)
@@ -1895,18 +1894,20 @@ class VNAMonitor(QtWidgets.QGroupBox):
                 self.parent.Display=0
                 msg = Shared.MsgError(self, 'No Instrument!', 'PNA-N5225A is not connected!')
                 msg.exec_()
-                PNACtrl.setChecked(False)
+                self.plot_btn.setChecked(False)
+                # PNACtrl.setChecked(False)
                 self.parent.PNACtrl.setChecked(False)
                 try:
                     pnaip = '192.168.1.100'
                     self.parent.PNAHandle = api_pna.PNASCPI(pnaip, reset=True)
                     print(self.parent.PNAHandle)
-                    PNACtrl.setChecked(True)
+                    # PNACtrl.setChecked(True)
                     self.parent.PNACtrl.setChecked(True)
-                    self.done(True)
+                    # self.done(True)
                 except:
                     self.plot_btn.setChecked(False)
-                    return None
+                    # PNACtrl.setChecked(False)
+
 
         elif self.Band_width_btn.isChecked():
             self.bandfiles_size = np.size(self.bandwidth_files)
@@ -1947,6 +1948,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.plot_data.clear()
         if self.parent.Display == 1:
             freq, result = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
+
             if self.parent.AWGInfo.map * self.map_len == 1:
                 if len(result) == len(self.parent.AWGInfo.BJ_amp):
                     gain_on_off = result - self.parent.AWGInfo.BJ_amp

@@ -76,7 +76,7 @@ class AWGInfo():
         self.saved_gain_on_off_FB = []
 
         self.FB_number = 1  # 默认反馈1次
-        self.smooth=301
+        self.smooth=45
         self.width_peak=500
         self.rel_height_peak=0.1
         self.min_base_indx=0
