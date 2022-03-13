@@ -461,6 +461,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.plusFreq = QtWidgets.QCheckBox('Plus')
         self.plusFreq.setChecked(False)
         self.minusFreq = QtWidgets.QCheckBox('Minus')
+        self.randnDF = QtWidgets.QCheckBox('randnDF')
 
         PumpLayout = QtWidgets.QGridLayout()
 
@@ -476,6 +477,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         PumpLayout.addWidget(self.sweepFreq, 6, 0)
         PumpLayout.addWidget(self.plusFreq, 6, 1)
         PumpLayout.addWidget(self.minusFreq, 6, 2)
+        PumpLayout.addWidget(self.randnDF, 6, 3)
         # PumpLayout.addWidget(QtWidgets.QLabel('Sweep_Freq'),5,1)
         PumpDesign.setLayout(PumpLayout)
 
@@ -715,6 +717,12 @@ class AWGCtrl(QtWidgets.QGroupBox):
         if len(f_list) > 1 and self.preFBBtn.isChecked():
             amp_list = self.pre_amp_seq(BW, DF)
             print(' pre amp_list:', amp_list)
+
+        # 随机梳齿间隔(+-1MHz)
+        if self.randnDF.isChecked():
+            np.random.seed(int(time.time()))
+            offset = np.random.randint(low=-1, high=1, size=len(f_list)) * 1E6
+            f_list += offset
 
         self.parent.AWGInfo.f_list = f_list
         self.parent.AWGInfo.amp_list = amp_list
@@ -1350,8 +1358,8 @@ class Feedback(QtWidgets.QGroupBox):
         self.alpha.setPlaceholderText('alpha=1')
         self.linew = QtWidgets.QLineEdit()
         self.linew.setPlaceholderText('L_W_MHz')
-        self.smoothindx = QtWidgets.QLineEdit('45')
-        # self.smoothindx.setPlaceholderText('smooth_i=301')
+        self.smoothindx = QtWidgets.QLineEdit()
+        self.smoothindx.setPlaceholderText('smooth_i=301')
         self.width_peak = QtWidgets.QLineEdit()
         self.width_peak.setPlaceholderText('width=500')
         self.rel_height = QtWidgets.QLineEdit()
@@ -1857,9 +1865,8 @@ class VNAMonitor(QtWidgets.QGroupBox):
         # self.timer.start(1500)
         # 设置计时间隔并启动(1000ms == 1s)
         self.map_len = 1
-        bandwidth_path = r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\文档\test-bandwidth'
-        # center_freq_path=r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\文档\test-centerfreq'
-        center_freq_path = r'D:\OneDrive-stuJnu\OneDrive - stu2019.jnu.edu.cn\文档\test-centerfreq\center-C-csv'
+        bandwidth_path = r'D:\Documents\5G项目\test for\8G'
+        center_freq_path = r'D:\Documents\5G项目\test for\0-40G'
         # self.bandwidth_files=glob.glob(os.path.join(bandwidth_path,"*.xlsx"))
         # self.center_files=glob.glob(os.path.join(center_freq_path,"*.xlsx"))
         self.bandwidth_files = glob.glob(os.path.join(bandwidth_path, "*.csv"))
@@ -1886,28 +1893,19 @@ class VNAMonitor(QtWidgets.QGroupBox):
                 self.plot()
                 self.Band_width_btn.setChecked(False)
                 self.center_freq_btu.setChecked(False)
+                self.timer.start(1500)
+
             elif self.parent.testModeAction.isChecked():
                 self.Band_width_btn.setChecked(False)
                 self.center_freq_btu.setChecked(False)
                 self.plot_data.clear()
             else:
+                self.plot_data.clear()
                 self.parent.Display=0
                 msg = Shared.MsgError(self, 'No Instrument!', 'PNA-N5225A is not connected!')
                 msg.exec_()
-                self.plot_btn.setChecked(False)
-                # PNACtrl.setChecked(False)
+                PNACtrl.setChecked(False)
                 self.parent.PNACtrl.setChecked(False)
-                try:
-                    pnaip = '192.168.1.100'
-                    self.parent.PNAHandle = api_pna.PNASCPI(pnaip, reset=True)
-                    print(self.parent.PNAHandle)
-                    # PNACtrl.setChecked(True)
-                    self.parent.PNACtrl.setChecked(True)
-                    # self.done(True)
-                except:
-                    self.plot_btn.setChecked(False)
-                    # PNACtrl.setChecked(False)
-
 
         elif self.Band_width_btn.isChecked():
             self.bandfiles_size = np.size(self.bandwidth_files)
@@ -1948,7 +1946,6 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.plot_data.clear()
         if self.parent.Display == 1:
             freq, result = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
-
             if self.parent.AWGInfo.map * self.map_len == 1:
                 if len(result) == len(self.parent.AWGInfo.BJ_amp):
                     gain_on_off = result - self.parent.AWGInfo.BJ_amp
@@ -2064,10 +2061,13 @@ def peak_analysis(freq, gain_on_off):
     peaks, _ = find_peaks(gain_on_off, height=[max_peak - 1, max_peak])  # 寻峰
 
     prominences = np.array(peak_prominences(gain_on_off, peaks)[0])  # 计算峰高
-    idx_main_peak = prominences.argmax()  # 找主峰
-    # BFS = 15 - freq[peaks[idx_main_peak]]  # 求BFS(单位GHz)，默认中心频率15GHz 可将15GHz换为输入变量
-    main_peak_gain = prominences[idx_main_peak]  # 主峰峰值
-    baseline = max(gain_on_off[peaks]) - main_peak_gain  # 求基线
+    baseline = 0
+    if any(prominences):
+        idx_main_peak = prominences.argmax()  # 找主峰
+
+        # BFS = 15 - freq[peaks[idx_main_peak]]  # 求BFS(单位GHz)，默认中心频率15GHz 可将15GHz换为输入变量
+        main_peak_gain = prominences[idx_main_peak]  # 主峰峰值
+        baseline = max(gain_on_off[peaks]) - main_peak_gain  # 求基线
 
     # results_half = peak_widths(gain_on_off, peaks, rel_height=0.5)  # tuple{0：宽度;1：高度;2:xmin;3:xmax}
     # FWHM_main_peak = results_half[0][idx_main_peak]*1e3*f_resolution  # 主峰半高全宽(单位MHz)
