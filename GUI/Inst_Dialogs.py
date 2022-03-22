@@ -3,6 +3,7 @@ import numpy as np
 from PyQt5 import QtCore, QtWidgets, QtGui
 from GUI import SharedWidgets as Shared
 from API import general as api_gen
+from API import EDFAAPI as api_edfa
 from API import AWGapi as api_awg
 from API import PNAapi as api_pna
 from API import LightAPI as api_light
@@ -11,6 +12,7 @@ import pandas as pd
 import os
 import glob
 import datetime
+import serial
 from GUI import Panels as panels_fun
 from scipy.signal import savgol_filter, find_peaks, peak_widths, peak_prominences
 import SBS_DSP
@@ -134,6 +136,7 @@ class manualInstDialog(QtWidgets.QDialog):
 
         acceptButton = QtGui.QPushButton(Shared.btn_label('confirm'))
         cancelButton = QtGui.QPushButton(Shared.btn_label('reject'))
+        edfaButton = QtWidgets.QPushButton('EDFA')
 
         ManualInst=QtWidgets.QWidget()
         ManualInstLayout=QtWidgets.QFormLayout()
@@ -162,10 +165,12 @@ class manualInstDialog(QtWidgets.QDialog):
         mainLayout.addWidget(ManualInst,0,0,2,1)
         mainLayout.addWidget(acceptButton,3,1)
         mainLayout.addWidget(cancelButton,3,0)
+        mainLayout.addWidget(edfaButton,3,3)
         self.setLayout(mainLayout)
 
         cancelButton.clicked.connect(self.reject)
         acceptButton.clicked.connect(self.accept)
+        edfaButton.clicked.connect(self.ctrl_EDFA)
 
         # 更新后台ip
         self.AWGIPFill.textChanged.connect(self.updateIP)
@@ -186,7 +191,7 @@ class manualInstDialog(QtWidgets.QDialog):
                 pass
             else:
                 try:
-                    self.parent.AWGHandle=api_awg.M9502A(self.awgip,reset=True)
+                    self.parent.AWGHandle = api_awg.M9502A(self.awgip, reset=True)
                     print(self.parent.AWGHandle)
                     self.done(True)
                 except:
@@ -216,6 +221,23 @@ class manualInstDialog(QtWidgets.QDialog):
                 return None
 
         self.done(True)
+
+    def ctrl_EDFA(self):
+        """检测端口并创建连接EDFA的对象实例"""
+        # 检查端口并确保其打开
+        plist = list(serial.tools.list_ports.comports())
+        if len(plist) <= 0:
+            print("没有发现端口!请检查设备连接")
+        else:
+            # 当前默认选择COM5连接37dbm-EDFA，后续可增加选择端口功能
+            plist_1 = list(plist[1])
+            serialName = plist_1[0]
+            COM_serial = serial.Serial(serialName, 19200, timeout=60)
+            print("可用端口名>>>", COM_serial.name)
+            print('端口打开:', COM_serial.isOpen())
+            if COM_serial.isOpen():
+                self.parent.EDFA1Handle = api_edfa.EDFASCPI(COM_serial)
+
 
 class manualFB_list(QtWidgets.QDialog):
         '''
@@ -340,7 +362,7 @@ class manualFB_list(QtWidgets.QDialog):
                 print("\n取消选择")
                 return
 
-            print("\n你选择的文件为:")
+            print("\n你选择的设置文件为:")
             print(input_path)
 
             self.list_table.blockSignals(True)
@@ -356,6 +378,7 @@ class manualFB_list(QtWidgets.QDialog):
                     # self.list_table.item(row, column).setTextAlignment(QtCore.AlignHCenter | QtCore.AlignVCenter)
             self.list_table.update()
             self.list_table.blockSignals(False)
+            print("加载成功")
 
 
         def data_setup(self):

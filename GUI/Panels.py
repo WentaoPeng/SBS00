@@ -5,6 +5,7 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import QObject
 import pyqtgraph as pg
+import serial
 import pyvisa
 import time
 import os
@@ -24,7 +25,6 @@ import multi_Lorenz_2_triangle as mlt
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter, find_peaks, peak_widths, peak_prominences
 from threading import Timer
-
 
 class AWGStatus(QtWidgets.QGroupBox):
     '''
@@ -1166,7 +1166,8 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.enterBtu1 = QtWidgets.QPushButton('Enter')
         self.activeBtu1 = QtWidgets.QPushButton('Active')
         self.activeBtu1.setCheckable(True)
-        self.activeBtu1.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:red;}''')
+        self.activeBtu1.setStyleSheet(
+            '''QPushButton:hover{background:red;color:white}QPushButton:checked{background:rgb(170,200,50);color:white}QPushButton{background:gray;color:white}''')
 
         EDFA1Layout.addWidget(QtWidgets.QLabel('Inst_COM:'), 0, 0)
         EDFA1Layout.addWidget(self.addressEDFA1, 0, 0, 1, 3)
@@ -1237,6 +1238,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.setLayout(mainLayout)
 
         self.setPower1Fill.textChanged.connect(self.EDFAChangeFun)
+        self.setCurrent1Fill.textChanged.connect(self.change_current)
         # self.setPower1Fill.textChanged.connect(self.EDFAFillChangeFun)
         # self.P1slider.valueChanged.connect(self.EDFAChangeFun)
         # self.PointSlider.valueChanged.connect(self.EDFAChangeFun)
@@ -1250,6 +1252,11 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.activeBtu1.clicked.connect(self.activeFun1)
         self.activeBtu2.clicked.connect(self.activeFun2)
 
+        # 设置定时询问状态
+        self.timer = pg.QtCore.QTimer(self)
+        self.timer.timeout.connect(self.query_edfa)
+        self.timer.start(200)
+
     def check(self):
         if (self.parent.testModeAction.isChecked() or self.parent.EDFA1Handle or self.parent.EDFA2Handle):
             self.setChecked(True)
@@ -1260,6 +1267,11 @@ class EDFACtrl(QtWidgets.QGroupBox):
             # self.setChecked(False)
             # self.parent.EDFACtrl.setChecked(False)
         # self.parent.EDFACtrl.print_info()
+
+    def change_current(self):
+        if self.setCurrent1Fill.text():
+            fill_cur1 = int(self.setCurrent1Fill.text())
+            self.parent.EDFAInfo.EDFA1current = fill_cur1
 
     def EDFAChangeFun(self):
 
@@ -1285,13 +1297,32 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.parent.EDFAInfo.EDFA1power = EDFA1_Power
         self.parent.EDFAInfo.EDFA2power = EDFA2_Power
 
+
+    def query_edfa(self):
+        # 定时询问EDFA当前输出功率
+        self.timer.stop()
+        if self.parent.EDFA1Handle:
+            EDFA1_Power = self.parent.EDFA1Handle.query_EDFA1_Power(self.setPower1UnitSel.currentText())
+            EDFA1_Power = round(EDFA1_Power, 2)
+            self.setPower1Fill.setText(str(EDFA1_Power))
+            self.parent.EDFAInfo.EDFA1power = EDFA1_Power
+        self.timer.start(200)
+
+
     def enterFun1(self):
-        api_edfa.EDFA1Set(EDFA1Handle=self.parent.EDFA1Handle, power=self.parent.EDFAInfo.EDFA1power)
+        # 设置值并返回最新状态
+        self.parent.EDFA1Handle.EDFA1Set(self.parent.EDFAInfo.EDFA1current)
+        EDFA1_Power = self.parent.EDFA1Handle.query_EDFA1_Power(self.setPower1UnitSel.currentText())
+        EDFA1_Power = round(EDFA1_Power, 2)
+        self.setPower1Fill.setText(str(EDFA1_Power))
+        self.parent.EDFAInfo.EDFA1power = EDFA1_Power
 
     def activeFun1(self):
         if (self.parent.testModeAction.isChecked or self.parent.EDFA1Handle or self.parent.EDFA2Handle):
-            self.setChecked(True)
-            api_edfa.Active1(self.parent.EDFA1Handle)
+            if self.activeBtu1.isChecked():
+                self.parent.EDFA1Handle.Active1(True)
+            else:
+                self.parent.EDFA1Handle.Active1(False)
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No EDFA is connected!')
             msg.exec_()
