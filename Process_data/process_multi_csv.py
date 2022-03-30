@@ -40,17 +40,25 @@ class MainForm(QtWidgets.QWidget):
         # btn 1
         self.btn_chooseDir = QtWidgets.QPushButton(self)
         self.btn_chooseDir.setObjectName("btn_chooseDir")
-        self.btn_chooseDir.setText("选择数据所在文件夹")
+        self.btn_chooseDir.setText("选择PNA数据所在文件夹")
+
+        # btn 2
+        self.btn_chooseDir2 = QtWidgets.QPushButton(self)
+        self.btn_chooseDir2.setObjectName("btn_chooseDir2")
+        self.btn_chooseDir2.setText("选择光谱仪数据")
 
         # 设置布局
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.btn_chooseDir)
+        layout.addWidget(self.btn_chooseDir2)
         self.setLayout(layout)
 
         # 设置信号
         self.btn_chooseDir.clicked.connect(self.slot_btn_chooseDir)
+        self.btn_chooseDir2.clicked.connect(self.slot_btn_chooseDir2)
 
     def slot_btn_chooseDir(self):
+        # 画文件夹内PNA数据并汇总
         plt.style.use('seaborn-whitegrid')
 
         # input_path = os.getcwd()  # 获取当前文件夹地址
@@ -103,6 +111,50 @@ class MainForm(QtWidgets.QWidget):
 
         plt.xlabel(xlabel_str)
         plt.ylabel('On-Off Gain(dB)')
+        plt.show()
+
+        output_path = os.path.join(input_path, f'solved_{str(file_counter)}_files.csv')
+        data_frame_concat.to_csv(output_path, index=False)
+
+
+    def slot_btn_chooseDir2(self):
+        # 选择并汇总同文件夹相似光谱图
+        plt.style.use('seaborn-whitegrid')
+
+        # input_path = os.getcwd()  # 获取当前文件夹地址
+        # input_path = r'D:\Documents\5G项目\2021-12-30\chip3-2-1226'  # 手动输入目标文件夹地址
+        default_path = r'D:\Documents\5G项目'  # 默认目标文件夹地址
+        input_path, datatype = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', default_path, 'csv(*.csv)')
+        if input_path == "":
+            print("\n取消选择")
+            return
+        filedir, filename = os.path.split(input_path)
+        print(filedir, filename)
+        feature_name = filename[0]
+        print(feature_name)
+
+        file_counter = 0
+
+        all_files = glob.glob(os.path.join(filedir, f'{feature_name}????.CSV'))
+        all_data_frames = []
+        for file in all_files:
+            filename_str = os.path.splitext(file)[0]  # 文件名(不含后缀)
+            filename_str = os.path.basename(filename_str)  # 文件名(不含路径和后缀)
+            print(filename_str)
+
+            data_frame = pd.read_csv(file, index_col=False, header=None, sep=',', skiprows=34)
+            # 原始数据不加处理
+            xlabel_str = 'Wave Length(nm)'
+            data_frame.columns = [xlabel_str] + list(data_frame.columns)[1:-1] + [
+                filename_str]  # 横坐标改名，纵坐标(最后一列)以文件名命名
+
+            plt.plot(data_frame[xlabel_str], data_frame[filename_str])
+            all_data_frames.append(data_frame)
+            file_counter += 1
+        data_frame_concat = pd.concat(all_data_frames, axis=1)  # axis=1-平行拼接
+
+        plt.xlabel(xlabel_str)
+        plt.ylabel('Trace Data(dB)')
         plt.show()
 
         output_path = os.path.join(input_path, f'solved_{str(file_counter)}_files.csv')
