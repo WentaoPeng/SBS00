@@ -1514,6 +1514,7 @@ class Feedback(QtWidgets.QGroupBox):
             # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
             #                                     channel=self.parent.AWGInfo.ChannelNum)
             self.parent.AWGHandle.play()
+            print('反馈参数已更新至AWG')
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No AWG is connected!')
             msg.exec_()
@@ -1534,14 +1535,23 @@ class Feedback(QtWidgets.QGroupBox):
         if self.OCoutFill.text():
             self.parent.AWGInfo.OCoutFill = float(self.OCoutFill.text())
             IL = float(self.parent.AWGInfo.OnePercentCPFill) + 19.956 - 14.5 - 0.6 - self.parent.AWGInfo.OCoutFill
-            self.ILFill.setText(str(round(IL, 2)))
+            IL_f2 = round(IL, 2)
+            if int(IL_f2) == IL_f2:
+                self.ILFill.setText(str(int(IL_f2)))
+            else:
+                self.ILFill.setText(str(IL_f2))
 
     def IL_to_OC(self):
         # 根据IL和1%输入泵浦功率估算OCoutFill并更新
         if self.ILFill.text():
             self.parent.AWGInfo.ILFill = float(self.ILFill.text())
             OCout = float(self.parent.AWGInfo.OnePercentCPFill) + 19.956 - 14.5 - 0.6 - self.parent.AWGInfo.ILFill
-            self.OCoutFill.setText(str(round(OCout, 2)))
+            # self.OCoutFill.setText(str(round(OCout, 2)))
+            OCout_f2 = round(OCout, 2)
+            if int(OCout_f2) == OCout_f2:
+                self.OCoutFill.setText(str(int(OCout_f2)))
+            else:
+                self.OCoutFill.setText(str(OCout_f2))
 
     def InPower_change(self):
         # 1%输入泵浦功率改变，更新IL和OCout
@@ -1793,6 +1803,7 @@ class Feedback(QtWidgets.QGroupBox):
                                 # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
                                 #                                     channel=self.parent.AWGInfo.ChannelNum)
                                 self.parent.AWGHandle.play()
+                                print('反馈参数已更新至AWG')
 
                             self.FBnum.setText(str(i))
                             # 预留设备设置时间10ms
@@ -2036,14 +2047,14 @@ class VNAMonitor(QtWidgets.QGroupBox):
 
     def export(self):
         '''[频率，幅值]写入csv '''
-        # todo：把相位也读取保存
+        # todo：把PNA相位也读取保存
         today_date = datetime.datetime.now().strftime('%Y-%m-%d')
         default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"{self.parent.AWGInfo.ChipNumFill}")
         self.mkdir(default_path)
         if self.parent.AWGInfo.BWFreq == 0:  # 此时主要关注单频泵浦增益与耦合功率关系
-            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_EP{self.parent.EDFAInfo.EDFA1power}_IL{self.parent.AWGInfo.ILFill}_1IP{self.parent.AWGInfo.OnePercentCPFill}_'
+            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_EP{self.parent.EDFAInfo.EDFA1power}_IL{self.parent.AWGInfo.ILFill}_1IP{self.parent.AWGInfo.OnePercentCPFill}_RS{self.parent.AWGInfo.rand_seed}_'
         else:  # 此时主要关注带宽扩展情况
-            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_BW{round(self.parent.AWGInfo.BWFreq / 1E6, 1)}M_DF{round(self.parent.AWGInfo.DFFreq / 1E6, 1)}M_EP{self.parent.EDFAInfo.EDFA1power}_'
+            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_BW{round(self.parent.AWGInfo.BWFreq / 1E6, 1)}M_DF{round(self.parent.AWGInfo.DFFreq / 1E6, 1)}M_EP{self.parent.EDFAInfo.EDFA1power}_RS{self.parent.AWGInfo.rand_seed}_'
 
         count_same_name = len(glob.glob(rf'{default_path}{default_name}*'))
         self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存",
