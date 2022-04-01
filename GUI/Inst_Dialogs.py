@@ -128,7 +128,7 @@ class manualInstDialog(QtWidgets.QDialog):
     def __init__(self,parent):
         QtWidgets.QDialog.__init__(self,parent)
         self.parent=parent
-        self.setMinimumSize(200,200)
+        self.setMinimumSize(200, 200)
         self.setWindowTitle('Manual Input Inst_IP')
         self.awgip='192.168.1.103'
         self.pnaip='192.168.1.100'
@@ -202,12 +202,15 @@ class manualInstDialog(QtWidgets.QDialog):
             return None
 
         else:
-            try:
-                self.parent.PNAHandle=api_pna.PNASCPI(self.pnaip,reset=True)
-                print(self.parent.PNAHandle)
-                self.done(True)
-            except:
-                return None
+            if self.pnaip == '...':
+                pass
+            else:
+                try:
+                    self.parent.PNAHandle = api_pna.PNASCPI(self.pnaip, reset=True)
+                    print(self.parent.PNAHandle)
+                    self.done(True)
+                except:
+                    return None
 
         if self.lightip=='N.A.':
             self.done(True)
