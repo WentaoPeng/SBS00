@@ -118,7 +118,7 @@ class MainForm(QtWidgets.QWidget):
 
 
     def slot_btn_chooseDir2(self):
-        # 选择并汇总同文件夹相似光谱图
+        # 选择并汇总同文件夹相似光谱图, 默认光谱图trace只有前两列数据
         plt.style.use('seaborn-whitegrid')
 
         # input_path = os.getcwd()  # 获取当前文件夹地址
@@ -142,12 +142,10 @@ class MainForm(QtWidgets.QWidget):
             filename_str = os.path.basename(filename_str)  # 文件名(不含路径和后缀)
             print(filename_str)
 
-            data_frame = pd.read_csv(file, index_col=False, header=None, sep=',', skiprows=34)
+            data_frame = pd.read_csv(file, index_col=False, header=None, skiprows=278, usecols=[0, 1])  # todo:先判断需要跳过多少行
             # 原始数据不加处理
             xlabel_str = 'Wave Length(nm)'
-            data_frame.columns = [xlabel_str] + list(data_frame.columns)[1:-1] + [
-                filename_str]  # 横坐标改名，纵坐标(最后一列)以文件名命名
-
+            data_frame.columns = [xlabel_str, filename_str] # 横坐标改名，纵坐标(第二列)以文件名命名
             plt.plot(data_frame[xlabel_str], data_frame[filename_str])
             all_data_frames.append(data_frame)
             file_counter += 1
@@ -157,7 +155,7 @@ class MainForm(QtWidgets.QWidget):
         plt.ylabel('Trace Data(dB)')
         plt.show()
 
-        output_path = os.path.join(input_path, f'solved_{str(file_counter)}_files.csv')
+        output_path = os.path.join(filedir, f'solved_{str(file_counter)}_files.csv')
         data_frame_concat.to_csv(output_path, index=False)
 
 
