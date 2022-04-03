@@ -148,7 +148,7 @@ class M9502A(socketscpi.SocketInstrument):
         if not isinstance(fs, (int, float)) or fs <= 0:
             raise ValueError('Sample rate must be a positive floating point value.')
         self.write(f'frequency:raster {fs}')
-        self.fs = float(self.query('frequency:raster?').strip())
+        self.fs = float(self.query('frequency:raster?').strip()[0])
         self.effFs = self.fs / self.memDiv
 
     def set_func(self, func='arb'):
@@ -196,7 +196,8 @@ class M9502A(socketscpi.SocketInstrument):
         if amplitude > 1000 or amplitude < 0:
             raise AWGError('\'amplitude\'must be between 0 and 1V.')
 
-        self.write(f'voltage{channel} {amplitude}')
+
+        self.write(f'voltage{channel} {amplitude/1000}')
         if channel==1:
             self.write('OUTP1:STATE ON')
         elif channel==2:
@@ -239,16 +240,18 @@ class M9502A(socketscpi.SocketInstrument):
         # Stop output before doing anything else
         # self.write('abort')
         wfmID=1
-        self.delete_segment(wfmID,ch=ch)
+        self.delete_segment(wfmID, ch=ch)
         # self.clear_all_wfm()
         wfm = self.check_wfm(wfmData)
         length = len(wfmData)
 
         # Initialize waveform segment, populate it with data, and provide a name
-        segment = int(self.query(f'trace{ch}:catalog?').strip().split(',')[-2]) + 1
-        self.write(f'trace{ch}:def {segment}, {length}')
-        self.binblockwrite(f'trace{ch}:data {segment}, 0, ', wfm)
-        self.write(f'trace{ch}:name {wfmID},"{name}_{segment}"')
+        print('catalog:', self.query(f':trace{ch}:catalog?'))
+        segment = int(self.query(f':trace{ch}:catalog?').strip().split(',')[-2]) + 1
+        print('segment:', segment,length)
+        self.write(f':trace{ch}:define {segment},{length}')
+        self.binblockwrite(f':trace{ch}:data {segment}, 0, ', wfm)
+        self.write(f':trace{ch}:name {wfmID},"{name}_{segment}"')
 
 
         # open Channel
@@ -318,7 +321,10 @@ class M9502A(socketscpi.SocketInstrument):
         # self.write(f'trace:select {wfmID}')
         # self.write(f'output{ch} on')
         self.write('init:cont on')
-        self.write('init:imm')
+        self.write('init:imm')  # start data generation.
+
+    def query_run_state(self):
+        return self.query(':STATus:OPERation:RUN:CONDition?')
 
     def stop(self, ch=1):
         """
