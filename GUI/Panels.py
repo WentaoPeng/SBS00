@@ -143,6 +143,7 @@ class AWGStatus(QtWidgets.QGroupBox):
         self.BWSet.setText(str(self.parent.AWGInfo.BWFreq) + 'Hz')
         self.DFSet.setText(str(self.parent.AWGInfo.DFFreq) + 'Hz')
         self.Amplitude.setText(str(self.parent.AWGInfo.AWGPower) + 'Mv')
+        # print('run？', self.parent.AWGHandle.query_run_state())
 
     def show_InstMoreInfo(self):
         # 待扩展
@@ -865,6 +866,7 @@ class ADisplay(QtWidgets.QGroupBox):
         # super(ADisplay, self).__init__()
         QtWidgets.QWidget.__init__(self, parent)
         self.parent = parent
+        self.r_color = 'b'
         #
         pg.setConfigOptions(leftButtonPan=False)
         pg.setConfigOption('background', 'w')
@@ -887,8 +889,19 @@ class ADisplay(QtWidgets.QGroupBox):
         x = self.parent.AWGInfo.ts
         y = self.parent.AWGInfo.ys
         r_symbol = np.random.choice(['o', 's', 't', 't1', 't2', 't3', 'd', '+', 'x', 'p', 'h', 'star'])
-        r_color = np.random.choice(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'd', 'l', 's'])
-        self.plot_data.plot(x, y, pen=r_color)
+        # r_color = np.random.choice(['b', 'r', 'c', 'm', 'k', 'd', 'l', 's'])
+        if self.r_color == 'b':
+            self.r_color = 'r'
+        else:
+            self.r_color = 'b'
+        pump_fft, freq = SBS_DSP.get_fft(y, self.parent.AWGInfo.N_AWG)
+        self.plot_data.plot(freq, pump_fft, pen=self.r_color)
+        x_center = self.parent.AWGInfo.CFFreq
+        x_width = self.parent.AWGInfo.BWFreq
+        if x_width!=0:
+            x_min = x_center - x_width*0.7
+            x_max = x_center + x_width*0.7
+            self.plot_data.setXRange(x_min, x_max)
         self.plot_data.showGrid(x=True, y=True)
 
 
@@ -1722,6 +1735,7 @@ class Feedback(QtWidgets.QGroupBox):
                 self.bfs.setPlaceholderText('Check PNA!')
 
     def SaveForFB(self):
+        # todo:保存一个相对稳定的开关增益数据，需判断相似性/或设置等待时间
         if any(self.parent.AWGInfo.freq_FB):
             self.parent.AWGInfo.saved_freq_FB = np.array(self.parent.AWGInfo.freq_FB)
             self.parent.AWGInfo.saved_gain_on_off_FB = np.array(self.parent.AWGInfo.gain_on_off_FB)
@@ -1744,7 +1758,7 @@ class Feedback(QtWidgets.QGroupBox):
                 # mod_index=2,以反馈次数作为收敛量
                 if mod_index == 2:
                     # FB_num = int(self.modFBDispaly.text())
-                    FB_num = self.parent.AWGInfo.FB_number
+                    FB_num = self.parent.AWGInfo.FB_number  # 反馈次数
                     print('FB_num = ', FB_num)
                     print('iteration_type = ', self.parent.AWGInfo.iteration_type)
                     i = 1
@@ -1753,6 +1767,8 @@ class Feedback(QtWidgets.QGroupBox):
                         """用手动保存的离线数据反馈FB_num次
                         todo:在能控制EDFA后，改为自动关闭EDFA并反馈,再打开EDFA
                         """
+                        self.parent.EDFA1Handle.Active1(False)  # 关闭EDFA
+
                         freq_design_seq = self.parent.AWGInfo.f_list
                         print('freq_design_seq', len(freq_design_seq))
                         amp_design_seq = self.parent.AWGInfo.amp_list
@@ -1809,8 +1825,11 @@ class Feedback(QtWidgets.QGroupBox):
                             # 预留设备设置时间10ms
                             time.sleep(10)
                             i += 1
+
+                            self.parent.EDFA1Handle.Active1(True)  # 打开EDFA
+
                             self.FBnum.setText(str(i - 1) + '  Done !!!')
-                            # self.activeBtu.setCheckable(False)
+                            self.activeBtu.setChecked(False)
                         else:
                             msg = Shared.MsgError(self, 'No Data', 'Please save data before feedback!')
                             msg.exec_()

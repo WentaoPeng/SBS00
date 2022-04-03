@@ -41,6 +41,7 @@ class AWGInfo():
         self.CFFreq = 15 * 10 ** 9
         self.BWFreq = 0 * 10 ** 6
         self.DFFreq = 10 * 10 ** 6
+        self.N_AWG = int(64e9)  # 采样率Ga/s
         self.AWG_Status = False
         self.mod_index = 0
         self.mod_sel = ''
