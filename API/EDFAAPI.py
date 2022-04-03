@@ -68,11 +68,11 @@ class EDFASCPI():
     def Active1(self, state):
         # 3) Turn on the SEED and Laser.
         self.output_state = self.query(self.COM_serial, ':DRIV:ACC:STAT:CH1?', 'int')  # 检查准备状态指令  1-ENABLED,2-BUSY
-        print('output_state:', self.output_state)
+        # print('output_state:', self.output_state)
         while self.output_state != 1:
             self.set_point(self.COM_serial, ':DRIV:ACC:STAT:CH1 ', 1)  # 输出端口使能
             self.output_state = self.query(self.COM_serial, ':DRIV:ACC:STAT:CH1?', 'int')  # 检查准备状态指令  1-ENABLED,2-BUSY
-            print('output_state:', self.output_state)
+            # print('output_state:', self.output_state)
 
         value = 0+state*1
         if self.output_state == 1:  # 确认输出使能
