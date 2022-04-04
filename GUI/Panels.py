@@ -781,7 +781,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 self.parent.AWGInfo.CFFreq -= self.parent.AWGInfo.BWFreq
                 self.CenterFreqFill.setText(str(round(self.parent.AWGInfo.CFFreq / 1E9, 2)))
 
-            AWG_framerate = 64e9  # AWG采样率
+            AWG_framerate = self.parent.AWGInfo.N_AWG  # AWG采样率
             self.parent.AWGHandle.set_fs(fs=AWG_framerate)
 
             f_list = self.parent.AWGInfo.f_list
@@ -859,6 +859,10 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 total_lorenz = SBS_DSP.add_lorenz(f_measure, amp_list * 0.008, f_list, Tb)
 
                 self.parent.AWGInfo.gb = total_lorenz
+
+                # 反馈数据重置
+                self.parent.AWGInfo.N_MFB = 0
+                self.parent.AWGInfo.N_DFB = 0
 
 
 class ADisplay(QtWidgets.QGroupBox):
@@ -1503,8 +1507,10 @@ class Feedback(QtWidgets.QGroupBox):
         # self.bfs_value = 7.15e3
 
     def dfFB_Fun(self):
-        # 根据离线保存的数据进行频率反馈
-        # todo：加入EDFA控制后在线反馈
+        # 根据离线保存的数据进行频率反馈, 并自动开关EDFA
+        # todo:加入反馈是否成功的检查(如是否 NAN)
+        self.parent.EDFA1Handle.Active1(False)  # 关闭EDFA
+
         freq_design_seq = self.parent.AWGInfo.f_list
         freq = self.parent.AWGInfo.saved_freq_FB
         gain_offset = self.parent.AWGInfo.saved_gain_on_off_FB
@@ -1528,6 +1534,9 @@ class Feedback(QtWidgets.QGroupBox):
             #                                     channel=self.parent.AWGInfo.ChannelNum)
             self.parent.AWGHandle.play()
             print('反馈参数已更新至AWG')
+            self.parent.AWGInfo.N_DFB += 1
+
+            self.parent.EDFA1Handle.Active1(True)  # 打开EDFA
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No AWG is connected!')
             msg.exec_()
@@ -1765,7 +1774,7 @@ class Feedback(QtWidgets.QGroupBox):
                     for _ in range(FB_num):
                         print('alpha=', self.parent.AWGInfo.alpha)
                         """用手动保存的离线数据反馈FB_num次
-                        todo:在能控制EDFA后，改为自动关闭EDFA并反馈,再打开EDFA
+                            自动关闭EDFA并反馈,再打开EDFA
                         """
                         self.parent.EDFA1Handle.Active1(False)  # 关闭EDFA
 
@@ -1820,6 +1829,7 @@ class Feedback(QtWidgets.QGroupBox):
                                 #                                     channel=self.parent.AWGInfo.ChannelNum)
                                 self.parent.AWGHandle.play()
                                 print('反馈参数已更新至AWG')
+                                self.parent.AWGInfo.N_MFB += 1
 
                             self.FBnum.setText(str(i))
                             # 预留设备设置时间10ms
@@ -2073,8 +2083,13 @@ class VNAMonitor(QtWidgets.QGroupBox):
         if self.parent.AWGInfo.BWFreq == 0:  # 此时主要关注单频泵浦增益与耦合功率关系
             default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_EP{self.parent.EDFAInfo.EDFA1power}_IL{self.parent.AWGInfo.ILFill}_1IP{self.parent.AWGInfo.OnePercentCPFill}_RS{self.parent.AWGInfo.rand_seed}_'
         else:  # 此时主要关注带宽扩展情况
+            N_MFB = self.parent.AWGInfo.N_MFB
+            N_DFB = self.parent.AWGInfo.N_DFB
             default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_BW{round(self.parent.AWGInfo.BWFreq / 1E6, 1)}M_DF{round(self.parent.AWGInfo.DFFreq / 1E6, 1)}M_EP{self.parent.EDFAInfo.EDFA1power}_RS{self.parent.AWGInfo.rand_seed}_'
-
+            if N_MFB != 0:
+                default_name += rf'MFB{N_MFB}_'
+            if N_DFB != 0:
+                default_name += rf'DFB{N_DFB}_'
         count_same_name = len(glob.glob(rf'{default_path}{default_name}*'))
         self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存",
                                                                     default_path + default_name + str(count_same_name),
