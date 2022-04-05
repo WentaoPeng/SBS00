@@ -171,6 +171,7 @@ class EDFAInfo():
         self.EDFA2power = 0
         self.EDFA1current = 0
         self.EDFA2current = 0
+        self.EDFA1active = False
 
     def full_info_query(self, EDFA1Handle):
         if EDFA1Handle:

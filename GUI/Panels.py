@@ -1338,8 +1338,10 @@ class EDFACtrl(QtWidgets.QGroupBox):
         if (self.parent.testModeAction.isChecked or self.parent.EDFA1Handle or self.parent.EDFA2Handle):
             if self.activeBtu1.isChecked():
                 self.parent.EDFA1Handle.Active1(True)
+                self.parent.EDFAInfo.EDFA1active = True
             else:
                 self.parent.EDFA1Handle.Active1(False)
+                self.parent.EDFAInfo.EDFA1active = False
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No EDFA is connected!')
             msg.exec_()
@@ -1510,6 +1512,7 @@ class Feedback(QtWidgets.QGroupBox):
         # 根据离线保存的数据进行频率反馈, 并自动开关EDFA
         # todo:加入反馈是否成功的检查(如是否 NAN)
         self.parent.EDFA1Handle.Active1(False)  # 关闭EDFA
+        self.parent.EDFAInfo.EDFA1active = False
 
         freq_design_seq = self.parent.AWGInfo.f_list
         freq = self.parent.AWGInfo.saved_freq_FB
@@ -1537,6 +1540,7 @@ class Feedback(QtWidgets.QGroupBox):
             self.parent.AWGInfo.N_DFB += 1
 
             self.parent.EDFA1Handle.Active1(True)  # 打开EDFA
+            self.parent.EDFAInfo.EDFA1active = True
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No AWG is connected!')
             msg.exec_()
@@ -1777,6 +1781,7 @@ class Feedback(QtWidgets.QGroupBox):
                             自动关闭EDFA并反馈,再打开EDFA
                         """
                         self.parent.EDFA1Handle.Active1(False)  # 关闭EDFA
+                        self.parent.EDFAInfo.EDFA1active = False
 
                         freq_design_seq = self.parent.AWGInfo.f_list
                         print('freq_design_seq', len(freq_design_seq))
@@ -1837,6 +1842,7 @@ class Feedback(QtWidgets.QGroupBox):
                             i += 1
 
                             self.parent.EDFA1Handle.Active1(True)  # 打开EDFA
+                            self.parent.EDFAInfo.EDFA1active = True
 
                             self.FBnum.setText(str(i - 1) + '  Done !!!')
                             self.activeBtu.setChecked(False)
@@ -2080,12 +2086,20 @@ class VNAMonitor(QtWidgets.QGroupBox):
         today_date = datetime.datetime.now().strftime('%Y-%m-%d')
         default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"{self.parent.AWGInfo.ChipNumFill}")
         self.mkdir(default_path)
+
+        EDFA1output = self.parent.EDFAInfo.EDFA1power
+        if EDFA1output == -50:
+            if self.parent.EDFAInfo.EDFA1active:
+                EDFA1output = rf'{self.parent.EDFAInfo.EDFA1current}mA'
+            else:
+                EDFA1output = '0mA'
+
         if self.parent.AWGInfo.BWFreq == 0:  # 此时主要关注单频泵浦增益与耦合功率关系
-            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_EP{self.parent.EDFAInfo.EDFA1power}_IL{self.parent.AWGInfo.ILFill}_1IP{self.parent.AWGInfo.OnePercentCPFill}_RS{self.parent.AWGInfo.rand_seed}_'
+            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_EP{EDFA1output}_IL{self.parent.AWGInfo.ILFill}_1IP{self.parent.AWGInfo.OnePercentCPFill}_RS{self.parent.AWGInfo.rand_seed}_'
         else:  # 此时主要关注带宽扩展情况
             N_MFB = self.parent.AWGInfo.N_MFB
             N_DFB = self.parent.AWGInfo.N_DFB
-            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_BW{round(self.parent.AWGInfo.BWFreq / 1E6, 1)}M_DF{round(self.parent.AWGInfo.DFFreq / 1E6, 1)}M_EP{self.parent.EDFAInfo.EDFA1power}_RS{self.parent.AWGInfo.rand_seed}_'
+            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_BW{round(self.parent.AWGInfo.BWFreq / 1E6, 1)}M_DF{round(self.parent.AWGInfo.DFFreq / 1E6, 1)}M_EP{EDFA1output}_RS{self.parent.AWGInfo.rand_seed}_'
             if N_MFB != 0:
                 default_name += rf'MFB{N_MFB}_'
             if N_DFB != 0:
