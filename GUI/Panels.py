@@ -1901,6 +1901,10 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.plot_btn.setStyleSheet(
             '''QPushButton:hover{background:yellow;}QPushButton:checked{background:gray;color:white}''')
         self.export_btn = QtWidgets.QPushButton('Export', self)
+        self.load_btn = QtWidgets.QPushButton('Load data', self)
+        self.load_btn.setCheckable(True)
+        self.load_btn.setStyleSheet(
+            '''QPushButton:hover{background:yellow;}QPushButton:checked{background:gray;color:white}''')
         self.Band_width_btn = QtWidgets.QPushButton('30MHz-8GHz', self)
         self.Band_width_btn.setCheckable(True)
         self.Band_width_btn.setStyleSheet(
@@ -1913,6 +1917,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
 
         self.plot_btn.clicked.connect(self.plot)
         self.export_btn.clicked.connect(self.export)
+        self.load_btn.clicked.connect(self.load_and_plot)
         self.Band_width_btn.clicked.connect(self.BandWidth_ctrl)
         self.center_freq_btu.clicked.connect(self.CenterFreq_ctrl)
         self.clear_btn.clicked.connect(self.clear_fun)
@@ -1921,6 +1926,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.btn_layout.addWidget(self.plot_btn)
         self.btn_layout.addWidget(self.clear_btn)
         # self.btn_layout.addWidget(self.export_btn)
+        self.btn_layout.addWidget(self.load_btn)
         self.btn_layout.addWidget(self.Band_width_btn)
         self.btn_layout.addWidget(self.center_freq_btu)
 
@@ -1962,6 +1968,46 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.center_freq_btu.setChecked(False)
         self.plot_btn.setChecked(False)
 
+
+    def load_and_plot(self):
+        self.timer.stop()
+        if self.load_btn.isChecked():
+            self.clear_fun()
+            default_path = r'D:\Documents\5G项目'  # 默认目标文件夹地址
+            input_path, datatype = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', default_path, 'csv(*.csv)')
+            if input_path == "":
+                print("\n取消选择")
+                return
+            filedir, filename = os.path.split(input_path)
+            print(filedir, filename)
+
+            filename_str = os.path.basename(filename)[:-4]
+            xlabel_str = 'Frequency(Hz)'
+            if 'BW' in filename_str:
+                data_frame = pd.read_csv(input_path, index_col=False, header=0, sep=',')
+                # data_frame[data_frame.columns[0]] = data_frame[data_frame.columns[0]] / 1E9  # 横坐标 Hz -> GHz
+                # xlabel_str = 'Frequency(GHz)'
+            elif 'CF' in filename_str:
+                data_frame = pd.read_csv(input_path, index_col=False, header=0, sep=',')
+                filename_str_split = filename_str.split('_')
+                CF_str = filename_str_split[1]
+                CF = float(CF_str[2:-1])
+                print('CF', CF)
+                # data_frame['freq_list'] = CF - data_frame['freq_list'] / 1E9  # 横坐标转换为BFS(GHz)
+                # xlabel_str = 'BFS(GHz)'
+            else:
+                data_frame = pd.read_csv(input_path, index_col=False, header=None, skiprows=7, skipfooter=1, engine='python')
+                # data_frame[data_frame.columns[0]] = data_frame[data_frame.columns[0]] / 1E9  # 横坐标 Hz -> GHz
+                # xlabel_str = 'Frequency(GHz)'
+
+            data_frame.columns = [xlabel_str] + list(data_frame.columns)[1:-1]+[filename_str]  # 最后一列以文件名命名
+            self.plot_data.plot(data_frame[xlabel_str], data_frame[data_frame.columns[1]], pen='b')
+            self.plot_data.showGrid(x=True, y=True)
+        #     todo: 读取后在界面显示文件名(含路径)
+        else:
+            self.plot_btn.setChecked(True)
+            self.timer.start(1500)
+
     def btu_Judge(self):
         # todo: debug-8G画图时不能返回PNA，否则无法清空
         self.timer.stop()
@@ -1979,11 +2025,10 @@ class VNAMonitor(QtWidgets.QGroupBox):
             else:
                 self.plot_data.clear()
                 self.parent.Display=0
-                msg = Shared.MsgError(self, 'No Instrument!', 'PNA-N5225A is not connected!')
-                msg.exec_()
                 PNACtrl.setChecked(False)
                 self.parent.PNACtrl.setChecked(False)
-
+                msg = Shared.MsgError(self, 'No Instrument!', 'PNA-N5225A is not connected!')
+                msg.exec_()
         elif self.Band_width_btn.isChecked():
             self.bandfiles_size = np.size(self.bandwidth_files)
             if self.Band_i == self.bandfiles_size:
@@ -2004,8 +2049,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
                 self.plot_data.clear()
                 self.CenterFreq_ctrl()
         else:
-            pass
-        self.timer.start()
+            self.timer.start(2000)
 
     def timer_start(self):
         if self.parent.PNAHandle:
