@@ -1901,6 +1901,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.plot_btn.setStyleSheet(
             '''QPushButton:hover{background:yellow;}QPushButton:checked{background:gray;color:white}''')
         self.export_btn = QtWidgets.QPushButton('Export', self)
+        self.data_name = QtWidgets.QLabel('', self)
         self.load_btn = QtWidgets.QPushButton('Load data', self)
         self.load_btn.setCheckable(True)
         self.load_btn.setStyleSheet(
@@ -1930,8 +1931,14 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.btn_layout.addWidget(self.Band_width_btn)
         self.btn_layout.addWidget(self.center_freq_btu)
 
+        self.h1_layout = QtWidgets.QHBoxLayout()
+        self.h1_layout.addWidget(self.export_btn)
+        self.h1_layout.addWidget(self.data_name)
+        self.h1_layout.addStretch(1)
+
         self.v_layout = QtWidgets.QVBoxLayout()
         self.v_layout.addStretch(1)
+        self.v_layout.addLayout(self.h1_layout)
         self.v_layout.addWidget(self.pgPlot)
         self.v_layout.addLayout(self.btn_layout)
 
@@ -1962,6 +1969,7 @@ class VNAMonitor(QtWidgets.QGroupBox):
 
     def clear_fun(self):
         self.plot_data.clear()
+        self.data_name.setText('')
         self.Band_i = 0
         self.Center_i = 0
         self.Band_width_btn.setChecked(False)
@@ -2003,8 +2011,11 @@ class VNAMonitor(QtWidgets.QGroupBox):
             data_frame.columns = [xlabel_str] + list(data_frame.columns)[1:-1]+[filename_str]  # 最后一列以文件名命名
             self.plot_data.plot(data_frame[xlabel_str], data_frame[data_frame.columns[1]], pen='b')
             self.plot_data.showGrid(x=True, y=True)
-        #     todo: 读取后在界面显示文件名(含路径)
+        #   读取后在界面显示文件名(含路径)
+            self.data_name.setText(f'Loading: {input_path[18:]}')
+            self.data_name.adjustSize()
         else:
+            self.clear_fun()
             self.plot_btn.setChecked(True)
             self.timer.start(1500)
 
