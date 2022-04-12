@@ -253,8 +253,16 @@ class manualFB_list(QtWidgets.QDialog):
 
             self.setupUI()
 
-            self.freq_data=[]
-            self.gain_on_off_offset=[]
+            self.freq_data = []
+            self.gain_on_off_offset = []
+            self.loading = False  # 判断是否正在加载setting数据
+            self.CF = 0  # GHz
+            self.BW = 0  # MHz
+            self.DF = 0  # MHz
+            self.RS = 0
+            self.MFB = 0
+            self.DFB = 0
+
             self.btu_display.clicked.connect(self.data_setup)
             self.btu_save.clicked.connect(self.data_save)
             self.btu_load.clicked.connect(self.data_load)
@@ -349,11 +357,19 @@ class manualFB_list(QtWidgets.QDialog):
             new_arry=np.empty(shape=(col_num,row_num))
             for col in range(col_num):
                 for row in range(row_num):
-                        new_arry[col][row]=float(self.list_table.item(row,col).text())
+                    new_arry[col][row]=float(self.list_table.item(row,col).text())
 
             self.parent.AWGInfo.amp_list=new_arry[0]
             self.parent.AWGInfo.f_list=new_arry[1]*1e9
             self.parent.AWGInfo.phase_list=new_arry[2]
+
+            if self.loading:
+                self.parent.AWGInfo.CFFreq = self.CF * 1e9
+                self.parent.AWGInfo.BWFreq = self.BW * 1e6
+                self.parent.AWGInfo.DFFreq = self.DF * 1e6
+                self.parent.AWGInfo.rand_seed = self.RS
+                self.parent.AWGInfo.N_MFB = self.MFB
+                self.parent.AWGInfo.N_DFB = self.DFB
             # print(self.parent.AWGInfo.f_list)
 
 
@@ -381,6 +397,28 @@ class manualFB_list(QtWidgets.QDialog):
                     # self.list_table.item(row, column).setTextAlignment(QtCore.AlignHCenter | QtCore.AlignVCenter)
             self.list_table.update()
             self.list_table.blockSignals(False)
+
+            # 必要时，更新设计数据，如MFB,DFB,BW,CF
+            filedir, filename = os.path.split(input_path)
+            filename_split = filename.split('_')
+            self.BW = 0
+            self.MFB = 0
+            self.DFB = 0
+            for part in filename_split:
+                if 'CF' in part:
+                    self.CF = float(part[2:-1])
+                if 'BW' in part:
+                    self.BW = float(part[2:-1])
+                if 'DF' in part:
+                    self.DF = float(part[2:-1])
+                if 'RS' in part:
+                    self.RS = int(part[2:])
+                if 'MFB' in part:
+                    self.MFB = int(part[3:])
+                if 'DFB' in part:
+                    self.DFB = int(part[3:])
+
+            self.loading = True
             print("加载成功")
 
 
@@ -402,6 +440,7 @@ class manualFB_list(QtWidgets.QDialog):
                     # self.list_table.item(row, column).setTextAlignment(QtCore.AlignHCenter | QtCore.AlignVCenter)
             self.list_table.update()
             self.list_table.blockSignals(False)
+            self.loading = False
 
 
         def setupUI(self):
