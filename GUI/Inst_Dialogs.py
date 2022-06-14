@@ -3,10 +3,16 @@ import numpy as np
 from PyQt5 import QtCore, QtWidgets, QtGui
 from GUI import SharedWidgets as Shared
 from API import general as api_gen
+from API import EDFAAPI as api_edfa
 from API import AWGapi as api_awg
 from API import PNAapi as api_pna
 from API import LightAPI as api_light
 import re
+import pandas as pd
+import os
+import glob
+import datetime
+import serial
 from GUI import Panels as panels_fun
 from scipy.signal import savgol_filter, find_peaks, peak_widths, peak_prominences
 import SBS_DSP
@@ -122,21 +128,22 @@ class manualInstDialog(QtWidgets.QDialog):
     def __init__(self,parent):
         QtWidgets.QDialog.__init__(self,parent)
         self.parent=parent
-        self.setMinimumSize(200,200)
+        self.setMinimumSize(200, 200)
         self.setWindowTitle('Manual Input Inst_IP')
-        self.awgip='192.168.1.102'
+        self.awgip='192.168.1.103'
         self.pnaip='192.168.1.100'
         self.lightip='192.168.1.101'
 
         acceptButton = QtGui.QPushButton(Shared.btn_label('confirm'))
         cancelButton = QtGui.QPushButton(Shared.btn_label('reject'))
+        edfaButton = QtWidgets.QPushButton('EDFA')
 
         ManualInst=QtWidgets.QWidget()
         ManualInstLayout=QtWidgets.QFormLayout()
         self.AWGIP=QtWidgets.QWidget()
         self.AWGIPFill=QtWidgets.QLineEdit()
         self.AWGIPFill.setInputMask("000.000.000.000")
-        self.AWGIPFill.setText("192.168.1.102")
+        self.AWGIPFill.setText("192.168.1.103")
 
         self.PNAIP=QtWidgets.QWidget()
         self.PNAIPFill=QtWidgets.QLineEdit()
@@ -158,10 +165,12 @@ class manualInstDialog(QtWidgets.QDialog):
         mainLayout.addWidget(ManualInst,0,0,2,1)
         mainLayout.addWidget(acceptButton,3,1)
         mainLayout.addWidget(cancelButton,3,0)
+        mainLayout.addWidget(edfaButton,3,3)
         self.setLayout(mainLayout)
 
         cancelButton.clicked.connect(self.reject)
         acceptButton.clicked.connect(self.accept)
+        edfaButton.clicked.connect(self.ctrl_EDFA)
 
         # 更新后台ip
         self.AWGIPFill.textChanged.connect(self.updateIP)
@@ -178,24 +187,30 @@ class manualInstDialog(QtWidgets.QDialog):
             self.done(True)
             return None
         else:
-            try:
-                self.parent.AWGHandle=api_awg.M9502A(self.awgip,reset=True)
-                print(self.parent.AWGHandle)
-                self.done(True)
-            except:
-                return None
+            if self.awgip == '...':
+                pass
+            else:
+                try:
+                    self.parent.AWGHandle = api_awg.M9502A(self.awgip, reset=True)
+                    print(self.parent.AWGHandle)
+                    self.done(True)
+                except:
+                    return None
 
         if self.pnaip=='N.A.':
             self.done(True)
             return None
 
         else:
-            try:
-                self.parent.PNAHandle=api_pna.PNASCPI(self.pnaip,reset=True)
-                print(self.parent.PNAHandle)
-                self.done(True)
-            except:
-                return None
+            if self.pnaip == '...':
+                pass
+            else:
+                try:
+                    self.parent.PNAHandle = api_pna.PNASCPI(self.pnaip, reset=True)
+                    print(self.parent.PNAHandle)
+                    self.done(True)
+                except:
+                    return None
 
         if self.lightip=='N.A.':
             self.done(True)
@@ -210,6 +225,23 @@ class manualInstDialog(QtWidgets.QDialog):
 
         self.done(True)
 
+    def ctrl_EDFA(self):
+        """检测端口并创建连接EDFA的对象实例"""
+        # 检查端口并确保其打开
+        plist = list(serial.tools.list_ports.comports())
+        if len(plist) <= 0:
+            print("没有发现端口!请检查设备连接")
+        else:
+            # 当前默认选择COM5连接37dbm-EDFA，后续可增加选择端口功能
+            plist_1 = list(plist[1])
+            serialName = plist_1[0]
+            COM_serial = serial.Serial(serialName, 19200, timeout=60)
+            print("可用端口名>>>", COM_serial.name)
+            print('端口打开:', COM_serial.isOpen())
+            if COM_serial.isOpen():
+                self.parent.EDFA1Handle = api_edfa.EDFASCPI(COM_serial)
+
+
 class manualFB_list(QtWidgets.QDialog):
         '''
         显示反馈后的amp-list以及freq-list
@@ -221,17 +253,56 @@ class manualFB_list(QtWidgets.QDialog):
 
             self.setupUI()
 
-            self.freq_data=[]
-            self.gain_on_off_offset=[]
+            self.freq_data = []
+            self.gain_on_off_offset = []
+            self.loading = False  # 判断是否正在加载setting数据
+            self.CF = 0  # GHz
+            self.BW = 0  # MHz
+            self.DF = 0  # MHz
+            self.RS = 0
+            self.MFB = 0
+            self.DFB = 0
+
             self.btu_display.clicked.connect(self.data_setup)
             self.btu_save.clicked.connect(self.data_save)
+            self.btu_load.clicked.connect(self.data_load)
             self.btu_accept.clicked.connect(self.manual_Fun)
             self.btu_map.clicked.connect(self.mapping_Fun)
             self.btu_cancel.clicked.connect(self.reject)
             self.btu_save_data.clicked.connect(self.save_data)
 
         def save_data(self):
-            pass
+            '''[频率，幅值,相位]写入csv '''
+            today_date = datetime.datetime.now().strftime('%Y-%m-%d')
+            default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"{self.parent.AWGInfo.ChipNumFill}")
+            self.mkdir(default_path)
+            default_name = rf'\settings_{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq/1E9,2)}G_BW{round(self.parent.AWGInfo.BWFreq/1E6,1)}M_DF{round(self.parent.AWGInfo.DFFreq/1E6,1)}M_'
+
+            count_same_name = len(glob.glob(rf'{default_path}{default_name}*'))
+            self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存", default_path+default_name+str(count_same_name),
+                                                                             'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别
+            if self.filepath == "":
+                print("\n取消选择")
+                return
+            pump_lists_designed = pd.DataFrame(
+                {'freq_list_designed': self.parent.AWGInfo.f_list, 'amp_list_designed': self.parent.AWGInfo.amp_list,
+                 'phase_list_designed': self.parent.AWGInfo.phase_list})
+            pump_lists_designed.to_csv(self.filepath, index=False, sep=',')  # 将DataFrame存储为csv,index表示是否显示行名，default=True
+
+
+        def mkdir(self, path):
+            isExists = os.path.exists(path)
+            if not isExists:
+                # 如果不存在则创建目录
+                # 创建目录操作函数
+                os.makedirs(path)
+                print(path + ' 创建成功')
+                return True
+            else:
+                # 如果目录存在则不创建，并提示目录已存在
+                print(path + ' 目录已存在')
+                return False
+
 
         def mapping_Fun(self):
             if self.btu_map.isChecked():
@@ -286,12 +357,70 @@ class manualFB_list(QtWidgets.QDialog):
             new_arry=np.empty(shape=(col_num,row_num))
             for col in range(col_num):
                 for row in range(row_num):
-                        new_arry[col][row]=float(self.list_table.item(row,col).text())
+                    new_arry[col][row]=float(self.list_table.item(row,col).text())
 
             self.parent.AWGInfo.amp_list=new_arry[0]
             self.parent.AWGInfo.f_list=new_arry[1]*1e9
             self.parent.AWGInfo.phase_list=new_arry[2]
+
+            if self.loading:
+                self.parent.AWGInfo.CFFreq = self.CF * 1e9
+                self.parent.AWGInfo.BWFreq = self.BW * 1e6
+                self.parent.AWGInfo.DFFreq = self.DF * 1e6
+                self.parent.AWGInfo.rand_seed = self.RS
+                self.parent.AWGInfo.N_MFB = self.MFB
+                self.parent.AWGInfo.N_DFB = self.DFB
             # print(self.parent.AWGInfo.f_list)
+
+
+        def data_load(self):
+            #     读取保存的文件到展示界面
+            default_path = r'D:\Documents\5G项目'  # 默认目标文件夹地址
+            input_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, '选择泵浦设置文件', default_path)
+            if input_path == "":
+                print("\n取消选择")
+                return
+
+            print("\n你选择的设置文件为:")
+            print(input_path)
+
+            self.list_table.blockSignals(True)
+            data_frame = pd.read_csv(input_path, index_col=False, header=0, sep=',')
+            amp_list = data_frame[data_frame.columns[1]]
+            f_list = np.array(data_frame[data_frame.columns[0]]) / 1e9  # GHz显示
+            phase_list = data_frame[data_frame.columns[2]]
+            arry = np.array([amp_list, f_list, phase_list])
+            self.list_table.setRowCount(len(amp_list))
+            for column in range(3):
+                for row in range(len(amp_list)):
+                    self.list_table.setItem(row, column, QtWidgets.QTableWidgetItem(format(arry[column][row], '.6f')))
+                    # self.list_table.item(row, column).setTextAlignment(QtCore.AlignHCenter | QtCore.AlignVCenter)
+            self.list_table.update()
+            self.list_table.blockSignals(False)
+
+            # 必要时，更新设计数据，如MFB,DFB,BW,CF
+            filedir, filename = os.path.split(input_path)
+            filename_split = filename.split('_')
+            self.BW = 0
+            self.MFB = 0
+            self.DFB = 0
+            for part in filename_split:
+                if 'CF' in part:
+                    self.CF = float(part[2:-1])
+                if 'BW' in part:
+                    self.BW = float(part[2:-1])
+                if 'DF' in part:
+                    self.DF = float(part[2:-1])
+                if 'RS' in part:
+                    self.RS = int(part[2:])
+                if 'MFB' in part:
+                    self.MFB = int(part[3:])
+                if 'DFB' in part:
+                    self.DFB = int(part[3:])
+
+            self.loading = True
+            print("加载成功")
+
 
         def data_setup(self):
             '''
@@ -300,7 +429,7 @@ class manualFB_list(QtWidgets.QDialog):
             '''
             self.list_table.blockSignals(True)
             amp_list= self.parent.AWGInfo.amp_list
-            f_list=self.parent.AWGInfo.f_list/1e9    #GHz显示
+            f_list=np.array(self.parent.AWGInfo.f_list)/1e9    #GHz显示
             phase_list=self.parent.AWGInfo.phase_list
             arry=np.array([amp_list,f_list,phase_list])
             # print(arry,arry[1],arry[2],arry[1][2])
@@ -311,6 +440,7 @@ class manualFB_list(QtWidgets.QDialog):
                     # self.list_table.item(row, column).setTextAlignment(QtCore.AlignHCenter | QtCore.AlignVCenter)
             self.list_table.update()
             self.list_table.blockSignals(False)
+            self.loading = False
 
 
         def setupUI(self):
@@ -320,6 +450,7 @@ class manualFB_list(QtWidgets.QDialog):
             self.list_table=QtWidgets.QTableWidget(self)
             self.btu_display=QtWidgets.QPushButton('Display')
             self.btu_save=QtWidgets.QPushButton('Save')
+            self.btu_load = QtWidgets.QPushButton('Load')
             self.btu_accept=QtWidgets.QPushButton('Accept')
             self.btu_cancel=QtWidgets.QPushButton('Cancel')
             self.btu_map=QtWidgets.QPushButton('Mapping')
@@ -330,6 +461,7 @@ class manualFB_list(QtWidgets.QDialog):
             self.vbox=QtWidgets.QVBoxLayout()
             self.vbox.addWidget(self.btu_display)
             self.vbox.addWidget(self.btu_save)
+            self.vbox.addWidget(self.btu_load)
             self.vbox.addWidget(self.btu_accept)
             self.vbox.addWidget(self.btu_map)
             self.vbox.addWidget(self.btu_save_data)

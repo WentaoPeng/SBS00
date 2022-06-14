@@ -148,6 +148,28 @@ def search_index(f_seq, f_measure):
     return f_index
 
 
+def search_index(f_seq, f_measure):
+    # 功能：找到f_seq在f_measure中最接近位置(差的绝对值最小)的索引f_index
+    # PS : 当前默认每个点都能找到，如果范围不对应可能会出现隐藏bug
+    f_index = np.zeros(f_seq.size, dtype=int)
+    idx_seq = 0
+    find_num = 0
+    idx_min = 0
+    idx_max = -1  # 默认梳齿不是f_measure最后一个元素
+    while find_num < f_seq.size:
+        freq_slide = abs(f_measure[idx_min: idx_max] - f_seq[idx_seq])
+        find_idx = np.argmin(freq_slide)+idx_min
+        f_index[idx_seq] = find_idx
+        find_num += 1
+        if idx_seq < 0:
+            idx_seq = -idx_seq
+            idx_max = find_idx  # 更新搜索右边界
+        else:
+            idx_min = find_idx  # 更新搜索左边界
+            idx_seq = -(idx_seq+1)
+    return f_index
+
+
 def bfs_correct(f_seq, f_measure, measure_brian, bfs):
     # 功能：根据大致BFS，洛伦兹互相关得到修正后的更准确BFS
     bfs_seq = np.ones(f_seq.size)*bfs
@@ -241,11 +263,13 @@ def multi_change(data_list, index_list, change_data_list):
     return data_list
 
 
-def change_amp_seq(amp_seq, expected_gain_sam, brian_measure_sam, iteration_type=1):
+def change_amp_seq(amp_seq, expected_gain_sam, brian_measure_sam, iteration_type=1,alpha=1):
     # 功能：更新amp_seq；
     # iteration_type-更新方式：[1]-2+3，[2]-线性，[3]-根号,[4]-边界参考旁边 (默认选[1])
     if len(amp_seq) > 1:
-        alpha = np.mean(amp_seq)
+        if alpha == 0:
+            alpha = np.mean(amp_seq)
+            print('alpha_mean=', alpha)
         if iteration_type == 1:  # 方式1：2+3
             amp_seq[0] = np.sqrt(alpha * expected_gain_sam[0] / brian_measure_sam[0] * amp_seq[0])
             amp_seq[-1] = np.sqrt(alpha * expected_gain_sam[-1] / brian_measure_sam[-1] * amp_seq[-1])

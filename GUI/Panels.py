@@ -5,8 +5,13 @@
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtCore import QObject
 import pyqtgraph as pg
+import serial
 import pyvisa
 import time
+import os
+import glob
+import datetime
+import pandas as pd
 import numpy as np
 from GUI import SharedWidgets as Shared
 from API import AWGapi as api_awg
@@ -20,7 +25,6 @@ import multi_Lorenz_2_triangle as mlt
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter, find_peaks, peak_widths, peak_prominences
 from threading import Timer
-
 
 class AWGStatus(QtWidgets.QGroupBox):
     '''
@@ -139,6 +143,7 @@ class AWGStatus(QtWidgets.QGroupBox):
         self.BWSet.setText(str(self.parent.AWGInfo.BWFreq) + 'Hz')
         self.DFSet.setText(str(self.parent.AWGInfo.DFFreq) + 'Hz')
         self.Amplitude.setText(str(self.parent.AWGInfo.AWGPower) + 'Mv')
+        # print('run？', self.parent.AWGHandle.query_run_state())
 
     def show_InstMoreInfo(self):
         # 待扩展
@@ -180,6 +185,10 @@ class PNACtrl(QtWidgets.QGroupBox):
         self.AvgPoints = QtWidgets.QSpinBox()
         self.InitialBtu = QtWidgets.QPushButton('Initial')
         self.EnterBtu = QtWidgets.QPushButton('Enter')
+        self.SmoothBtu = QtWidgets.QPushButton('Smoothing')
+        self.SmoothBtu.setCheckable(True)
+        self.SmoothBtu.setStyleSheet(
+            '''QPushButton:hover{background:gray;color:white}QPushButton:checked{background:rgb(87,250,255);color:gray}''')
         self.AllMeasBtu = QtWidgets.QPushButton('ALLMeas')
 
         self.ScaleSet = QtWidgets.QWidget()
@@ -250,6 +259,7 @@ class PNACtrl(QtWidgets.QGroupBox):
         stimulusLayout.addWidget(self.PointSet, 1, 1, 1, 2)
         stimulusLayout.addWidget(self.powerset, 0, 1, 1, 2)
         stimulusLayout.addWidget(self.EnterBtu, 4, 1)
+        stimulusLayout.addWidget(self.SmoothBtu, 4, 2)
         stimulus.setLayout(stimulusLayout)
 
         mainLayout = QtWidgets.QVBoxLayout()
@@ -268,6 +278,7 @@ class PNACtrl(QtWidgets.QGroupBox):
 
         self.InitialBtu.clicked.connect(self.InitialF)
         self.EnterBtu.clicked.connect(self.setPNA)
+        self.SmoothBtu.clicked.connect(self.setSmoothing)
         self.AllMeasBtu.clicked.connect(self.AllDisplay)
 
         self.clicked.connect(self.check)
@@ -276,6 +287,8 @@ class PNACtrl(QtWidgets.QGroupBox):
         if self.parent.testModeAction.isChecked() or self.parent.PNAHandle:
             self.parent.PNAHandle.allmeas()
             self.parent.Display = 1
+        else:
+            self.parent.Display = 0
 
     def InitialF(self):
         if self.parent.testModeAction.isChecked() or self.parent.PNAHandle:
@@ -288,6 +301,15 @@ class PNACtrl(QtWidgets.QGroupBox):
                                             numpoints=self.parent.PNAInfo.SweepPoints,
                                             avgpoints=self.parent.PNAInfo.AvgPoints,
                                             power=self.parent.PNAInfo.Power)
+
+    def setSmoothing(self):
+        if self.parent.testModeAction.isChecked() or self.parent.PNAHandle:
+            if self.SmoothBtu.isChecked():
+                self.parent.PNAHandle.set_Smoothing(True)
+                self.parent.AWGInfo.SaveDataType = 'smt'
+            else:
+                self.parent.PNAHandle.set_Smoothing(False)
+                self.parent.AWGInfo.SaveDataType = 'org'
 
     def tune_mod_parameter(self):
         self.parent.PNAInfo.Scale = self.ScaleSetUnitSel.currentText()
@@ -308,7 +330,7 @@ class PNACtrl(QtWidgets.QGroupBox):
             self.setChecked(True)
             self.parent.PNACtrl.setChecked(True)
         else:
-            msg = Shared.MsgError(self, 'No Instrument!', 'No PNAN5225A is connected!')
+            msg = Shared.MsgError(self, 'No Instrument!', 'PNA-N5225A is not connected!')
             msg.exec_()
             self.setChecked(False)
             self.parent.PNACtrl.setChecked(False)
@@ -338,108 +360,125 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.channelNumset = Shared.AWGChannelBox()
 
         #     显示参量
-        AWGLayout = QtWidgets.QGridLayout()
-        AWGLayout.addWidget(QtWidgets.QLabel('DAC'), 0, 0)
-        AWGLayout.addWidget(self.DACset, 0, 1, 1, 2)
+        DACLayout = QtWidgets.QHBoxLayout()  # 第二行
+        DACLayout.addWidget(QtWidgets.QLabel('DAC'))
+        DACLayout.addWidget(self.DACset)
 
-        AWGLayout.addWidget(QtWidgets.QLabel('AWGChannel'), 1, 0)
-        AWGLayout.addWidget(self.channelNumset, 1, 1, 1, 3)
-        AWGWidget.setLayout(AWGLayout)
+        AWGChannelLayout = QtWidgets.QHBoxLayout()  # 第三行
+        AWGChannelLayout.addWidget(QtWidgets.QLabel('AWGChannel'))
+        AWGChannelLayout.addWidget(self.channelNumset)
 
         #     AWG输出功率设置以及运行按钮
         self.AWGPowerSwitchBtu = QtWidgets.QPushButton('OFF')
         self.AWGPowerSwitchBtu.setCheckable(True)
         AWGPowerInput = QtWidgets.QPushButton('Set Power')
 
-        AWGPowerLayout = QtWidgets.QHBoxLayout()
+        AWGPowerLayout = QtWidgets.QHBoxLayout()  # 第一行
         AWGPowerLayout.setAlignment(QtCore.Qt.AlignLeft)
         AWGPowerLayout.addWidget(AWGPowerInput)
         AWGPowerLayout.addWidget(QtWidgets.QLabel('Pump Switch'))
         AWGPowerLayout.addWidget(self.AWGPowerSwitchBtu)
         AWGPowerCtrl = QtWidgets.QWidget()
-        AWGPowerCtrl.setLayout(AWGPowerLayout)
+
+        AWGLayout = QtWidgets.QVBoxLayout()
+        AWGLayout.addLayout(AWGPowerLayout)
+        AWGLayout.addLayout(DACLayout)
+        AWGLayout.addLayout(AWGChannelLayout)
+        AWGWidget.setLayout(AWGLayout)
 
         #     pump设计子界面
         PumpDesign = QtWidgets.QGroupBox()
-        PumpDesign.setTitle('PUMPDesign_AWG')
+        PumpDesign.setTitle('PUMP Design_AWG')
         PumpDesign.setFlat(True)
         PumpDesign.setAlignment(QtCore.Qt.AlignLeft)
-        PumpLayout = QtWidgets.QGridLayout()
-        # PumpLayout.setSpacing(1)
 
         self.PumpModeSel = QtWidgets.QComboBox()
         self.PumpModeSel.addItems(api_awg.Shape_MODE_LIST)
 
         self.CenterFreq = QtWidgets.QWidget()
-        self.CenterFreqFill = QtWidgets.QLineEdit('10')
+        self.CenterFreqFill = QtWidgets.QLineEdit('15')
+        self.CenterFreqFill.setAlignment(QtCore.Qt.AlignHCenter)
         self.CenterFreqUnitSel = QtWidgets.QComboBox()
         self.CenterFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.CenterFreqUnitSel.setCurrentIndex(3)
+
         CenterFreqLayout = QtWidgets.QHBoxLayout()
-        CenterFreqLayout.addWidget(QtWidgets.QLabel('CenterFreq'))
+        CenterFreqLayout.addWidget(QtWidgets.QLabel('CF:'))
         CenterFreqLayout.addWidget(self.CenterFreqFill)
         CenterFreqLayout.addWidget(self.CenterFreqUnitSel)
         self.CenterFreq.setLayout(CenterFreqLayout)
 
         self.BandWidth = QtWidgets.QWidget()
-        self.BandWidthFill = QtWidgets.QLineEdit('200')
+        self.BandWidthFill = QtWidgets.QLineEdit('0')
+        self.BandWidthFill.setAlignment(QtCore.Qt.AlignHCenter)
         self.BandWidthUnitSel = QtWidgets.QComboBox()
         self.BandWidthUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.BandWidthUnitSel.setCurrentIndex(2)
         BandWidthLayout = QtWidgets.QHBoxLayout()
-        BandWidthLayout.addWidget(QtWidgets.QLabel('BandWidth'))
+        BandWidthLayout.addWidget(QtWidgets.QLabel('BW:'))
         BandWidthLayout.addWidget(self.BandWidthFill)
         BandWidthLayout.addWidget(self.BandWidthUnitSel)
         self.BandWidth.setLayout(BandWidthLayout)
 
         self.CombFreq = QtWidgets.QWidget()
-        self.CombFreqFill = QtWidgets.QLineEdit('10')
+        self.CombFreqFill = QtWidgets.QLineEdit('15')
+        self.CombFreqFill.setAlignment(QtCore.Qt.AlignHCenter)
         self.CombFreqUnitSel = QtWidgets.QComboBox()
         self.CombFreqUnitSel.addItems(['Hz', 'KHz', 'MHz', 'GHz'])
         self.CombFreqUnitSel.setCurrentIndex(2)
         CombFreqLayout = QtWidgets.QHBoxLayout()
-        CombFreqLayout.addWidget(QtWidgets.QLabel('Comb DF'))
+        CombFreqLayout.addWidget(QtWidgets.QLabel('DF:'))
         CombFreqLayout.addWidget(self.CombFreqFill)
         CombFreqLayout.addWidget(self.CombFreqUnitSel)
         self.CombFreq.setLayout(CombFreqLayout)
 
-        self.rand_seed=QtWidgets.QWidget()
+        self.rand_seed = QtWidgets.QWidget()
         self.rand_SFill = QtWidgets.QLineEdit('0')
-        rand_seedLayout=QtWidgets.QHBoxLayout()
+        self.rand_SFill.setAlignment(QtCore.Qt.AlignHCenter)
+        rand_seedLayout = QtWidgets.QHBoxLayout()
         rand_seedLayout.addWidget(QtWidgets.QLabel('Rand_S'))
         rand_seedLayout.addWidget(self.rand_SFill)
         self.rand_seed.setLayout(rand_seedLayout)
 
-
         self.PumpDesignDoneBtu = QtWidgets.QPushButton('Done')
         # self.PumpDesignDoneBtu.setCheckable(True)
         self.PumpDesignDoneBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
-        self.PumpDesignDoneBtu.setMaximumSize(200,200)
+        self.PumpDesignDoneBtu.setMaximumSize(200, 200)
 
-        self.pumpdesignsetBtu=QtWidgets.QPushButton('Set')
-        self.pumpdesignsetBtu.setCheckable(True)
-        self.pumpdesignsetBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
-        self.pumpdesignsetBtu.setMaximumSize(200,200)
+        self.pumpdesignsetBtu = QtWidgets.QPushButton('Set')
+        self.pumpdesignsetBtu.setCheckable(True);
+        self.pumpdesignsetBtu.setStyleSheet(
+            '''QPushButton:hover{background:yellow;}QPushButton:checked{background:gray;color:white}''')
+        self.pumpdesignsetBtu.setMaximumSize(200, 200)
 
-        self.sweepFreq=QtWidgets.QCheckBox('Sweep_Freq')
+        self.preFBBtn = QtWidgets.QPushButton('pre FB')
+        self.preFBBtn.setCheckable(True)
+        self.preFBBtn.setStyleSheet(
+            '''QPushButton:hover{background:gray;color:white}QPushButton:checked{background:rgb(87,250,255);color:gray}''')
+
+        self.sweepFreq = QtWidgets.QCheckBox('Sweep_Freq')
         # self.sweepFreq.setCheckState(True)
         self.sweepFreq.setChecked(False)
-        self.plusFreq=QtWidgets.QCheckBox('Plus')
+        self.plusFreq = QtWidgets.QCheckBox('Plus')
         self.plusFreq.setChecked(False)
-        self.minusFreq=QtWidgets.QCheckBox('Minus')
+        self.minusFreq = QtWidgets.QCheckBox('Minus')
+        self.randnDF = QtWidgets.QCheckBox('randnDF')
 
+        PumpLayout = QtWidgets.QGridLayout()
 
         PumpLayout.addWidget(QtWidgets.QLabel('Pump Shape :'), 0, 0)
-        PumpLayout.addWidget(self.pumpdesignsetBtu,1,0,2,1)
-        PumpLayout.addWidget(self.PumpDesignDoneBtu,3, 0, 2, 1)
+        PumpLayout.addWidget(self.pumpdesignsetBtu, 1, 0, 2, 1)
+        PumpLayout.addWidget(self.PumpDesignDoneBtu, 3, 0, 2, 1)
         PumpLayout.addWidget(self.PumpModeSel, 0, 1)
+        PumpLayout.addWidget(self.preFBBtn, 0, 2)
         PumpLayout.addWidget(self.CenterFreq, 1, 1, 2, 3)
         PumpLayout.addWidget(self.BandWidth, 2, 1, 2, 3)
         PumpLayout.addWidget(self.CombFreq, 3, 1, 2, 3)
-        PumpLayout.addWidget(self.rand_seed,4, 1, 2, 3)
-        PumpLayout.addWidget(self.sweepFreq,6,0)
-        PumpLayout.addWidget(self.plusFreq,6,1)
-        PumpLayout.addWidget(self.minusFreq,6,2)
+        PumpLayout.addWidget(self.rand_seed, 4, 1, 2, 3)
+        PumpLayout.addWidget(self.sweepFreq, 6, 0)
+        PumpLayout.addWidget(self.plusFreq, 6, 1)
+        PumpLayout.addWidget(self.minusFreq, 6, 2)
+        PumpLayout.addWidget(self.randnDF, 6, 3)
         # PumpLayout.addWidget(QtWidgets.QLabel('Sweep_Freq'),5,1)
         PumpDesign.setLayout(PumpLayout)
 
@@ -466,12 +505,16 @@ class AWGCtrl(QtWidgets.QGroupBox):
         AWGPowerInput.clicked.connect(self.AWGRFPower)
         self.AWGPowerSwitchBtu.clicked.connect(self.AWGRFPowerSwitch_auto)
         self.AWGPowerSwitchBtu.toggled.connect(self.AWGPowerSwitch_Label)
+
+        self.plusFreq.clicked.connect(self.checkminus)
+        self.minusFreq.clicked.connect(self.checkplus)
+
         # self.powerSwitchTimer.timeout.connect(self.ramp_AWGRFPower)
         # 设计泵浦事件
         self.PumpDesignDoneBtu.clicked.connect(self.DonePump)
         self.pumpdesignsetBtu.clicked.connect(self.designset)
         # self.pumpdesignsetBtu.setChecked(False)
-        self.timer=QtCore.QTimer(self)
+        self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.DonePump)
         # self.timer.start(10)
 
@@ -484,8 +527,8 @@ class AWGCtrl(QtWidgets.QGroupBox):
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No AWG is connected!')
             msg.exec_()
-            self.setChecked(False)
-            self.parent.AWGCtrl.setChecked(False)
+            # self.setChecked(False)
+            # self.parent.AWGCtrl.setChecked(False)
 
     def tune_mod_parameter(self):
         # 状态信息同步
@@ -515,7 +558,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         self.parent.AWGInfo.CFFreq = CF_freq
         self.parent.AWGInfo.BWFreq = BW_freq
         self.parent.AWGInfo.DFFreq = DF_freq
-        self.parent.AWGInfo.rand_seed=int(self.rand_SFill.text())
+        self.parent.AWGInfo.rand_seed = int(self.rand_SFill.text())
 
     def AWGRFPower(self):
         if self.parent.testModeAction.isChecked():
@@ -574,20 +617,34 @@ class AWGCtrl(QtWidgets.QGroupBox):
         else:
             self.AWGPowerSwitchBtu.setText('OFF')
 
+    def checkminus(self):
+        # 避免minusFreq和plusFreq同时打开
+        if self.minusFreq.isChecked():
+            self.minusFreq.setChecked(False)
+
+    def checkplus(self):
+        # 避免minusFreq和plusFreq同时打开
+        if self.plusFreq.isChecked():
+            self.plusFreq.setChecked(False)
 
     def pre_amp_seq(self, BW, DF):
         # 产生AWG波形前，自动迭代出最佳泵浦幅值
         # auto mode (automatically stop loop when meets need)
         ''' [1] input initial settings (set requirements of filter) '''
-        bandwidth = BW/1e6  # MHz
-        comb_df = DF/1e6  # MHz
-        iteration_type = 1  # 迭代方式，[1]-2+3，[2]-线性，[3]-根号,[4]-边界参考旁边 (默认选[1])
+        bandwidth = BW / 1e6  # MHz
+        comb_df = DF / 1e6  # MHz
+        iteration_type = self.parent.AWGInfo.iteration_type  # 迭代方式，[1]-2+3，[2]-线性，[3]-根号,[4]-边界参考旁边 (默认选[1])
         gamma_B = self.parent.AWGInfo.gamma_b  # MHz，布里渊线宽(通过单梳测量得到，可以只存一次）
-        type_filter = 'square'  # type_filter='square','triangle'
+        # type_filter = 'square'  # type_filter='square','triangle'
+        mod_sel = self.parent.AWGInfo.mod_sel
+        if mod_sel == 'Rectangle':
+            type_filter = 'square'
+        elif mod_sel == 'Triangle':
+            type_filter = 'triangle'
 
         ''' [2] check and preprocess '''
         # assert bandwidth % comb_df == 0
-        N_pump = int(bandwidth / comb_df)+1
+        N_pump = int(round(bandwidth / comb_df)) + 1
         central_freq = 0  # 因为只要确定形状，故此处中心频率采用相对值，设置为0
         BFS = 0  # 因为只要确定形状，故不考虑布里渊频移，设置为0
 
@@ -643,7 +700,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
         BW = self.parent.AWGInfo.BWFreq
         DF = self.parent.AWGInfo.DFFreq
         ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
-        self.parent.AWGInfo.ts=ts
+        self.parent.AWGInfo.ts = ts
         if self.parent.AWGInfo.mod_index == 0:
             f_list, amp_list, phase_list = SBS_DSP.square_filter(CF, BW, DF, self.parent.AWGInfo.rand_seed)
         elif self.parent.AWGInfo.mod_index == 1:
@@ -656,6 +713,18 @@ class AWGCtrl(QtWidgets.QGroupBox):
             amp_list = []
             f_list = []
             phase_list = []
+
+        # 预反馈部分
+        if len(f_list) > 1 and self.preFBBtn.isChecked():
+            amp_list = self.pre_amp_seq(BW, DF)
+            print(' pre amp_list:', amp_list)
+
+        # 随机梳齿间隔(+-1MHz)
+        if self.randnDF.isChecked():
+            np.random.seed(int(time.time()))
+            offset = np.random.randint(low=-1, high=1, size=len(f_list)) * 1E6
+            f_list += offset
+
         self.parent.AWGInfo.f_list = f_list
         self.parent.AWGInfo.amp_list = amp_list
         self.parent.AWGInfo.phase_list = phase_list
@@ -677,12 +746,11 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
         self.parent.AWGInfo.gb = total_lorenz
 
-
-    def sweep_Pump(self,i,amp_list,f_list,phase_list):
-        j=10  # 多音扫频梳齿数
-        new_ampl = amp_list[i*j : i*(j+1)]
-        new_fl = f_list[i*j : i*(j+1)]
-        new_phasel = phase_list[i*j : i*(j+1)]
+    def sweep_Pump(self, i, amp_list, f_list, phase_list):
+        j = 10  # 多音扫频梳齿数
+        new_ampl = amp_list[i * j: i * (j + 1)]
+        new_fl = f_list[i * j: i * (j + 1)]
+        new_phasel = phase_list[i * j: i * (j + 1)]
         # new_ampl.append(amp_list[-i*j-6:i*j-1])
         # new_fl.append(f_list[-i*j-6:i*j-1])
         # new_phasel.append(phase_list[-i*j-6:i*j-1])
@@ -703,18 +771,23 @@ class AWGCtrl(QtWidgets.QGroupBox):
         两种方式，扫频与正常
         :return:
         '''
-        AWG_framerate = 64e9  # AWG采样率
-        self.parent.AWGHandle.set_fs(fs=AWG_framerate)
         if self.pumpdesignsetBtu.isChecked():
             if self.plusFreq.isChecked():
-                self.parent.AWGInfo.f_list+=self.parent.AWGInfo.BWFreq
+                self.parent.AWGInfo.f_list += self.parent.AWGInfo.BWFreq
+                self.parent.AWGInfo.CFFreq += self.parent.AWGInfo.BWFreq
+                self.CenterFreqFill.setText(str(round(self.parent.AWGInfo.CFFreq / 1E9, 2)))
             if self.minusFreq.isChecked():
-                self.parent.AWGInfo.f_list-=self.parent.AWGInfo.BWFreq
+                self.parent.AWGInfo.f_list -= self.parent.AWGInfo.BWFreq
+                self.parent.AWGInfo.CFFreq -= self.parent.AWGInfo.BWFreq
+                self.CenterFreqFill.setText(str(round(self.parent.AWGInfo.CFFreq / 1E9, 2)))
+
+            AWG_framerate = self.parent.AWGInfo.N_AWG  # AWG采样率
+            self.parent.AWGHandle.set_fs(fs=AWG_framerate)
 
             f_list = self.parent.AWGInfo.f_list
             amp_list = self.parent.AWGInfo.amp_list
             phase_list = self.parent.AWGInfo.phase_list
-            ts=self.parent.AWGInfo.ts
+            ts = self.parent.AWGInfo.ts
             CF = self.parent.AWGInfo.CFFreq
             BW = self.parent.AWGInfo.BWFreq
             DF = self.parent.AWGInfo.DFFreq
@@ -725,27 +798,28 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 '''
                 self.timer.stop()
                 start = time.time()
-                for i in range(int(len(f_list)/5)):
+                for i in range(int(len(f_list) / 5)):
 
-                #     t = Timer(1.0, self.sweep_Pump(i,amp_list,f_list,phase_list))
-                #     t.start()
+                    #     t = Timer(1.0, self.sweep_Pump(i,amp_list,f_list,phase_list))
+                    #     t.start()
 
-                #     M=10            #总共10根梳齿扫频，根据每次经验值推算
-                #     j=int(M/2)
-                    j=5
-                    new_ampl=amp_list[i*j:i*j+10]
-                    new_fl=f_list[i*j:i*j+10]
-                    new_phasel=phase_list[i*j:i*j+10]
+                    #     M=10            #总共10根梳齿扫频，根据每次经验值推算
+                    #     j=int(M/2)
+                    j = 5
+                    new_ampl = amp_list[i * j:i * j + 10]
+                    new_fl = f_list[i * j:i * j + 10]
+                    new_phasel = phase_list[i * j:i * j + 10]
                     # new_ampl.append(amp_list[-i*j-6:i*j-1])
                     # new_fl.append(f_list[-i*j-6:i*j-1])
                     # new_phasel.append(phase_list[-i*j-6:i*j-1])
                     print(new_fl)
-                    ys = SBS_DSP.synthesize1(new_ampl,new_fl,
+                    ys = SBS_DSP.synthesize1(new_ampl, new_fl,
                                              self.parent.AWGInfo.ts, new_phasel)
                     self.parent.AWGInfo.ys = ys
                     wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
                     self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
-                    self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,ch=self.parent.AWGInfo.ChannelNum)
+                    self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                                                       ch=self.parent.AWGInfo.ChannelNum)
                     if self.parent.AWGInfo.AWG_Status:
                         # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
                         #                                     channel=self.parent.AWGInfo.ChannelNum)
@@ -757,9 +831,6 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 self.timer.start(0)
             else:
                 self.timer.stop()
-                # 预反馈部分
-                # if len(f_list)>1:todo:长度不匹配，后期改
-                #     amp_list = self.pre_amp_seq(BW, DF)
 
                 # ts = np.linspace(0, t_AWG, N_AWG, endpoint=False)
                 ys = SBS_DSP.synthesize1(amp_list, f_list, ts, phase_list)
@@ -771,7 +842,7 @@ class AWGCtrl(QtWidgets.QGroupBox):
                 wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
                 self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
                 self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
-                                                    ch=self.parent.AWGInfo.ChannelNum)
+                                                   ch=self.parent.AWGInfo.ChannelNum)
                 if self.parent.AWGInfo.AWG_Status:
                     # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
                     #                                     channel=self.parent.AWGInfo.ChannelNum)
@@ -789,6 +860,9 @@ class AWGCtrl(QtWidgets.QGroupBox):
 
                 self.parent.AWGInfo.gb = total_lorenz
 
+                # 反馈数据重置
+                self.parent.AWGInfo.N_MFB = 0
+                self.parent.AWGInfo.N_DFB = 0
 
 
 class ADisplay(QtWidgets.QGroupBox):
@@ -796,6 +870,7 @@ class ADisplay(QtWidgets.QGroupBox):
         # super(ADisplay, self).__init__()
         QtWidgets.QWidget.__init__(self, parent)
         self.parent = parent
+        self.r_color = 'b'
         #
         pg.setConfigOptions(leftButtonPan=False)
         pg.setConfigOption('background', 'w')
@@ -818,8 +893,19 @@ class ADisplay(QtWidgets.QGroupBox):
         x = self.parent.AWGInfo.ts
         y = self.parent.AWGInfo.ys
         r_symbol = np.random.choice(['o', 's', 't', 't1', 't2', 't3', 'd', '+', 'x', 'p', 'h', 'star'])
-        r_color = np.random.choice(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'd', 'l', 's'])
-        self.plot_data.plot(x, y, pen=r_color)
+        # r_color = np.random.choice(['b', 'r', 'c', 'm', 'k', 'd', 'l', 's'])
+        if self.r_color == 'b':
+            self.r_color = 'r'
+        else:
+            self.r_color = 'b'
+        pump_fft, freq = SBS_DSP.get_fft(y, self.parent.AWGInfo.N_AWG)
+        self.plot_data.plot(freq, pump_fft, pen=self.r_color)
+        x_center = self.parent.AWGInfo.CFFreq
+        x_width = self.parent.AWGInfo.BWFreq
+        if x_width!=0:
+            x_min = x_center - x_width*0.7
+            x_max = x_center + x_width*0.7
+            self.plot_data.setXRange(x_min, x_max)
         self.plot_data.showGrid(x=True, y=True)
 
 
@@ -856,11 +942,11 @@ class FcombDisplay(QtWidgets.QGroupBox):
         self.plot_data.plot(f_measure, gb, pen=r_color2)
         self.plot_data.showGrid(x=True, y=True)
 
-    def plot3(self,gain_on_off,freq_data):
+    def plot3(self, gain_on_off, freq_data):
         self.plot_data.clear()
         r_color1 = np.random.choice(['b', 'g', 'r', 'c', 'm', 'y', 'k', 'd', 'l', 's'])
-        self.plot_data.plot(freq_data,gain_on_off,pen=r_color1)
-        self.plot_data.showGrid(x=True,y=True)
+        self.plot_data.plot(freq_data, gain_on_off, pen=r_color1)
+        self.plot_data.showGrid(x=True, y=True)
 
 
 class LightCtrl(QtWidgets.QGroupBox):
@@ -890,38 +976,37 @@ class LightCtrl(QtWidgets.QGroupBox):
         StartCalidator.setDecimals(4)
         self.StartWave.setValidator(StartCalidator)
 
-        self.EndWave=QtWidgets.QLineEdit()
+        self.EndWave = QtWidgets.QLineEdit()
         self.EndWave.setPlaceholderText('End_C Band')
-        EndCalidator=QtGui.QDoubleValidator(self)
-        EndCalidator.setRange(1530,1630)
+        EndCalidator = QtGui.QDoubleValidator(self)
+        EndCalidator.setRange(1530, 1630)
         EndCalidator.setNotation(QtGui.QDoubleValidator.StandardNotation)
         EndCalidator.setDecimals(4)
         self.EndWave.setValidator(EndCalidator)
 
-        self.StartFreq=QtWidgets.QLineEdit()
+        self.StartFreq = QtWidgets.QLineEdit()
         self.StartFreq.setPlaceholderText('Start_Freq_193414.489GHz')
-        SFCalidator=QtGui.QDoubleValidator(self)
-        SFCalidator.setRange(183921.753,195942.783) #GHz,精确到1MHz
+        SFCalidator = QtGui.QDoubleValidator(self)
+        SFCalidator.setRange(183921.753, 195942.783)  # GHz,精确到1MHz
         SFCalidator.setNotation(QtGui.QDoubleValidator.StandardNotation)
         SFCalidator.setDecimals(3)
         self.StartFreq.setValidator(SFCalidator)
 
-        self.EndFreq=QtWidgets.QLineEdit()
+        self.EndFreq = QtWidgets.QLineEdit()
         self.EndFreq.setPlaceholderText('End_Freq_addBW')
-        EFCalidator=QtGui.QDoubleValidator(self)
-        EFCalidator.setRange(183921.753,195942.783) #GHz,精确到1MHz
+        EFCalidator = QtGui.QDoubleValidator(self)
+        EFCalidator.setRange(183921.753, 195942.783)  # GHz,精确到1MHz
         EFCalidator.setNotation(QtGui.QDoubleValidator.StandardNotation)
         EFCalidator.setDecimals(3)
         self.EndFreq.setValidator(EFCalidator)
 
-        self.BWFreq=QtWidgets.QLineEdit()
+        self.BWFreq = QtWidgets.QLineEdit()
         self.BWFreq.setPlaceholderText('Freq_BW')
-        BWCalidator=QtGui.QDoubleValidator(self)
-        BWCalidator.setRange(0.3,8) #GHz
+        BWCalidator = QtGui.QDoubleValidator(self)
+        BWCalidator.setRange(0.3, 8)  # GHz
         BWCalidator.setNotation(QtGui.QDoubleValidator.StandardNotation)
         BWCalidator.setDecimals(3)
         self.BWFreq.setValidator(BWCalidator)
-
 
         self.Power = QtWidgets.QLineEdit()
         self.Power.setPlaceholderText('0~20dBm')
@@ -943,27 +1028,28 @@ class LightCtrl(QtWidgets.QGroupBox):
         LightLayout.addWidget(QtWidgets.QLabel('StartWave：'), 0, 0)
         LightLayout.addWidget(self.StartWave, 0, 1)
         LightLayout.addWidget(QtWidgets.QLabel('nm  '), 0, 2)
-        LightLayout.addWidget(QtWidgets.QLabel('EndWave: '),0,3)
-        LightLayout.addWidget(self.EndWave,0,4)
-        LightLayout.addWidget(QtWidgets.QLabel('nm '),0,5)
-        LightLayout.addWidget(QtWidgets.QLabel('StartFreq: '),1,0)
-        LightLayout.addWidget(self.StartFreq,1,1)
-        LightLayout.addWidget(QtWidgets.QLabel('GHz '),1,2)
-        LightLayout.addWidget(QtWidgets.QLabel('EndFreq: '),1,3)
-        LightLayout.addWidget(self.EndFreq,1,4)
-        LightLayout.addWidget(QtWidgets.QLabel('GHz '),1,5)
-        LightLayout.addWidget(QtWidgets.QLabel('Freq_BW: '),2,0)
-        LightLayout.addWidget(self.BWFreq,2,1)
-        LightLayout.addWidget(QtWidgets.QLabel('GHz '),2,2)
+        LightLayout.addWidget(QtWidgets.QLabel('EndWave: '), 0, 3)
+        LightLayout.addWidget(self.EndWave, 0, 4)
+        LightLayout.addWidget(QtWidgets.QLabel('nm '), 0, 5)
+        LightLayout.addWidget(QtWidgets.QLabel('StartFreq: '), 1, 0)
+        LightLayout.addWidget(self.StartFreq, 1, 1)
+        LightLayout.addWidget(QtWidgets.QLabel('GHz '), 1, 2)
+        LightLayout.addWidget(QtWidgets.QLabel('EndFreq: '), 1, 3)
+        LightLayout.addWidget(self.EndFreq, 1, 4)
+        LightLayout.addWidget(QtWidgets.QLabel('GHz '), 1, 5)
+        LightLayout.addWidget(QtWidgets.QLabel('Freq_BW: '), 2, 0)
+        LightLayout.addWidget(self.BWFreq, 2, 1)
+        LightLayout.addWidget(QtWidgets.QLabel('GHz '), 2, 2)
         LightLayout.addWidget(QtWidgets.QLabel('Power:'), 2, 3)
         LightLayout.addWidget(self.Power, 2, 4)
         LightLayout.addWidget(QtWidgets.QLabel('dBm  '), 2, 5)
 
-        LightLayout.addWidget(self.enterBtu, 3, 0,1,2)
-        LightLayout.addWidget(self.ActiveBtu, 3, 3,1,2)
+        LightLayout.addWidget(self.enterBtu, 3, 0, 1, 2)
+        LightLayout.addWidget(self.ActiveBtu, 3, 3, 1, 2)
         LightWidget.setLayout(LightLayout)
 
         mainLayout = QtWidgets.QVBoxLayout()
+        mainLayout.addStretch(1)
         mainLayout.setAlignment(QtCore.Qt.AlignTop)
         mainLayout.addWidget(LightWidget)
         self.setLayout(mainLayout)
@@ -977,7 +1063,6 @@ class LightCtrl(QtWidgets.QGroupBox):
         self.EndWave.textChanged.connect(self.setupEF)
         # self.EndFreq.textChanged.connect(self.setupEW)
         self.BWFreq.textChanged.connect(self.setupAll)
-
 
     def check(self):
         ''' Enable/disable this groupbox '''
@@ -993,34 +1078,33 @@ class LightCtrl(QtWidgets.QGroupBox):
 
     def setupAll(self):
         C_speed = 299792458  # m/s
-        BW=siEval(self.BWFreq.text())
+        BW = siEval(self.BWFreq.text())
         self.StartWave.setText(str(1550))
-        self.EndWave.setText(str(round(C_speed/(BW+C_speed/1550),4)))
+        self.EndWave.setText(str(round(C_speed / (BW + C_speed / 1550), 4)))
 
     def setupEF(self):
-        C_speed=299792458  # m/s
-        EndW=siEval(self.EndWave.text())
-        SFreq=siEval(self.StartFreq.text())
-        EFreq=siEval(self.EndFreq.text())
-        self.EndFreq.setText(str(round(C_speed/EndW,3)))
-
+        C_speed = 299792458  # m/s
+        EndW = siEval(self.EndWave.text())
+        SFreq = siEval(self.StartFreq.text())
+        EFreq = siEval(self.EndFreq.text())
+        self.EndFreq.setText(str(round(C_speed / EndW, 3)))
 
     def setupWaveFill(self):
-        C_speed=299792458  # m/s
+        C_speed = 299792458  # m/s
         # wave='nm'
         # freq='GHz'
-        SWave=siEval(self.StartWave.text())
+        SWave = siEval(self.StartWave.text())
         self.EndWave.setText(str(SWave))
-        self.StartFreq.setText(str(round(C_speed/SWave,3)))
-        self.EndFreq.setText(str(round(C_speed/SWave,3)))
-
+        self.StartFreq.setText(str(round(C_speed / SWave, 3)))
+        self.EndFreq.setText(str(round(C_speed / SWave, 3)))
 
     def setupLight(self):
         if (self.parent.testModeAction.isChecked() or self.parent.LightHandle):
             self.setChecked(True)
             self.parent.LightCtrl.setCheckable(True)
-            if siEval(self.BWFreq.text())==0:
-                self.parent.LightHandle.setupLight(power=float(self.Power.text()), wavelength=float(self.StartWave.text()))
+            if siEval(self.BWFreq.text()) == 0:
+                self.parent.LightHandle.setupLight(power=float(self.Power.text()),
+                                                   wavelength=float(self.StartWave.text()))
             else:
                 self.parent.LightHandle.sweepLight(waveStart=float(self.StartWave.text()),
                                                    waveEnd=float(self.EndWave.text()),
@@ -1048,7 +1132,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.setChecked(False)
 
         EDFA1 = QtWidgets.QGroupBox()
-        EDFA1.setTitle('EDFA1')
+        EDFA1.setTitle('EDFA for pump')
         EDFA1.setFlat(True)
         EDFA1.setAlignment(QtCore.Qt.AlignTop)
         EDFA1Layout = QtWidgets.QGridLayout()
@@ -1056,40 +1140,64 @@ class EDFACtrl(QtWidgets.QGroupBox):
 
         self.addressEDFA1 = QtWidgets.QLabel()
 
+        self.setCurrent1 = QtWidgets.QWidget()
+        self.setCurrent1Fill = QtWidgets.QLineEdit('0')
+
+        setCurrent1Layout = QtWidgets.QHBoxLayout()
+        setCurrent1Layout.addWidget(QtWidgets.QLabel('InputCurrent'))
+        setCurrent1Layout.addWidget(self.setCurrent1Fill)
+        setCurrent1Layout.addWidget(QtWidgets.QLabel('mA'))
+        self.setCurrent1.setLayout(setCurrent1Layout)
+
         self.setPower1 = QtWidgets.QWidget()
-        self.setPower1Fill = QtWidgets.QLineEdit('5')
+        self.setPower1Fill = QtWidgets.QLineEdit('0.00')
+        self.setPower1Fill.setMinimumWidth(10)
         self.setPower1UnitSel = QtWidgets.QComboBox()
         self.setPower1UnitSel.addItems(['dBm', 'mW'])
         self.setPower1UnitSel.setCurrentIndex(0)
 
         setPower1Layout = QtWidgets.QHBoxLayout()
-        setPower1Layout.addWidget(QtWidgets.QLabel('SetPower'))
+        setPower1Layout.addWidget(QtWidgets.QLabel('Output'))
         setPower1Layout.addWidget(self.setPower1Fill)
         setPower1Layout.addWidget(self.setPower1UnitSel)
         self.setPower1.setLayout(setPower1Layout)
 
-        self.P1slider = QtWidgets.QSlider()
-        self.P1slider.setOrientation(QtCore.Qt.Horizontal)
-        self.P1slider.setMaximum(20)
-        self.P1slider.setMinimum(0)
-        self.P1slider.setValue(5)
+        # self.P1slider = QtWidgets.QSlider()
+        # self.P1slider.setOrientation(QtCore.Qt.Horizontal)
+        # self.P1slider.setMaximum(35)
+        # self.P1slider.setMinimum(0)
+        # self.P1slider.setValue(0)
+        # self.P1slider.setPageStep(1)
+        # # self.P1slider.setSingleStep(0.01)
+        # self.P1slider.setTickInterval(0.01)
+
+        self.PointSlider = QtWidgets.QSlider()
+        self.PointSlider.setOrientation(QtCore.Qt.Horizontal)
+        self.PointSlider.setMaximum(9)
+        self.PointSlider.setMinimum(0)
+        self.PointSlider.setValue(0)
+        self.PointSlider.setPageStep(1)
         # self.P1slider.setSingleStep(0.01)
-        self.P1slider.setTickInterval(0.01)
+        # self.P1slider.setTickInterval(0.01)
+
         self.enterBtu1 = QtWidgets.QPushButton('Enter')
         self.activeBtu1 = QtWidgets.QPushButton('Active')
         self.activeBtu1.setCheckable(True)
-        self.activeBtu1.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:red;}''')
+        self.activeBtu1.setStyleSheet(
+            '''QPushButton:hover{background:red;color:white}QPushButton:checked{background:rgb(170,200,50);color:white}QPushButton{background:gray;color:white}''')
 
         EDFA1Layout.addWidget(QtWidgets.QLabel('Inst_COM:'), 0, 0)
-        EDFA1Layout.addWidget(self.addressEDFA1, 0, 1, 1, 3)
-        EDFA1Layout.addWidget(self.setPower1, 1, 0, 1, 3)
-        EDFA1Layout.addWidget(self.P1slider, 3, 0, 1, 3)
-        EDFA1Layout.addWidget(self.enterBtu1, 4, 0, 1, 1)
-        EDFA1Layout.addWidget(self.activeBtu1, 4, 2, 1, 1)
+        EDFA1Layout.addWidget(self.addressEDFA1, 0, 0, 1, 3)
+        EDFA1Layout.addWidget(self.setCurrent1, 1, 0, 1, 3)
+        EDFA1Layout.addWidget(self.setPower1, 2, 0, 1, 3)
+        # EDFA1Layout.addWidget(self.P1slider, 3, 0, 1, 3)
+        EDFA1Layout.addWidget(self.PointSlider, 4, 0, 1, 3)
+        EDFA1Layout.addWidget(self.enterBtu1, 5, 0, 1, 1)
+        EDFA1Layout.addWidget(self.activeBtu1, 5, 2, 1, 1)
         EDFA1.setLayout(EDFA1Layout)
 
         EDFA2 = QtWidgets.QGroupBox()
-        EDFA2.setTitle('EDFA2')
+        EDFA2.setTitle('EDFA for signal')
         EDFA2.setFlat(True)
         EDFA2.setAlignment(QtCore.Qt.AlignTop)
         EDFA2Layout = QtWidgets.QGridLayout()
@@ -1098,7 +1206,7 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.addressEDFA2 = QtWidgets.QLabel()
 
         self.setPower2 = QtWidgets.QWidget()
-        self.setPower2Fill = QtWidgets.QLineEdit('5')
+        self.setPower2Fill = QtWidgets.QLineEdit('0.0')
         self.setPower2UnitSel = QtWidgets.QComboBox()
         self.setPower2UnitSel.addItems(['dBm', 'mW'])
         self.setPower2UnitSel.setCurrentIndex(0)
@@ -1111,10 +1219,20 @@ class EDFACtrl(QtWidgets.QGroupBox):
 
         self.P2slider = QtWidgets.QSlider()
         self.P2slider.setOrientation(QtCore.Qt.Horizontal)
-        self.P2slider.setMaximum(20)
+        self.P2slider.setMaximum(35)
         self.P2slider.setMinimum(0)
-        self.P2slider.setValue(5)
+        self.P2slider.setValue(0)
+        self.P2slider.setPageStep(1)
         self.P2slider.setTickInterval(0.01)
+
+        self.PointSlider2 = QtWidgets.QSlider()
+        self.PointSlider2.setOrientation(QtCore.Qt.Horizontal)
+        self.PointSlider2.setMaximum(9)
+        self.PointSlider2.setMinimum(0)
+        self.PointSlider2.setValue(0)
+        self.PointSlider2.setPageStep(1)
+        # self.P1slider.setSingleStep(0.01)
+        # self.P1slider.setTickInterval(0.01)
 
         self.enterBtu2 = QtWidgets.QPushButton('Enter')
         self.activeBtu2 = QtWidgets.QPushButton('Active')
@@ -1125,8 +1243,9 @@ class EDFACtrl(QtWidgets.QGroupBox):
         EDFA2Layout.addWidget(self.addressEDFA2, 0, 1, 1, 3)
         EDFA2Layout.addWidget(self.setPower2, 1, 0, 1, 3)
         EDFA2Layout.addWidget(self.P2slider, 3, 0, 1, 3)
-        EDFA2Layout.addWidget(self.enterBtu2, 4, 0, 1, 1)
-        EDFA2Layout.addWidget(self.activeBtu2, 4, 2, 1, 1)
+        EDFA2Layout.addWidget(self.PointSlider2, 4, 0, 1, 3)
+        EDFA2Layout.addWidget(self.enterBtu2, 5, 0, 1, 1)
+        EDFA2Layout.addWidget(self.activeBtu2, 5, 2, 1, 1)
         EDFA2.setLayout(EDFA2Layout)
 
         mainLayout = QtWidgets.QVBoxLayout()
@@ -1136,14 +1255,24 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.setLayout(mainLayout)
 
         self.setPower1Fill.textChanged.connect(self.EDFAChangeFun)
-        self.P1slider.valueChanged.connect(self.EDFAChangeFun)
-        self.setPower2Fill.textChanged.connect(self.EDFAFillChangeFun)
+        self.setCurrent1Fill.textChanged.connect(self.change_current)
+        # self.setPower1Fill.textChanged.connect(self.EDFAFillChangeFun)
+        # self.P1slider.valueChanged.connect(self.EDFAChangeFun)
+        # self.PointSlider.valueChanged.connect(self.EDFAChangeFun)
+        self.PointSlider2.valueChanged.connect(self.EDFAChangeFun)
+        # self.setPower2Fill.textChanged.connect(self.EDFAFillChangeFun)
+        self.setPower2Fill.textChanged.connect(self.EDFAChangeFun)
         self.P2slider.valueChanged.connect(self.EDFAChangeFun)
         self.clicked.connect(self.check)
         self.enterBtu1.clicked.connect(self.enterFun1)
         self.enterBtu2.clicked.connect(self.enterFun2)
         self.activeBtu1.clicked.connect(self.activeFun1)
         self.activeBtu2.clicked.connect(self.activeFun2)
+
+        # 设置定时询问状态
+        self.timer = pg.QtCore.QTimer(self)
+        self.timer.timeout.connect(self.query_edfa)
+        self.timer.start(200)
 
     def check(self):
         if (self.parent.testModeAction.isChecked() or self.parent.EDFA1Handle or self.parent.EDFA2Handle):
@@ -1152,14 +1281,19 @@ class EDFACtrl(QtWidgets.QGroupBox):
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No EDFA is connected!')
             msg.exec_()
-            self.setChecked(False)
-            self.parent.EDFACtrl.setChecked(False)
+            # self.setChecked(False)
+            # self.parent.EDFACtrl.setChecked(False)
         # self.parent.EDFACtrl.print_info()
+
+    def change_current(self):
+        if self.setCurrent1Fill.text():
+            fill_cur1 = int(self.setCurrent1Fill.text())
+            self.parent.EDFAInfo.EDFA1current = fill_cur1
 
     def EDFAChangeFun(self):
 
-        self.setPower1Fill.setText(str(self.P1slider.value()))
-        self.setPower2Fill.setText(str(self.P2slider.value()))
+        # self.setPower1Fill.setText(str(self.P1slider.value())+'.'+str(self.PointSlider.value()))
+        self.setPower2Fill.setText(str(self.P2slider.value()) + '.' + str(self.PointSlider2.value()))
         EDFA1_status, EDFA1_Power = api_val.val_edfa1power(self.setPower1Fill.text(),
                                                            self.setPower1UnitSel.currentText())
         EDFA2_status, EDFA2_Power = api_val.val_edfa2power(self.setPower2Fill.text(),
@@ -1168,8 +1302,11 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.parent.EDFAInfo.EDFA2power = EDFA2_Power
 
     def EDFAFillChangeFun(self):
-        self.P1slider.setValue(int(self.setPower1Fill.text()))
-        self.P2slider.setValue(int(self.setPower2Fill.text()))
+        fill_num1 = float(self.setPower1Fill.text())
+        self.P1slider.setValue(int(fill_num1))
+        print(int(fill_num1 % 1 * 10))
+        self.PointSlider.setValue(int(fill_num1 % 1 * 10))
+        self.P2slider.setValue(float(self.setPower2Fill.text()))
         EDFA1_status, EDFA1_Power = api_val.val_edfa1power(self.setPower1Fill.text(),
                                                            self.setPower1UnitSel.currentText())
         EDFA2_status, EDFA2_Power = api_val.val_edfa2power(self.setPower2Fill.text(),
@@ -1177,13 +1314,34 @@ class EDFACtrl(QtWidgets.QGroupBox):
         self.parent.EDFAInfo.EDFA1power = EDFA1_Power
         self.parent.EDFAInfo.EDFA2power = EDFA2_Power
 
+
+    def query_edfa(self):
+        # 定时询问EDFA当前输出功率
+        self.timer.stop()
+        if self.parent.EDFA1Handle:
+            EDFA1_Power = self.parent.EDFA1Handle.query_EDFA1_Power(self.setPower1UnitSel.currentText())
+            EDFA1_Power = round(EDFA1_Power, 2)
+            self.setPower1Fill.setText(str(EDFA1_Power))
+            self.parent.EDFAInfo.EDFA1power = EDFA1_Power
+        self.timer.start(200)
+
+
     def enterFun1(self):
-        api_edfa.EDFA1Set(EDFA1Handle=self.parent.EDFA1Handle, power=self.parent.EDFAInfo.EDFA1power)
+        # 设置值并返回最新状态
+        self.parent.EDFA1Handle.EDFA1Set(self.parent.EDFAInfo.EDFA1current)
+        EDFA1_Power = self.parent.EDFA1Handle.query_EDFA1_Power(self.setPower1UnitSel.currentText())
+        EDFA1_Power = round(EDFA1_Power, 2)
+        self.setPower1Fill.setText(str(EDFA1_Power))
+        self.parent.EDFAInfo.EDFA1power = EDFA1_Power
 
     def activeFun1(self):
         if (self.parent.testModeAction.isChecked or self.parent.EDFA1Handle or self.parent.EDFA2Handle):
-            self.setChecked(True)
-            api_edfa.Active1(self.parent.EDFA1Handle)
+            if self.activeBtu1.isChecked():
+                self.parent.EDFA1Handle.Active1(True)
+                self.parent.EDFAInfo.EDFA1active = True
+            else:
+                self.parent.EDFA1Handle.Active1(False)
+                self.parent.EDFAInfo.EDFA1active = False
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No EDFA is connected!')
             msg.exec_()
@@ -1213,6 +1371,7 @@ class Feedback(QtWidgets.QGroupBox):
         反馈次数
         均方误差
     '''
+
     # btu_map = QtWidgets.QPushButton('Mapping')
     # btu_map.setCheckable(True)
     # btu_map.setStyleSheet('''QPushButton:hover{background:yellow;}''')
@@ -1230,77 +1389,117 @@ class Feedback(QtWidgets.QGroupBox):
         FBWidget.setAlignment(QtCore.Qt.AlignLeft)
 
         # 需要显示收敛方式，均方误差实时显示（颜色标记升降）；反馈次数显示
-        self.MSE = QtWidgets.QLineEdit()
-        self.MSE.setPlaceholderText('MSEDisplay')
+        # self.MSE = QtWidgets.QLineEdit()
+        # self.MSE.setPlaceholderText('MSEDisplay')
         self.FBnum = QtWidgets.QLineEdit()
-        self.FBnum.setPlaceholderText('FB_Number')
+        self.FBnum.setPlaceholderText('1')
         self.activeBtu = QtWidgets.QPushButton('Run')
         self.activeBtu.setStyleSheet('''QPushButton{background:rgb(170,200,50);}QPushButton:hover{background:red;}''')
         self.activeBtu.setMaximumSize(400, 400)
         self.activeBtu.setCheckable(True)
-        self.backBtu = QtWidgets.QPushButton('Original')
+        self.backBtu = QtWidgets.QPushButton('Save Noise')
         self.back = QtWidgets.QLineEdit()
         self.back.setPlaceholderText('NONE_PUMP')
-        self.bfsBtu = QtWidgets.QPushButton('S_BFS&FWHM')
+        self.SaveForFBBTu = QtWidgets.QPushButton('SaveFor FB')
+        self.bfsBtu = QtWidgets.QPushButton('S_BFS FWHM')
         self.bfs = QtWidgets.QLineEdit()
         self.bfs.setPlaceholderText('bfs_GHz')
-        self.linew=QtWidgets.QLineEdit()
+        self.alpha = QtWidgets.QLineEdit()
+        self.alpha.setPlaceholderText('alpha=1')
+        self.linew = QtWidgets.QLineEdit()
         self.linew.setPlaceholderText('L_W_MHz')
-        self.smoothindx=QtWidgets.QLineEdit()
+        self.smoothindx = QtWidgets.QLineEdit()
         self.smoothindx.setPlaceholderText('smooth_i=301')
-        self.width_peak=QtWidgets.QLineEdit()
+        self.width_peak = QtWidgets.QLineEdit()
         self.width_peak.setPlaceholderText('width=500')
-        self.rel_height=QtWidgets.QLineEdit()
+        self.rel_height = QtWidgets.QLineEdit()
         self.rel_height.setPlaceholderText('height=0.1')
-        self.min_base_indx=QtWidgets.QLineEdit()
+        self.min_base_indx = QtWidgets.QLineEdit()
         self.min_base_indx.setPlaceholderText('base=0')
+        self.ChipNumFill = QtWidgets.QLineEdit('chip1-1')
+        self.ILFill = QtWidgets.QLineEdit('0')
+        self.OnePercentCPFill = QtWidgets.QLineEdit('0')
+        self.OCoutFill = QtWidgets.QLineEdit('0')
+
+        self.SaveDataType = QtWidgets.QComboBox()
+        self.SaveDataType.addItems(['org', 'avg', 'onf', 'smt'])  # org-原始单测数据，avg-10次平均数据，onf-开关增益，smt-平滑数据
+        self.SaveDataType.setCurrentIndex(0)
 
         self.modFB = QtWidgets.QComboBox()
         self.modFB.addItems(api_val.FB_modList)
-        self.modFBDispaly = QtWidgets.QLineEdit()
+        self.modFB.setCurrentIndex(2)
+        # self.modFBDispaly = QtWidgets.QLineEdit()
 
-        self.ManualBtu=QtWidgets.QPushButton('Manual')
+        self.iteration_type = QtWidgets.QComboBox()
+        self.iteration_type.addItems(['1', '2', '3', '4'])
+        self.iteration_type.setCurrentIndex(0)
+
+        self.ManualBtu = QtWidgets.QPushButton('Manual')
         self.ManualBtu.setStyleSheet('''QPushButton:hover{background:yellow;}''')
-        self.btu_map=QtWidgets.QPushButton('Mapping')
+        self.btu_map = QtWidgets.QPushButton('Mapping')
         self.btu_map.setCheckable(True)
-        self.btu_map.setStyleSheet('''QPushButton:hover{background:yellow;}''')
-        self.btu_dfFB=QtWidgets.QPushButton('DF_FB')
+        self.btu_map.setStyleSheet(
+            '''QPushButton:hover{background:gray;color:white}QPushButton:checked{background:rgb(87,250,255);color:gray}''')
+        self.btu_dfFB = QtWidgets.QPushButton('DF_FB')
         self.btu_dfFB.setStyleSheet('''QPushButton:hover{background:yellow;}''')
 
         FBLayout = QtWidgets.QGridLayout()
         FBLayout.setAlignment(QtCore.Qt.AlignLeft)
-        FBLayout.addWidget(QtWidgets.QLabel('MSE:'), 0, 0, 1, 1)
-        FBLayout.addWidget(self.MSE, 0, 1, 1, 1)
-        FBLayout.addWidget(QtWidgets.QLabel('FB_Num:'), 1, 0, 1, 1)
+        # FBLayout.addWidget(QtWidgets.QLabel('MSE:'), 0, 0, 1, 1)
+        # FBLayout.addWidget(self.MSE, 0, 1, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('Mod_Switch:'), 0, 0, 1, 1)
+        FBLayout.addWidget(self.modFB, 0, 1, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('FB_Number:'), 1, 0, 1, 1)
         FBLayout.addWidget(self.FBnum, 1, 1, 1, 1)
-        FBLayout.addWidget(self.backBtu, 0, 4, 1, 1)
-        FBLayout.addWidget(self.back, 1, 4, 1, 1)
-        FBLayout.addWidget(self.bfsBtu, 0, 5, 1, 1)
-        FBLayout.addWidget(self.bfs, 1, 5, 1, 1)
-        FBLayout.addWidget(self.linew,1,6,1,1)
+        FBLayout.addWidget(self.backBtu, 0, 2, 1, 1)
+        FBLayout.addWidget(self.back, 1, 2, 1, 1)
+        FBLayout.addWidget(self.bfsBtu, 0, 3, 1, 1)
+        FBLayout.addWidget(self.bfs, 0, 4, 1, 1)
+        FBLayout.addWidget(self.SaveForFBBTu, 0, 5, 1, 1)
+        FBLayout.addWidget(self.alpha, 0, 6, 1, 1)
+        FBLayout.addWidget(self.linew, 1, 4, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('Iteration Type:'), 1, 5, 1, 1)
+        FBLayout.addWidget(self.iteration_type, 1, 6, 1, 1)
         FBLayout.addWidget(self.activeBtu, 0, 7, 2, 1)
-        FBLayout.addWidget(self.ManualBtu,2,1,1,1)
-        FBLayout.addWidget(self.btu_map,2,4,1,1)
-        FBLayout.addWidget(self.smoothindx,2,2,1,1)
-        FBLayout.addWidget(self.min_base_indx,2,3,1,1)
-        FBLayout.addWidget(self.width_peak,2,5,1,1)
-        FBLayout.addWidget(self.rel_height,2,6,1,1)
-        FBLayout.addWidget(self.btu_dfFB,2,7,1,1)
-        FBLayout.addWidget(QtWidgets.QLabel('Mod_Switch:'), 0, 2)
-        FBLayout.addWidget(self.modFB, 0, 3)
-        FBLayout.addWidget(self.modFBDispaly, 1, 2, 1, 2)
+        FBLayout.addWidget(self.ManualBtu, 1, 3, 1, 1)
+        FBLayout.addWidget(self.btu_map, 2, 4, 1, 1)
+        FBLayout.addWidget(self.smoothindx, 2, 2, 1, 1)
+        FBLayout.addWidget(self.min_base_indx, 2, 3, 1, 1)
+        FBLayout.addWidget(self.width_peak, 2, 5, 1, 1)
+        FBLayout.addWidget(self.rel_height, 2, 6, 1, 1)
+        FBLayout.addWidget(self.btu_dfFB, 2, 7, 1, 1)
+        # FBLayout.addWidget(self.modFBDispaly, 1, 2, 1, 2)
+        # FBLayout.addWidget(QtWidgets.QLabel('chip:'), 3, 0, 1, 1)
+        FBLayout.addWidget(self.ChipNumFill, 3, 0, 1, 1)
+        FBLayout.addWidget(self.SaveDataType, 3, 1, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('Insertion Loss(dB):'), 3, 2, 1, 1)
+        FBLayout.addWidget(self.ILFill, 3, 3, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('1% Incident Power(dBm):'), 3, 4, 1, 1)
+        FBLayout.addWidget(self.OnePercentCPFill, 3, 5, 1, 1)
+        FBLayout.addWidget(QtWidgets.QLabel('OC output(dBm):'), 3, 6, 1, 1)
+        FBLayout.addWidget(self.OCoutFill, 3, 7, 1, 1)
+
         self.setLayout(FBLayout)
 
-        self.modFB.currentIndexChanged[int].connect(self.switch_mod)
+        # self.modFB.currentIndexChanged[int].connect(self.switch_mod)
         self.backBtu.clicked.connect(self.getBack)
         self.activeBtu.clicked.connect(self.FB_Function)
         self.bfsBtu.clicked.connect(self.getBFS)
+        self.SaveForFBBTu.clicked.connect(self.SaveForFB)
         self.ManualBtu.clicked.connect(self.Manual_Fun)
         self.btu_map.clicked.connect(self.mapping_Fun)
         self.btu_dfFB.clicked.connect(self.dfFB_Fun)
 
+        self.FBnum.textChanged.connect(self.set_update)
         self.bfs.textChanged.connect(self.set_update)
         self.linew.textChanged.connect(self.set_update)
+        self.alpha.textChanged.connect(self.set_update)
+        self.ChipNumFill.textChanged.connect(self.set_update)
+        self.ILFill.textChanged.connect(self.IL_to_OC)
+        self.OCoutFill.textChanged.connect(self.OC_to_IL)
+        self.OnePercentCPFill.textChanged.connect(self.InPower_change)
+        self.SaveDataType.currentIndexChanged.connect(self.set_update)
+        self.iteration_type.currentIndexChanged.connect(self.set_update)
         self.smoothindx.textChanged.connect(self.set_update)
         self.width_peak.textChanged.connect(self.set_update)
         self.min_base_indx.textChanged.connect(self.set_update)
@@ -1310,15 +1509,20 @@ class Feedback(QtWidgets.QGroupBox):
         # self.bfs_value = 7.15e3
 
     def dfFB_Fun(self):
+        # 根据离线保存的数据进行频率反馈, 并自动开关EDFA
+        # todo:加入反馈是否成功的检查(如是否 NAN)
+        self.parent.EDFA1Handle.Active1(False)  # 关闭EDFA
+        self.parent.EDFAInfo.EDFA1active = False
+
         freq_design_seq = self.parent.AWGInfo.f_list
-        freq = self.parent.AWGInfo.freq_FB
-        gain_offset = self.parent.AWGInfo.gain_on_off_FB
-        BFS=self.parent.AWGInfo.bfs
-        FWHM=self.parent.AWGInfo.gamma_b
-        new_freq_design=df_feedback(freq_design_seq,freq,gain_offset,BFS,FWHM)
-        self.parent.AWGInfo.f_list=new_freq_design
+        freq = self.parent.AWGInfo.saved_freq_FB
+        gain_offset = self.parent.AWGInfo.saved_gain_on_off_FB
+        BFS = self.parent.AWGInfo.bfs
+        FWHM = self.parent.AWGInfo.gamma_b
+        new_freq_design = df_feedback(freq_design_seq, freq, gain_offset, BFS, FWHM)
+        self.parent.AWGInfo.f_list = new_freq_design
         # AWGCtrl.DonePump(self)
-        f_list=new_freq_design
+        f_list = new_freq_design
         amp_list = self.parent.AWGInfo.amp_list
         phase_list = self.parent.AWGInfo.phase_list
         ts = self.parent.AWGInfo.ts
@@ -1332,6 +1536,11 @@ class Feedback(QtWidgets.QGroupBox):
             # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
             #                                     channel=self.parent.AWGInfo.ChannelNum)
             self.parent.AWGHandle.play()
+            print('反馈参数已更新至AWG')
+            self.parent.AWGInfo.N_DFB += 1
+
+            self.parent.EDFA1Handle.Active1(True)  # 打开EDFA
+            self.parent.EDFAInfo.EDFA1active = True
         else:
             msg = Shared.MsgError(self, 'No Instrument!', 'No AWG is connected!')
             msg.exec_()
@@ -1339,29 +1548,67 @@ class Feedback(QtWidgets.QGroupBox):
     def mapping_Fun(self):
         if self.btu_map.isChecked():
             if self.parent.PNAHandle:
-                self.parent.AWGInfo.map=1
+                self.parent.AWGInfo.map = 1
             else:
                 msg = Shared.MsgError(self, 'No Instrument!', 'No PNAN5225A is connected!')
                 msg.exec_()
-                self.btu_map.setCheckable(True)
+                self.btu_map.setChecked(False)
         else:
-            self.parent.AWGInfo.map=0
+            self.parent.AWGInfo.map = 0
+
+    def OC_to_IL(self):
+        # 根据OCoutFill和1%输入泵浦功率估算IL并更新
+        if self.OCoutFill.text():
+            self.parent.AWGInfo.OCoutFill = float(self.OCoutFill.text())
+            IL = float(self.parent.AWGInfo.OnePercentCPFill) + 19.956 - 14.5 - 0.6 - self.parent.AWGInfo.OCoutFill
+            IL_f2 = round(IL, 2)
+            if int(IL_f2) == IL_f2:
+                self.ILFill.setText(str(int(IL_f2)))
+            else:
+                self.ILFill.setText(str(IL_f2))
+
+    def IL_to_OC(self):
+        # 根据IL和1%输入泵浦功率估算OCoutFill并更新
+        if self.ILFill.text():
+            self.parent.AWGInfo.ILFill = float(self.ILFill.text())
+            OCout = float(self.parent.AWGInfo.OnePercentCPFill) + 19.956 - 14.5 - 0.6 - self.parent.AWGInfo.ILFill
+            # self.OCoutFill.setText(str(round(OCout, 2)))
+            OCout_f2 = round(OCout, 2)
+            if int(OCout_f2) == OCout_f2:
+                self.OCoutFill.setText(str(int(OCout_f2)))
+            else:
+                self.OCoutFill.setText(str(OCout_f2))
+
+    def InPower_change(self):
+        # 1%输入泵浦功率改变，更新IL和OCout
+        if self.OnePercentCPFill.text():
+            self.parent.AWGInfo.OnePercentCPFill = self.OnePercentCPFill.text()
+            self.IL_to_OC()
 
     def set_update(self):
         if self.linew.text():
-            self.parent.AWGInfo.gamma_b=float(self.linew.text())      #手动设置线宽
+            self.parent.AWGInfo.gamma_b = float(self.linew.text())  # 手动设置线宽
         if self.bfs.text():
-            self.parent.AWGInfo.bfs=float(self.bfs.text())
+            self.parent.AWGInfo.bfs = float(self.bfs.text())
+        if self.alpha.text():
+            self.parent.AWGInfo.alpha = float(self.alpha.text())
+        if self.ChipNumFill.text():
+            self.parent.AWGInfo.ChipNumFill = self.ChipNumFill.text()
+        if self.SaveDataType.currentText():
+            self.parent.AWGInfo.SaveDataType = self.SaveDataType.currentText()
+        if self.iteration_type.currentText():
+            self.parent.AWGInfo.iteration_type = int(self.iteration_type.currentText())
         if self.smoothindx.text():
-            self.parent.AWGInfo.smooth=int(self.smoothindx.text())
+            self.parent.AWGInfo.smooth = int(self.smoothindx.text())
+        if self.FBnum.text():
+            self.parent.AWGInfo.FB_number = int(self.FBnum.text())
         if self.width_peak.text():
-            self.parent.AWGInfo.width_peak=int(self.width_peak.text())
+            self.parent.AWGInfo.width_peak = int(self.width_peak.text())
             # print(self.parent.AWGInfo.width_peak)
         if self.rel_height.text():
-            self.parent.AWGInfo.rel_height_peak=float(self.rel_height.text())
+            self.parent.AWGInfo.rel_height_peak = float(self.rel_height.text())
         if self.min_base_indx.text():
-            self.parent.AWGInfo.min_base_indx=int(self.min_base_indx.text())
-
+            self.parent.AWGInfo.min_base_indx = int(self.min_base_indx.text())
 
     def search_index(self, f_seq, f_measure):
         # 功能：找到f_seq在f_measure中最接近位置(差的绝对值最小)的索引f_index
@@ -1383,7 +1630,6 @@ class Feedback(QtWidgets.QGroupBox):
                 idx_min = find_idx  # 更新搜索左边界
                 idx_seq = -(idx_seq + 1)
         return f_index
-
 
     def expected_gain(self, f_index, measure_brian, type_filter):
         # 3db带宽范围：fmax - fmin + FWHM（半峰全宽）
@@ -1453,7 +1699,7 @@ class Feedback(QtWidgets.QGroupBox):
                 self.back.clear()
                 self.back.setPlaceholderText('Check PNA!')
 
-    def peak_analysis(self,freq, gain_on_off):
+    def peak_analysis(self, freq, gain_on_off):
         # 函数功能：峰值分析，具体包括通过开关增益计算主峰频率、增益、半高全宽FWHM,基线
         # 输入：测量频率(单位GHz)，开关增益
         # 输出：主峰BFS(默认中心频率15GHz),峰值，FWHM,基线(常数)
@@ -1466,7 +1712,7 @@ class Feedback(QtWidgets.QGroupBox):
 
         prominences = peak_prominences(gain_on_off, peaks)[0]  # 计算峰高
         idx_main_peak = prominences.argmax()  # 找主峰
-        BFS = self.parent.AWGInfo.CFFreq/1e9 - freq[peaks[idx_main_peak]]  # 求BFS(单位GHz)，默认中心频率15GHz
+        BFS = self.parent.AWGInfo.CFFreq / 1e9 - freq[peaks[idx_main_peak]]  # 求BFS(单位GHz)，默认中心频率15GHz
         main_peak_gain = prominences[idx_main_peak]  # 主峰峰值
         baseline = max(gain_on_off[peaks]) - main_peak_gain  # 求基线
 
@@ -1484,27 +1730,38 @@ class Feedback(QtWidgets.QGroupBox):
             if (self.parent.PNAHandle):
                 freq_single_comb, amp_single_comb = self.parent.PNAHandle.pna_acquire(
                     measName=self.parent.PNAInfo.Scale)  # todo:改为本地已存单频泵浦增益数据
-                freq_single_comb = freq_single_comb/1e9  # 单位GHz
+                freq_single_comb = freq_single_comb / 1e9  # 单位GHz
                 amp_single_comb = amp_single_comb - self.parent.AWGInfo.BJ_amp
 
                 amp_single_comb = savgol_filter(amp_single_comb, 301, 3)  # 3阶SG平滑
-                BFS, main_peak_gain, FWHM_main_peak, baseline = self.peak_analysis(freq_single_comb, amp_single_comb)  # 获取峰值分析参数
+                BFS, main_peak_gain, FWHM_main_peak, baseline = self.peak_analysis(freq_single_comb,
+                                                                                   amp_single_comb)  # 获取峰值分析参数
                 self.parent.AWGInfo.bfs = BFS  # SBS平移量单位GHz
-                self.parent.AWGInfo.gamma_b=FWHM_main_peak   # 单频线宽单位MHz
-                self.parent.AWGInfo.baseline=baseline
+                self.parent.AWGInfo.gamma_b = FWHM_main_peak  # 单频线宽单位MHz
+                self.parent.AWGInfo.baseline = baseline
                 self.bfs.clear()
                 self.linew.clear()
-                self.bfs.setPlaceholderText('bfs='+str(round(self.parent.AWGInfo.bfs,1)) + 'GHz')
-                self.linew.setPlaceholderText('线宽='+str(round(self.parent.AWGInfo.gamma_b,1))+'MHz')
+                self.bfs.setPlaceholderText('bfs=' + str(round(self.parent.AWGInfo.bfs, 1)) + 'GHz')
+                self.linew.setPlaceholderText('线宽=' + str(round(self.parent.AWGInfo.gamma_b, 1)) + 'MHz')
             else:
                 self.bfs.clear()
                 self.bfs.setPlaceholderText('Check PNA!')
 
+    def SaveForFB(self):
+        # todo:保存一个相对稳定的开关增益数据，需判断相似性/或设置等待时间
+        if any(self.parent.AWGInfo.freq_FB):
+            self.parent.AWGInfo.saved_freq_FB = np.array(self.parent.AWGInfo.freq_FB)
+            self.parent.AWGInfo.saved_gain_on_off_FB = np.array(self.parent.AWGInfo.gain_on_off_FB)
+            print('SaveForFB done')
+        else:
+            msg = Shared.MsgError(self, 'No Data', 'There is nothing to save...')
+            msg.exec_()
 
     def FB_Function(self, status):
         mod_index = self.modFB.currentIndex()
 
         mod_shape = self.parent.AWGInfo.mod_sel
+        print('mod_shape:', mod_shape)
         if status:
             if (self.parent.testModeAction.isChecked()):
                 self.activeBtu.setCheckable(True)
@@ -1513,58 +1770,87 @@ class Feedback(QtWidgets.QGroupBox):
                 self.activeBtu.setCheckable(True)
                 # mod_index=2,以反馈次数作为收敛量
                 if mod_index == 2:
-                    FB_num = int(self.modFBDispaly.text())
-                    print(FB_num)
+                    # FB_num = int(self.modFBDispaly.text())
+                    FB_num = self.parent.AWGInfo.FB_number  # 反馈次数
+                    print('FB_num = ', FB_num)
+                    print('iteration_type = ', self.parent.AWGInfo.iteration_type)
                     i = 1
                     for _ in range(FB_num):
-                        """当前反馈为实时反馈FB_num次结束，等待时间长且容易卡死
-                        todo：
-                        方案1：改为手动单次反馈
-                        方案2：修改时延函数"""
+                        print('alpha=', self.parent.AWGInfo.alpha)
+                        """用手动保存的离线数据反馈FB_num次
+                            自动关闭EDFA并反馈,再打开EDFA
+                        """
+                        self.parent.EDFA1Handle.Active1(False)  # 关闭EDFA
+                        self.parent.EDFAInfo.EDFA1active = False
+
                         freq_design_seq = self.parent.AWGInfo.f_list
                         print('freq_design_seq', len(freq_design_seq))
                         amp_design_seq = self.parent.AWGInfo.amp_list
-                        freq_measure, amp_measure = self.parent.PNAHandle.pna_acquire(
-                            measName=self.parent.PNAInfo.Scale)
-                        amp_measure = amp_measure - self.parent.AWGInfo.BJ_amp  # 计算开关增益
-                        amp_measure = savgol_filter(amp_measure, 301, 3)  # 单位MHz；300点3阶SG平滑去噪
-                        baseline = peak_analysis(freq=freq_measure / 1e9, gain_on_off=amp_measure)
-                        amp_measure = amp_measure - baseline  # 开关增益减去基线
+                        # 获取已保存的增益谱数据
+                        freq_measure = self.parent.AWGInfo.saved_freq_FB
+                        amp_measure = self.parent.AWGInfo.saved_gain_on_off_FB
+                        # print(freq_measure)
+                        if any(freq_measure):
+                            print('Ready to feedback...')
+                            amp_measure = amp_measure - self.parent.AWGInfo.BJ_amp  # 计算开关增益
+                            amp_measure = savgol_filter(amp_measure, 301, 3)  # 单位MHz；300点3阶SG平滑去噪
+                            baseline = peak_analysis(freq=freq_measure / 1e9, gain_on_off=amp_measure)
+                            amp_measure = amp_measure - baseline  # 开关增益减去基线
+                            measure_max = amp_measure.max()
+                            amp_measure = amp_measure / measure_max  # 最大值归一化
 
-                        f_index = self.search_index(freq_design_seq - self.parent.AWGInfo.bfs * 1e9, freq_measure)  # 搜索时减去BFS
-                        print('f_index',len(f_index))
-                        expected_amp_sam = self.expected_gain(f_index, amp_measure, 'Rectangle')
-                        amp_measure_sam = np.array([amp_measure[j] for j in f_index])  # 最接近频梳频率的采样点增益
-                        print('amp_design_seq', len(amp_design_seq),'expected_amp_sam',len(expected_amp_sam),'amp_measure_sam',len(amp_measure_sam))
-                        amp_design_seq_new = mlt.change_amp_seq(amp_design_seq, expected_amp_sam, amp_measure_sam, 1)
+                            f_index = self.search_index(freq_design_seq - self.parent.AWGInfo.bfs * 1e9,
+                                                        freq_measure)  # 搜索时减去BFS
+                            print('f_index', len(f_index))
+                            expected_amp_sam = self.expected_gain(f_index, amp_measure, mod_shape)
+                            amp_measure_sam = np.array([amp_measure[j] for j in f_index])  # 最接近频梳频率的采样点增益
+                            print('amp_design_seq', len(amp_design_seq), 'expected_amp_sam', len(expected_amp_sam),
+                                  'amp_measure_sam', len(amp_measure_sam))
+                            amp_design_seq_new = mlt.change_amp_seq(amp_design_seq, expected_amp_sam, amp_measure_sam,
+                                                                    self.parent.AWGInfo.iteration_type,
+                                                                    self.parent.AWGInfo.alpha)
+                            amp_design_seq_new = mlt.normalize_amp_seq(amp_design_seq_new, freq_design_seq / 1E6,
+                                                                       self.parent.AWGInfo.phase_list)
 
-                        self.parent.AWGInfo.amp_list = amp_design_seq_new
-                        print('new amp_design_seq =', amp_design_seq_new)
+                            self.parent.AWGInfo.amp_list = amp_design_seq_new
+                            print('new amp_design_seq =', amp_design_seq_new)
 
-                        ys = SBS_DSP.synthesize1(amp_design_seq_new,
-                                                 self.parent.AWGInfo.f_list,
-                                                 self.parent.AWGInfo.ts,
-                                                 self.parent.AWGInfo.phase_list)
-                        self.parent.AWGInfo.ys = ys
-                        wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
-                        self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
-                        # self.parent.AWGHandle.clear_all_wfm()
-                        # wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
-                        #                                            ch=self.parent.AWGInfo.ChannelNum)
-                        # self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
-                        self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
-                                                           ch=self.parent.AWGInfo.ChannelNum)
-                        if self.parent.AWGInfo.AWG_Status:
-                            # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
-                            #                                     channel=self.parent.AWGInfo.ChannelNum)
-                            self.parent.AWGHandle.play()
+                            ys = SBS_DSP.synthesize1(amp_design_seq_new,
+                                                     self.parent.AWGInfo.f_list,
+                                                     self.parent.AWGInfo.ts,
+                                                     self.parent.AWGInfo.phase_list)
+                            self.parent.AWGInfo.ys = ys
+                            wavefile = (ys - min(ys)) / (max(ys) - min(ys)) - 0.5
+                            self.parent.AWGInfo.AWGwave = np.ones(len(wavefile)) * wavefile
+                            # self.parent.AWGHandle.clear_all_wfm()
+                            # wfmID = self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                            #                                            ch=self.parent.AWGInfo.ChannelNum)
+                            # self.parent.AWGHandle.play(wfmID=wfmID, ch=self.parent.AWGInfo.ChannelNum)
+                            print('Connecting AWG...')
+                            self.parent.AWGHandle.download_wfm(wfmData=self.parent.AWGInfo.AWGwave,
+                                                               ch=self.parent.AWGInfo.ChannelNum)
+                            if self.parent.AWGInfo.AWG_Status:
+                                # self.parent.AWGHandle.set_amplitude(amplitude=self.parent.AWGInfo.AWGPower,
+                                #                                     channel=self.parent.AWGInfo.ChannelNum)
+                                self.parent.AWGHandle.play()
+                                print('反馈参数已更新至AWG')
+                                self.parent.AWGInfo.N_MFB += 1
 
-                        self.FBnum.setText(str(i))
-                        # 预留设备设置时间10ms
-                        time.sleep(10)
-                        i += 1
-                    self.FBnum.setText(str(i - 1) + '  Done !!!')
-                    # self.activeBtu.setCheckable(False)
+                            self.FBnum.setText(str(i))
+                            # 预留设备设置时间10ms
+                            time.sleep(10)
+                            i += 1
+
+                            self.parent.EDFA1Handle.Active1(True)  # 打开EDFA
+                            self.parent.EDFAInfo.EDFA1active = True
+
+                            self.FBnum.setText(str(i - 1) + '  Done !!!')
+                            self.activeBtu.setChecked(False)
+                        else:
+                            msg = Shared.MsgError(self, 'No Data', 'Please save data before feedback!')
+                            msg.exec_()
+
+
                 elif mod_index == 1:
                     # 范围在0-1
                     '''
@@ -1575,29 +1861,28 @@ class Feedback(QtWidgets.QGroupBox):
                     '''
                     MES = float(self.modFBDispaly.text())
                     print(MES)
-                    ant_Num=50
-                    freq_measure=[]
-                    amp_measure=[]
+                    ant_Num = 50
+                    freq_measure = []
+                    amp_measure = []
                     for a in range(ant_Num):
-                        freq_measure[a], amp_measure[a]=self.parent.PNAHandle.pna_acquire()
+                        freq_measure[a], amp_measure[a] = self.parent.PNAHandle.pna_acquire()
 
                 else:
                     pass
 
     def switch_mod(self):
         mod_index = self.modFB.currentIndex()
-
-        if mod_index == 1:
-            self.modFBDispaly.clear()
-            self.modFBDispaly.setPlaceholderText('MSE')
-
-        elif mod_index == 2:
-            self.modFBDispaly.clear()
-            self.modFBDispaly.setPlaceholderText('FB_Num.')
+        #
+        # if mod_index == 1:
+        #     self.modFBDispaly.clear()
+        #     self.modFBDispaly.setPlaceholderText('MSE')
+        #
+        # elif mod_index == 2:
+        #     self.modFBDispaly.clear()
+        #     self.modFBDispaly.setPlaceholderText('FB_Num.')
 
     def Manual_Fun(self):
         self.parent.ManualFB_Fun.exec_()
-
 
 
 class VNAMonitor(QtWidgets.QGroupBox):
@@ -1612,46 +1897,198 @@ class VNAMonitor(QtWidgets.QGroupBox):
         self.pgPlot = pg.MultiPlotWidget()
         self.plot_data = self.pgPlot.addPlot(left='RF_Power(dB)', bottom='Freq(Hz)', title='RF_Spectrum')
         self.plot_btn = QtWidgets.QPushButton('Replot', self)
+        self.plot_btn.setCheckable(True)
+        self.plot_btn.setStyleSheet(
+            '''QPushButton:hover{background:yellow;}QPushButton:checked{background:gray;color:white}''')
+        self.export_btn = QtWidgets.QPushButton('Export', self)
+        self.data_name = QtWidgets.QLabel('', self)
+        self.load_btn = QtWidgets.QPushButton('Load data', self)
+        self.load_btn.setCheckable(True)
+        self.load_btn.setStyleSheet(
+            '''QPushButton:hover{background:yellow;}QPushButton:checked{background:gray;color:white}''')
+        self.Band_width_btn = QtWidgets.QPushButton('30MHz-8GHz', self)
+        self.Band_width_btn.setCheckable(True)
+        self.Band_width_btn.setStyleSheet(
+            '''QPushButton:hover{background:yellow;}QPushButton:checked{background:gray;color:white}''')
+        self.center_freq_btu = QtWidgets.QPushButton('0-40GHz', self)
+        self.center_freq_btu.setCheckable(True)
+        self.center_freq_btu.setStyleSheet(
+            '''QPushButton:hover{background:yellow;}QPushButton:checked{background:gray;color:white}''')
+        self.clear_btn = QtWidgets.QPushButton('Clear', self)
+
         self.plot_btn.clicked.connect(self.plot)
+        self.export_btn.clicked.connect(self.export)
+        self.load_btn.clicked.connect(self.load_and_plot)
+        self.Band_width_btn.clicked.connect(self.BandWidth_ctrl)
+        self.center_freq_btu.clicked.connect(self.CenterFreq_ctrl)
+        self.clear_btn.clicked.connect(self.clear_fun)
+
+        self.btn_layout = QtWidgets.QHBoxLayout()
+        self.btn_layout.addWidget(self.plot_btn)
+        self.btn_layout.addWidget(self.clear_btn)
+        # self.btn_layout.addWidget(self.export_btn)
+        self.btn_layout.addWidget(self.load_btn)
+        self.btn_layout.addWidget(self.Band_width_btn)
+        self.btn_layout.addWidget(self.center_freq_btu)
+
+        self.h1_layout = QtWidgets.QHBoxLayout()
+        self.h1_layout.addWidget(self.export_btn)
+        self.h1_layout.addWidget(self.data_name)
+        self.h1_layout.addStretch(1)
 
         self.v_layout = QtWidgets.QVBoxLayout()
+        self.v_layout.addStretch(1)
+        self.v_layout.addLayout(self.h1_layout)
         self.v_layout.addWidget(self.pgPlot)
-        self.v_layout.addWidget(self.plot_btn)
+        self.v_layout.addLayout(self.btn_layout)
+
         self.setLayout(self.v_layout)
+
         # self.data=np.empty()
         # self.timer_start()
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.plot)
-        self.timer.start(1500)
+        self.timer = pg.QtCore.QTimer(self)
+        # self.timer.stop()
+        # self.timer.setInterval(15000)
+        self.timer.start(2000)
+        self.timer.timeout.connect(self.btu_Judge)
+        # self.timer.timeout.connect(self.plot)
+        # self.timer.start(1500)
         # 设置计时间隔并启动(1000ms == 1s)
-        self.map_len=1
+        self.map_len = 1
+        bandwidth_path = r'D:\Documents\5G项目\test for\8G'
+        center_freq_path = r'D:\Documents\5G项目\test for\0-40G'
+        # self.bandwidth_files=glob.glob(os.path.join(bandwidth_path,"*.xlsx"))
+        # self.center_files=glob.glob(os.path.join(center_freq_path,"*.xlsx"))
+        self.bandwidth_files = glob.glob(os.path.join(bandwidth_path, "*.csv"))
+        self.bandwidth_files = sorted(self.bandwidth_files, key=lambda name: int(name.split('\\')[-1][:-4]))
+        self.center_files = glob.glob(os.path.join(center_freq_path, "*.csv"))
+        self.center_files = sorted(self.center_files, key=lambda name: float(name.split('_')[1][2:-1]))
+
+        self.Band_i = 0
+        self.Center_i = 0
+
+    def clear_fun(self):
+        self.plot_data.clear()
+        self.data_name.setText('')
+        self.Band_i = 0
+        self.Center_i = 0
+        self.Band_width_btn.setChecked(False)
+        self.center_freq_btu.setChecked(False)
+        self.plot_btn.setChecked(False)
+
+
+    def load_and_plot(self):
+        self.timer.stop()
+        if self.load_btn.isChecked():
+            self.clear_fun()
+            default_path = r'D:\Documents\5G项目'  # 默认目标文件夹地址
+            input_path, datatype = QtWidgets.QFileDialog.getOpenFileName(self, '选择文件', default_path, 'csv(*.csv)')
+            if input_path == "":
+                print("\n取消选择")
+                return
+            filedir, filename = os.path.split(input_path)
+            print(filedir, filename)
+
+            filename_str = os.path.basename(filename)[:-4]
+            xlabel_str = 'Frequency(Hz)'
+            if 'BW' in filename_str:
+                data_frame = pd.read_csv(input_path, index_col=False, header=0, sep=',')
+                # data_frame[data_frame.columns[0]] = data_frame[data_frame.columns[0]] / 1E9  # 横坐标 Hz -> GHz
+                # xlabel_str = 'Frequency(GHz)'
+            elif 'CF' in filename_str:
+                data_frame = pd.read_csv(input_path, index_col=False, header=0, sep=',')
+                filename_str_split = filename_str.split('_')
+                CF_str = filename_str_split[1]
+                CF = float(CF_str[2:-1])
+                print('CF', CF)
+                # data_frame['freq_list'] = CF - data_frame['freq_list'] / 1E9  # 横坐标转换为BFS(GHz)
+                # xlabel_str = 'BFS(GHz)'
+            else:
+                data_frame = pd.read_csv(input_path, index_col=False, header=None, skiprows=7, skipfooter=1, engine='python')
+                # data_frame[data_frame.columns[0]] = data_frame[data_frame.columns[0]] / 1E9  # 横坐标 Hz -> GHz
+                # xlabel_str = 'Frequency(GHz)'
+
+            data_frame.columns = [xlabel_str] + list(data_frame.columns)[1:-1]+[filename_str]  # 最后一列以文件名命名
+            self.plot_data.plot(data_frame[xlabel_str], data_frame[data_frame.columns[1]], pen='b')
+            self.plot_data.showGrid(x=True, y=True)
+        #   读取后在界面显示文件名(含路径)
+            self.data_name.setText(f'Loading: {input_path[18:]}')
+            self.data_name.adjustSize()
+        else:
+            self.clear_fun()
+            self.plot_btn.setChecked(True)
+            self.timer.start(1500)
+
+    def btu_Judge(self):
+        # todo: debug-8G画图时不能返回PNA，否则无法清空
+        self.timer.stop()
+        if self.plot_btn.isChecked():
+            if self.parent.PNAHandle:
+                self.plot()
+                self.Band_width_btn.setChecked(False)
+                self.center_freq_btu.setChecked(False)
+                self.timer.start(1500)
+
+            elif self.parent.testModeAction.isChecked():
+                self.Band_width_btn.setChecked(False)
+                self.center_freq_btu.setChecked(False)
+                self.plot_data.clear()
+            else:
+                self.plot_data.clear()
+                self.parent.Display=0
+                PNACtrl.setChecked(False)
+                self.parent.PNACtrl.setChecked(False)
+                msg = Shared.MsgError(self, 'No Instrument!', 'PNA-N5225A is not connected!')
+                msg.exec_()
+        elif self.Band_width_btn.isChecked():
+            self.bandfiles_size = np.size(self.bandwidth_files)
+            if self.Band_i == self.bandfiles_size:
+                print(self.bandfiles_size, 'Done')
+                self.Band_width_btn.setChecked(False)
+                self.Band_i = 0
+            else:
+                print(self.Band_i)
+                self.BandWidth_ctrl()
+        elif self.center_freq_btu.isChecked():
+            self.centerfiles_size = np.size(self.center_files)
+            if self.Center_i == self.centerfiles_size:
+                print(self.centerfiles_size, 'Done')
+                self.center_freq_btu.setChecked(False)
+                self.Center_i = 0
+            else:
+                print(self.Center_i)
+                self.plot_data.clear()
+                self.CenterFreq_ctrl()
+        else:
+            self.timer.start(2000)
 
     def timer_start(self):
         if self.parent.PNAHandle:
             # PNACtrl.setChecked(True)
-            PNACtrl.InitialF
-            self.timer = QtCore.QTimer(self)
+            # PNACtrl.InitialF
+            # self.timer = QtCore.QTimer(self)
+            self.timer.start()
             self.timer.timeout.connect(self.plot)
-            self.timer.start(1000)
+            # self.timer.start(1500)
         else:
-            pass
+            self.timer.stop()
 
     def plot(self):
         # self.timer.stop()
         self.plot_data.clear()
         if self.parent.Display == 1:
             freq, result = self.parent.PNAHandle.pna_acquire(measName=self.parent.PNAInfo.Scale)
-            if self.parent.AWGInfo.map*self.map_len==1:
-                if len(result)==len(self.parent.AWGInfo.BJ_amp):
-                    gain_on_off=result-self.parent.AWGInfo.BJ_amp
-                    gain_on_off=savgol_filter(gain_on_off,self.parent.AWGInfo.smooth,3)
-                    self.map_len=1
-                    if self.parent.AWGInfo.min_base_indx==0:
+            if self.parent.AWGInfo.map * self.map_len == 1:
+                if len(result) == len(self.parent.AWGInfo.BJ_amp):
+                    gain_on_off = result - self.parent.AWGInfo.BJ_amp
+                    gain_on_off = savgol_filter(gain_on_off, self.parent.AWGInfo.smooth, 3)
+                    self.map_len = 1
+                    if self.parent.AWGInfo.min_base_indx == 0:
                         baseline = peak_analysis(freq=freq / 1e9, gain_on_off=gain_on_off)
 
-                        gain_on_off_offset=gain_on_off-baseline
+                        gain_on_off_offset = gain_on_off - baseline
                     else:
-                        gain_on_off_offset = gain_on_off-min(gain_on_off)
+                        gain_on_off_offset = gain_on_off - min(gain_on_off)
                     # gain_on_off_offset.tolist()
                 else:
                     msg = Shared.MsgError(self, 'Note!!', '请重新采集背景信号！')
@@ -1660,19 +2097,104 @@ class VNAMonitor(QtWidgets.QGroupBox):
                     # Feedback.btu_map.setChecked(True)
                     gain_on_off_offset = result
             else:
-                gain_on_off_offset=result
+                gain_on_off_offset = result
 
             self.plot_data.plot(freq, gain_on_off_offset, pen='b')
-            self.parent.AWGInfo.freq_FB=freq
-            self.parent.AWGInfo.gain_on_off_FB=gain_on_off_offset
+            self.parent.AWGInfo.freq_FB = freq
+            self.parent.AWGInfo.gain_on_off_FB = gain_on_off_offset
+            self.plot_data.showGrid(x=True, y=True)
             # self.timer.start(1000)
+            # self.timer_start()
         else:
             pass
+
+    def BandWidth_ctrl(self):
+        if self.Band_i == 0:
+            self.plot_data.clear()
+        self.plot_data.showGrid(x=True, y=True)
+        # self.excel_files=pd.read_excel(self.bandwidth_files[self.Band_i])
+        self.excel_files = pd.read_csv(self.bandwidth_files[self.Band_i], index_col=False, header=0, sep=',')
+        xstr = self.excel_files.columns[0]
+        ystr = self.excel_files.columns[1]
+        self.plot_data.plot(self.excel_files[xstr], self.excel_files[ystr], pen='b')
+        self.Band_i += 1
+        # print(self.Band_i)
+
+    def CenterFreq_ctrl(self):
+        self.plot_data.showGrid(x=True, y=True)
+        self.plot_data.setXRange(0, 4e10)
+        # self.excel_files = pd.read_excel(self.center_files[self.Center_i])
+        self.excel_files = pd.read_csv(self.center_files[self.Center_i], index_col=False, header=0, sep=',')
+        xstr = self.excel_files.columns[0]
+        ystr = self.excel_files.columns[1]
+        self.plot_data.plot(self.excel_files[xstr], self.excel_files[ystr], pen='b')
+        self.Center_i += 1
+        # print(self.Center_i)
+
+    # def dynamic_plot(self):
+    #     self.plot_data.setdata(self.excel_files["Freq"], self.excel_files["Power"], pen='b')
+    #     self.timer.stop()
+
+    def export(self):
+        '''[频率，幅值]写入csv '''
+        # todo：把PNA相位也读取保存
+        today_date = datetime.datetime.now().strftime('%Y-%m-%d')
+        default_path = os.path.join(r"D:\Documents\5G项目", today_date, f"{self.parent.AWGInfo.ChipNumFill}")
+        self.mkdir(default_path)
+
+        EDFA1output = self.parent.EDFAInfo.EDFA1power
+        if EDFA1output == -50:
+            if self.parent.EDFAInfo.EDFA1active:
+                EDFA1output = rf'{self.parent.EDFAInfo.EDFA1current}mA'
+            else:
+                EDFA1output = '0mA'
+
+        if self.parent.AWGInfo.BWFreq == 0:  # 此时主要关注单频泵浦增益与耦合功率关系
+            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_EP{EDFA1output}_IL{self.parent.AWGInfo.ILFill}_1IP{self.parent.AWGInfo.OnePercentCPFill}_RS{self.parent.AWGInfo.rand_seed}_'
+        else:  # 此时主要关注带宽扩展情况
+            N_MFB = self.parent.AWGInfo.N_MFB
+            N_DFB = self.parent.AWGInfo.N_DFB
+            default_name = rf'\{self.parent.AWGInfo.SaveDataType}_CF{round(self.parent.AWGInfo.CFFreq / 1E9, 2)}G_BW{round(self.parent.AWGInfo.BWFreq / 1E6, 1)}M_DF{round(self.parent.AWGInfo.DFFreq / 1E6, 1)}M_EP{EDFA1output}_RS{self.parent.AWGInfo.rand_seed}_'
+            if N_MFB != 0:
+                default_name += rf'MFB{N_MFB}_'
+            if N_DFB != 0:
+                default_name += rf'DFB{N_DFB}_'
+        count_same_name = len(glob.glob(rf'{default_path}{default_name}*'))
+        self.filepath, type = QtWidgets.QFileDialog.getSaveFileName(self, "文件保存",
+                                                                    default_path + default_name + str(count_same_name),
+                                                                    'csv(*.csv)')  # 前面是地址，后面是文件类型,得到输入地址的文件名和地址txt(*.txt*.xls);;image(*.png)不同类别
+        if self.filepath == "":
+            print("\n取消选择")
+            return
+        PNA_monitor_lists = pd.DataFrame(
+            {'freq_list': self.parent.AWGInfo.freq_FB, 'amp_list': self.parent.AWGInfo.gain_on_off_FB})
+        PNA_monitor_lists.to_csv(self.filepath, index=False, sep=',')  # 将DataFrame存储为csv,index表示是否显示行名，default=True
+        if self.parent.AWGInfo.BWFreq != 0:  # 顺便保存当前带宽扩展下的pump设计值
+            pump_lists_designed = pd.DataFrame(
+                {'freq_list_designed': self.parent.AWGInfo.f_list, 'amp_list_designed': self.parent.AWGInfo.amp_list,
+                 'phase_list_designed': self.parent.AWGInfo.phase_list})
+            dir1, filename = os.path.split(self.filepath)
+            pump_lists_designed.to_csv(os.path.join(dir1, f'setting_{filename}'), index=False,
+                                       sep=',')  # 将DataFrame存储为csv,index表示是否显示行名，default=True
+
+    def mkdir(self, path):
+        isExists = os.path.exists(path)
+        if not isExists:
+            # 如果不存在则创建目录
+            # 创建目录操作函数
+            os.makedirs(path)
+            print(path + ' 创建成功')
+            return True
+        else:
+            # 如果目录存在则不创建，并提示目录已存在
+            print(path + ' 目录已存在')
+            return False
 
     def off(self):
         self.pgPlot.clearMouse()
 
-def peak_analysis(freq,gain_on_off):
+
+def peak_analysis(freq, gain_on_off):
     # 函数功能：峰值分析，具体包括通过开关增益计算主峰频率、增益、半高全宽FWHM,基线
     # 输入：测量频率(单位GHz)，开关增益
     # 输出：主峰BFS(默认中心频率15GHz),峰值，FWHM,基线(常数)
@@ -1681,19 +2203,23 @@ def peak_analysis(freq,gain_on_off):
     # peaks, _ = find_peaks(gain_on_off, width, rel_height)  # 寻峰
     gain_on_off = np.array(gain_on_off)
     max_peak = np.max(gain_on_off)
-    peaks, _ = find_peaks(gain_on_off, height=[max_peak-1,max_peak])  # 寻峰
+    peaks, _ = find_peaks(gain_on_off, height=[max_peak - 1, max_peak])  # 寻峰
 
     prominences = np.array(peak_prominences(gain_on_off, peaks)[0])  # 计算峰高
-    idx_main_peak = prominences.argmax()  # 找主峰
-    # BFS = 15 - freq[peaks[idx_main_peak]]  # 求BFS(单位GHz)，默认中心频率15GHz 可将15GHz换为输入变量
-    main_peak_gain = prominences[idx_main_peak]  # 主峰峰值
-    baseline = max(gain_on_off[peaks]) - main_peak_gain  # 求基线
+    baseline = 0
+    if any(prominences):
+        idx_main_peak = prominences.argmax()  # 找主峰
+
+        # BFS = 15 - freq[peaks[idx_main_peak]]  # 求BFS(单位GHz)，默认中心频率15GHz 可将15GHz换为输入变量
+        main_peak_gain = prominences[idx_main_peak]  # 主峰峰值
+        baseline = max(gain_on_off[peaks]) - main_peak_gain  # 求基线
 
     # results_half = peak_widths(gain_on_off, peaks, rel_height=0.5)  # tuple{0：宽度;1：高度;2:xmin;3:xmax}
     # FWHM_main_peak = results_half[0][idx_main_peak]*1e3*f_resolution  # 主峰半高全宽(单位MHz)
 
     # return BFS, main_peak_gain, FWHM_main_peak, baseline
     return baseline
+
 
 def df_feedback(freq_design_seq, freq, gain_offset, BFS, FWHM):
     # 功能：通过左右区间积分，在自然线宽范围内微调梳齿频率间隔（待验证）

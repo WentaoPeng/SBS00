@@ -38,9 +38,10 @@ class AWGInfo():
     def __init__(self):
         self.instName = 'AWG M9502A'
         self.ChannelNum = 1
-        self.CFFreq = 10 * 10 ** 9
-        self.BWFreq = 200 * 10 ** 6
+        self.CFFreq = 15 * 10 ** 9
+        self.BWFreq = 0 * 10 ** 6
         self.DFFreq = 10 * 10 ** 6
+        self.N_AWG = int(64e9)  # 采样率Ga/s
         self.AWG_Status = False
         self.mod_index = 0
         self.mod_sel = ''
@@ -66,14 +67,28 @@ class AWGInfo():
         self.BJ_freq=[]     #背景
         self.BJ_amp=[]
         self.bfs=0          #GHz
+        self.alpha=1  # 反馈因子
         self.map=0
         self.baseline=[]
         self.freq_FB=[]
         self.gain_on_off_FB=[]
-        self.smooth=301
-        self.width_peak=500
+        # 保存当前增益谱用于反馈
+        self.saved_freq_FB = []
+        self.saved_gain_on_off_FB = []
+
+        self.FB_number = 1  # 默认反馈1次
+        self.N_MFB = 9  # 统计幅值反馈次数
+        self.N_DFB = 9  # 统计频率反馈次数
+        self.smooth = 45
+        self.width_peak = 500
         self.rel_height_peak=0.1
         self.min_base_indx=0
+        self.ChipNumFill = 'chip1-1'  # 当日测试芯片编号
+        self.ILFill = '0'  # 该芯片编号的插损
+        self.OCoutFill = '0'  # 光环形器监控泵浦从波导输出
+        self.OnePercentCPFill = '0'  # 该芯片编号1%入射泵浦光功率(未减插损)
+        self.SaveDataType = 'org'  # 采集数据类型
+        self.iteration_type = 1  # 反馈公式
 
     def full_info_query(self, AWGHandle):
         '''采集设备信息'''
@@ -154,6 +169,9 @@ class EDFAInfo():
         self.instInterfaceNum = 0
         self.EDFA1power = 0
         self.EDFA2power = 0
+        self.EDFA1current = 0
+        self.EDFA2current = 0
+        self.EDFA1active = False
 
     def full_info_query(self, EDFA1Handle):
         if EDFA1Handle:
